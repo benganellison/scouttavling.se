@@ -8,23 +8,23 @@ Patrol competitions for scouts: registration, stations, scoring in the forest (o
 
 ## Se det i aktion
 
-All data in the recordings is invented. They come from the automated UAT (`apps/web/e2e/uat.e2e.ts`).
+Recorded at a calm pace, with captions explaining each step. All data is invented. They come from `apps/web/e2e/demo.e2e.ts`.
 
 **Funktionären på kontrollen, även utan täckning.** Join via QR, score, undo, two patrols scored offline, then everything syncs.
 
-https://github.com/user-attachments/assets/5f3684c1-f9ed-4cc9-aabd-84fafcbf82bb
+https://github.com/user-attachments/assets/11ee2305-7298-44aa-83a7-8e9b77ba16d7
 
 **Ledningscentralen live.** The volunteer saves a score and HQ sees it without reloading. HQ then corrects a score with a reason and sends a message that pops up on the phone.
 
-https://github.com/user-attachments/assets/0467640c-c097-43d7-8980-3f5344b126ad
+https://github.com/user-attachments/assets/b69afc28-108f-4732-a509-b2fb63ef79b8
 
 **Mål med flera delar.** One scan, all parts on one screen: finish registration, nödbrev, händighet and orientering.
 
-https://github.com/user-attachments/assets/0f7046d2-4669-4db6-a80d-0e5dca39e7c4
+https://github.com/user-attachments/assets/28d053a1-cfda-4d18-ac75-9337ac2af1c7
 
 **Prisutdelning på storbild.** Places are revealed one at a time; tied patrols share a place.
 
-https://github.com/user-attachments/assets/0de4502b-7002-4a0d-9f36-b219a4d3b904
+https://github.com/user-attachments/assets/d5ef39a2-dc63-46d5-ac7a-4fde5c8b7f56
 
 <!--
 The videos are GitHub user-attachments (not stored in git). To refresh them after UI changes,

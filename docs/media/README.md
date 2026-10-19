@@ -3,32 +3,32 @@
 | File | What | Where it lives |
 |---|---|---|
 | `poang-pa-kontroll.gif` | Score entry on a phone (~5 s loop, 300 px wide) | Committed here |
-| `01-funktionar-offline.mp4` … `04-prisutdelning.mp4` | Highlight clips (10–18 s, < 600 KB) | **Not in git.** Uploaded as GitHub user-attachments (2026-10-19) and linked from the root README |
+| `01-funktionar-offline.mp4` … `04-prisutdelning.mp4` | Captioned demo clips (27–82 s, ≤ 522 KB each) | **Not in git.** Uploaded as GitHub user-attachments (2026-10-19) and linked from the root README |
 
 All data shown is invented (seed data and UAT fixtures).
 
 ## Re-creating the media after UI changes
 
-1. Run the UAT to get fresh raw recordings in `apps/web/e2e/uat/videos/` (see the header of `apps/web/e2e/uat.e2e.ts`).
-2. Cut the highlights with ffmpeg in Docker. Run from `apps/web/e2e/uat/videos/`; output goes to `highlights/`, which is gitignored:
+The README clips come from a dedicated **demo** spec, not the UAT. It runs at human pace, shows an orange ring for every tap, and logs a Swedish caption for each step. Captions are burned into a band **below** the screen, so they never cover the UI.
 
-```sh
-FF="docker run --rm -v $PWD:/v -w /v linuxserver/ffmpeg:9.0.2 -v error -y"
-ENC="-c:v libx264 -preset slow -crf 26 -pix_fmt yuv420p -movflags +faststart -an"
-mkdir -p highlights
-# 1. volunteer offline: skip the first 2 s, play at 1.5×
-$FF -ss 2 -i 02-volunteer-offline.webm -vf "setpts=PTS/1.5,fps=30" $ENC highlights/01-funktionar-offline.mp4
-# 2. HQ + phone side by side. The phone recording starts ~5.5 s after HQ's; these offsets line them up
-$FF -ss 5 -i 05-hq-live.webm -ss 0.6 -i 05-hq-live-volunteer.webm -filter_complex \
-  "[0:v]scale=-2:844,setsar=1[hq];[1:v]setsar=1[ph];[hq][ph]hstack=inputs=2:shortest=1,setpts=PTS/1.25,fps=30,pad=ceil(iw/2)*2:ceil(ih/2)*2[out]" \
-  -map "[out]" $ENC highlights/02-ledningscentral-live.mp4
-# 3. Mål, as recorded
-$FF -i 03-mal-station.webm -vf fps=30 $ENC highlights/03-mal-alla-delar.mp4
-# 4. ceremony: the reveal part only
-$FF -ss 5.5 -t 10.5 -i 06-results-ceremony.webm -vf "scale=1280:-2,fps=30" $ENC highlights/04-prisutdelning.mp4
-```
+1. Record (from `apps/web`):
 
-3. The GIF (run from the repo root):
+   ```sh
+   npm run db:reset && ORIGIN=http://localhost:5210 npx vite build
+   PORT=5210 ORIGIN=http://localhost:5210 DEV_LOGIN=1 GRANT_SIGNING_KEY="$(cat .dev-grant-key.pem)" \
+     node --env-file=.env build/index.js > .uat-server.log 2>&1 & echo $! > .uat-server.pid
+   npx playwright test -c e2e/demo.config.ts        # ~4 min; raw videos + captions.json in e2e/demo-results/
+   kill $(cat .uat-server.pid)
+   ```
+
+2. Cut: `node scripts/demo-cut.ts` (needs Docker, uses `linuxserver/ffmpeg:9.0.2`). It writes `e2e/demo-results/final/*.mp4`:
+   - 15 fps H.264 with the captions in a band below the screen;
+   - clip 2 puts HQ and the phone side by side, each with its own captions;
+   - **size guard:** each clip is re-encoded with stronger compression until it is no larger than its byte budget in `scripts/demo-cut.ts` (the sizes of the clips currently in the README), so the videos never grow. Raise a budget deliberately if a clip really needs it.
+
+   To change what is shown or said, edit the `say(…)` captions and steps in `e2e/demo.e2e.ts`. Each caption stays up for ≈ 1.2 s + 55 ms per character.
+
+3. The GIF (still cut from the UAT recording, run from the repo root):
 
 ```sh
 docker run --rm -v $PWD:/r -w /r linuxserver/ffmpeg:9.0.2 -v error -y -ss 14.4 -t 4.0 \
@@ -45,7 +45,7 @@ The timestamps (`-ss`, `-t`) fit the current UAT pacing. If the UAT steps change
 
    ```sh
    REPO_ID=$(gh api repos/benganellison/scouttavling.se --jq .id)
-   for f in apps/web/e2e/uat/videos/highlights/*.mp4; do
+   for f in apps/web/e2e/demo-results/final/*.mp4; do
      name=$(basename "$f")
      # token passed on stdin so it never shows up in the process list
      printf 'header = "Authorization: Bearer %s"\n' "$(gh auth token)" | curl -sS --config - -X POST \
