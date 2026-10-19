@@ -1,0 +1,118 @@
+# Checks every pull request (and main): types, unit tests, migrations, the full
+# UAT on a production build, and that the container image builds.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 24.22.0
+
+jobs:
+  check:
+    name: Types & unit tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: svelte-check
+        working-directory: apps/web
+        run: |
+          cp .env.example .env
+          npx svelte-kit sync
+          npx svelte-check --tsconfig ./tsconfig.json --threshold error
+      - name: Unit tests
+        run: npx vitest run
+      - name: Migrations are in sync with the schema
+        working-directory: apps/web
+        run: |
+          npx drizzle-kit generate --name=ci-drift-check
+          if [ -n "$(git status --porcelain drizzle)" ]; then
+            echo "::error::schema.ts has changes without a migration. Run 'npm run db:generate -w apps/web' and commit the SQL."
+            git status --porcelain drizzle
+            exit 1
+          fi
+
+  uat:
+    name: UAT (Playwright, production build)
+    runs-on: ubuntu-24.04
+    needs: check
+    services:
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_USER: scout
+          POSTGRES_PASSWORD: scout
+          POSTGRES_DB: scouttavling
+        ports: ['5544:5432']
+        options: >-
+          --health-cmd "pg_isready -U scout -d scouttavling"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+        working-directory: .
+      - run: npx playwright install --with-deps chromium
+      - name: Prepare env, migrate and seed
+        run: |
+          cp .env.example .env
+          sed -i 's/^DEV_LOGIN=.*/DEV_LOGIN="1"/' .env
+          npm run db:migrate
+          npm run db:seed
+      - name: Build (production, ORIGIN baked in)
+        run: ORIGIN=http://localhost:5210 npx vite build
+      - name: Start production server
+        run: |
+          GRANT_SIGNING_KEY="$(node scripts/gen-grant-key.ts | sed -E 's/^GRANT_SIGNING_KEY="(.*)"$/\1/')"
+          export GRANT_SIGNING_KEY
+          PORT=5210 ORIGIN=http://localhost:5210 DEV_LOGIN=1 nohup node --env-file=.env build/index.js > .uat-server.log 2>&1 &
+          for _ in $(seq 1 30); do curl -sf http://localhost:5210/healthz && break; sleep 1; done
+      - name: Run UAT
+        run: npx playwright test -c e2e/uat.config.ts
+      - name: Upload screenshots, videos and traces
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: uat-${{ github.run_id }}
+          path: |
+            apps/web/e2e/uat/*.png
+            apps/web/e2e/uat/*.pdf
+            apps/web/e2e/uat-results/
+            apps/web/.uat-server.log
+          retention-days: 14
+          if-no-files-found: ignore
+
+  docker:
+    name: Container image builds
+    runs-on: ubuntu-24.04
+    needs: check
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: docker/setup-buildx-action@v4.4.1
+      - uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          push: false
+          build-args: ORIGIN=https://ci.invalid
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
