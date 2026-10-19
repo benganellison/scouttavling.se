@@ -3,7 +3,7 @@
 | File | What | Where it lives |
 |---|---|---|
 | `poang-pa-kontroll.gif` | Score entry on a phone (~5 s loop, 300 px wide) | Committed here |
-| `01-funktionar-offline.mp4` … `04-prisutdelning.mp4` | Highlight clips | **Not in git.** Uploaded to GitHub as user attachments and linked from the README |
+| `01-funktionar-offline.mp4` … `04-prisutdelning.mp4` | Highlight clips (10–18 s, < 600 KB) | **Not in git.** Uploaded as GitHub user-attachments (2026-10-19) and linked from the root README |
 
 All data shown is invented (seed data and UAT fixtures).
 
@@ -39,4 +39,22 @@ docker run --rm -v $PWD:/r -w /r linuxserver/ffmpeg:9.0.2 -v error -y -ss 14.4 -
 
 The timestamps (`-ss`, `-t`) fit the current UAT pacing. If the UAT steps change, check the new timing by making a contact sheet (`-vf "fps=1,scale=150:-1,tile=10x3" -frames:v 1 sheet.png`), then adjust.
 
-4. Upload the new MP4s on GitHub and replace the links in the README (see the comment there). Keep the GIF under ~1 MB.
+4. Upload the new MP4s and swap the URLs in the root README. Keep the GIF under ~1 MB.
+
+   **From the command line** (uses your `gh` login; you need push access to the repo). This goes through GitHub's undocumented `user-attachments` endpoint, the same one the web editor uses, so it may change without notice:
+
+   ```sh
+   REPO_ID=$(gh api repos/benganellison/scouttavling.se --jq .id)
+   for f in apps/web/e2e/uat/videos/highlights/*.mp4; do
+     name=$(basename "$f")
+     # token passed on stdin so it never shows up in the process list
+     printf 'header = "Authorization: Bearer %s"\n' "$(gh auth token)" | curl -sS --config - -X POST \
+       "https://uploads.github.com/user-attachments/assets?name=$name&content_type=video%2Fmp4&repository_id=$REPO_ID" \
+       -H "Accept: application/json" -H "Content-Type: video/mp4" --data-binary @"$f"
+     echo
+   done
+   ```
+
+   Each call answers `201` with `{"url":"https://github.com/user-attachments/assets/<id>", …}`. Put each URL alone on its own line in the README; GitHub renders it as an inline player.
+
+   **Or by hand:** edit the README on github.com and drag the files into the editor. GitHub inserts the same kind of URL. Limit: 10 MB per file.

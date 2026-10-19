@@ -12,27 +12,23 @@ All data in the recordings is invented. They come from the automated UAT (`apps/
 
 **Funktionären på kontrollen, även utan täckning.** Join via QR, score, undo, two patrols scored offline, then everything syncs.
 
-VIDEO_01_FUNKTIONAR_OFFLINE
+https://github.com/user-attachments/assets/5f3684c1-f9ed-4cc9-aabd-84fafcbf82bb
 
 **Ledningscentralen live.** The volunteer saves a score and HQ sees it without reloading. HQ then corrects a score with a reason and sends a message that pops up on the phone.
 
-VIDEO_02_LEDNINGSCENTRAL_LIVE
+https://github.com/user-attachments/assets/0467640c-c097-43d7-8980-3f5344b126ad
 
 **Mål med flera delar.** One scan, all parts on one screen: finish registration, nödbrev, händighet and orientering.
 
-VIDEO_03_MAL_ALLA_DELAR
+https://github.com/user-attachments/assets/0f7046d2-4669-4db6-a80d-0e5dca39e7c4
 
 **Prisutdelning på storbild.** Places are revealed one at a time; tied patrols share a place.
 
-VIDEO_04_PRISUTDELNING
+https://github.com/user-attachments/assets/0de4502b-7002-4a0d-9f36-b219a4d3b904
 
 <!--
-How to replace the VIDEO_… placeholders (GitHub only plays videos uploaded through its web UI):
-1. Edit this README on github.com (pencil icon) or open any issue/PR comment box.
-2. Drag the file into the editor: apps/web/e2e/uat/videos/highlights/01-funktionar-offline.mp4 etc.
-3. GitHub inserts https://github.com/user-attachments/assets/<id>. Put that URL alone on the
-   placeholder's line; it renders as an inline player. Limit: 10 MB per file (ours are < 1 MB).
-Re-recording: run the UAT, then re-cut the highlights as described in docs/media/README.md.
+The videos are GitHub user-attachments (not stored in git). To refresh them after UI changes,
+re-cut the clips and upload them as described in docs/media/README.md, then swap the URLs above.
 -->
 
 ## About
