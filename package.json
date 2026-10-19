@@ -1,0 +1,28 @@
+{
+  "name": "scouttavling",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "npm run dev -w apps/web",
+    "build": "npm run build -w apps/web",
+    "test": "vitest run",
+    "check": "npm run check -w apps/web",
+    "db:up": "docker compose -f compose.dev.yaml up -d",
+    "db:down": "docker compose -f compose.dev.yaml down",
+    "db:push": "npm run db:push -w apps/web",
+    "db:seed": "npm run db:seed -w apps/web",
+    "e2e": "npm run e2e -w apps/web"
+  },
+  "devDependencies": {
+    "fast-check": "4.10.2",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

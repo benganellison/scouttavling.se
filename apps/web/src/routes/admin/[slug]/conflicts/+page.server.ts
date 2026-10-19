@@ -1,0 +1,88 @@
+import { fail } from '@sveltejs/kit';
+import { and, asc, eq } from 'drizzle-orm';
+import { requireCompetition } from '#lib/server/auth.ts';
+import { db, schema } from '#lib/server/db/index.ts';
+import { recordChange } from '#lib/server/changes.ts';
+import { writeScore } from '#lib/server/scores.ts';
+import { formatTime, loadStations } from '#lib/server/live.ts';
+
+interface Side {
+	points?: number;
+	stylePoints?: number;
+	version?: number;
+	state?: string;
+	origin?: string;
+	deviceId?: string | null;
+	raw?: { value: number; style: number | null };
+	reason?: string;
+}
+
+export async function load(event) {
+	const { comp } = await requireCompetition(event, event.params.slug);
+	event.depends(`live:${comp.slug}`);
+	const [rows, stations, devices] = await Promise.all([
+		db
+			.select({ c: schema.scoreConflict, patrolNumber: schema.patrol.number, patrolName: schema.patrol.name })
+			.from(schema.scoreConflict)
+			.innerJoin(schema.patrol, eq(schema.patrol.id, schema.scoreConflict.patrolId))
+			.where(and(eq(schema.scoreConflict.competitionId, comp.id), eq(schema.scoreConflict.status, 'open')))
+			.orderBy(asc(schema.scoreConflict.createdAt)),
+		loadStations(comp.id),
+		db.select({ id: schema.device.id, name: schema.device.displayName }).from(schema.device).where(eq(schema.device.competitionId, comp.id))
+	]);
+	const devName = new Map(devices.map((d) => [d.id, d.name]));
+	const where = new Map(stations.flatMap((s) => s.items.map((i) => [i.id, s.items.length > 1 ? `${s.code} ${s.name} · ${i.name}` : `${s.code} ${s.name}`] as const)));
+	const side = (x: Side) => ({
+		points: x.points ?? null, stylePoints: x.stylePoints ?? 0, state: x.state ?? 'active', origin: x.origin ?? null,
+		device: x.deviceId ? (devName.get(x.deviceId) ?? 'okänd enhet') : null, reason: x.reason ?? null
+	});
+	return {
+		comp: { slug: comp.slug, name: comp.name },
+		conflicts: rows.map(({ c, patrolNumber, patrolName }) => ({
+			id: c.id, kind: c.kind, time: formatTime(c.createdAt), patrol: `${patrolNumber} ${patrolName}`, patrolNumber,
+			where: where.get(c.itemId) ?? 'Okänd kontroll', existing: side(c.existing as Side), incoming: side(c.incoming as Side)
+		}))
+	};
+}
+
+async function openConflict(competitionId: string, id: string) {
+	const [c] = await db
+		.select()
+		.from(schema.scoreConflict)
+		.where(and(eq(schema.scoreConflict.id, id), eq(schema.scoreConflict.competitionId, competitionId), eq(schema.scoreConflict.status, 'open')))
+		.limit(1);
+	return c ?? null;
+}
+
+async function markResolved(competitionId: string, id: string) {
+	await db.transaction(async (tx) => {
+		await tx.update(schema.scoreConflict).set({ status: 'resolved' }).where(eq(schema.scoreConflict.id, id));
+		await recordChange(tx, competitionId, 'conflict', id);
+	});
+}
+
+export const actions = {
+	keep: async (event) => {
+		const { comp } = await requireCompetition(event, event.params.slug);
+		const id = String((await event.request.formData()).get('id') ?? '');
+		const c = await openConflict(comp.id, id);
+		if (!c) return fail(404, { message: 'Konflikten är redan löst' });
+		await markResolved(comp.id, id);
+		return { message: 'Befintlig poäng behölls.' };
+	},
+	useNew: async (event) => {
+		const { comp, user } = await requireCompetition(event, event.params.slug);
+		const id = String((await event.request.formData()).get('id') ?? '');
+		const c = await openConflict(comp.id, id);
+		if (!c) return fail(404, { message: 'Konflikten är redan löst' });
+		const inc = c.incoming as Side;
+		const raw = inc.raw ?? { value: inc.points ?? 0, style: inc.stylePoints ?? null };
+		const res = await writeScore({
+			competitionId: comp.id, patrolId: c.patrolId, itemId: c.itemId, raw, baseVersion: null, origin: 'admin', userId: user.id,
+			deviceId: null, reason: 'Konflikt löst: ny rapport används', force: true
+		});
+		if (res.result === 'rejected') return fail(400, { message: `Kunde inte spara: ${res.reason}` });
+		await markResolved(comp.id, id);
+		return { message: 'Den nya poängen används.' };
+	}
+};

@@ -1,0 +1,22 @@
+# Participant exports and spreadsheets — may contain personal data (personnummer, addresses).
+# Never commit these; import them through the app instead.
+*.xls
+*.xlsx
+*.csv
+*.ods
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output
+node_modules/
+.svelte-kit/
+build/
+*.pem
+
+# Generated test artefacts (reproducible: npx playwright test -c e2e/uat.config.ts)
+apps/web/e2e/screenshots/
+apps/web/e2e/uat/*.png
+apps/web/e2e/uat/*.pdf
