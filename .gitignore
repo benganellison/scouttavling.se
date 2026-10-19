@@ -20,3 +20,5 @@ build/
 apps/web/e2e/screenshots/
 apps/web/e2e/uat/*.png
 apps/web/e2e/uat/*.pdf
+apps/web/e2e/lifecycle/*.png
+apps/web/e2e/lifecycle/*.pdf
