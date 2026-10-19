@@ -340,7 +340,7 @@
 			</div>
 
 			<div class="preview">
-				<PhonePreview {code} {name} item={previewItem} checkpoint={items.some((i) => i.mode === 'CHECKIN')} count={items.length} />
+				<PhonePreview {code} {name} item={previewItem} checkpoint={items.some((i) => i.mode === 'CHECKIN')} count={items.length} index={items.findIndex((i) => scorable(i.mode)) + 1} />
 			</div>
 		</div>
 

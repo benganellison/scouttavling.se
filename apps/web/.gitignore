@@ -36,3 +36,5 @@ e2e/uat/videos/
 .uat-server.log
 .db-backups/
 e2e/demo-results/
+e2e/lifecycle-results/
+e2e/lifecycle/videos/

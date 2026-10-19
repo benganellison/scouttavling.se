@@ -5,7 +5,7 @@
 	 */
 	import { selectableValues, styleValues, type ScoreItemDef } from '@scouttavling/domain';
 
-	let { code, name, item, checkpoint, count }: { code: string; name: string; item: ScoreItemDef | null; checkpoint: boolean; count: number } = $props();
+	let { code, name, item, checkpoint, count, index = 1 }: { code: string; name: string; item: ScoreItemDef | null; checkpoint: boolean; count: number; index?: number } = $props();
 
 	const values = $derived(item ? selectableValues(item) : []);
 	const style = $derived(item ? styleValues(item) : []);
@@ -19,7 +19,7 @@
 	<div class="phone" aria-hidden="true">
 		<span class="title">{code} · {name || 'Namnlös'}</span>
 		{#if item}
-			<span class="sub">{item.name}{count > 1 ? ` · del 1 av ${count}` : ''}</span>
+			<span class="sub">{item.name}{count > 1 ? ` · del ${index} av ${count}` : ''}</span>
 			<span class="h">{item.mode === 'COUNT' ? `Antal (× ${item.countMultiplier ?? 1} poäng)` : 'Poäng'}</span>
 			<div class="grid" style="grid-template-columns: repeat({cols}, minmax(0, 1fr))">
 				{#each values as v (v)}

@@ -444,6 +444,8 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 			return { stationId, patrolOk: !!p };
 		},
 		async apply(body) {
+			// The overview promises "Resultaten är låsta för funktionärer" once the competition is closed.
+			if (comp.status === 'closed') return { commandId: body.commandId, result: 'rejected', reason: 'Tävlingen är avslutad. Kontakta tävlingsledningen.' };
 			if (body.type === 'SetStatus') return setStatus(ctx, body);
 			const base = {
 				competitionId: comp.id, patrolId: body.payload.patrolId, itemId: body.payload.itemId, baseVersion: body.baseVersion,
