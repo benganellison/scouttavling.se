@@ -20,7 +20,8 @@ Read this first. Architecture: `docs/architecture/` (01-overview.md is binding).
 
 ## Running things
 - DB: PostgreSQL 18.6 **in Docker**: `docker compose -f compose.dev.yaml up -d` (port 5544). `.env` in `apps/web` is already set.
-- Schema changes: additive edits to `apps/web/src/lib/server/db/schema.ts`, then **`cd apps/web && npm run db:reset`** (drops and recreates the dev schema, applies `scripts/db-extras.sql` triggers, re-seeds). Plain `drizzle-kit push` stalls on an interactive prompt in non-TTY shells, so don't use it.
+- Schema changes (**versioned migrations**): edit `apps/web/src/lib/server/db/schema.ts`, then `cd apps/web && npm run db:generate` to write a new SQL file in `apps/web/drizzle/`. Review it and commit it with the schema change; CI fails if the schema and migrations drift apart. Apply it with `npm run db:migrate`, or start fresh with `npm run db:reset` (drop schema → migrate → seed). Hand-written SQL such as triggers goes in a custom migration (`npx drizzle-kit generate --custom --name=<what>`). Never use `drizzle-kit push`.
+- Migrations must stay **backward compatible for one release** (expand → migrate data → contract in a later release), because a new release's migration runs while the previous app version is still serving.
 - `change_log.seq` is **per competition** and assigned by a DB trigger. Never set it yourself; always filter by `competition_id`.
 - Demo data: `cd apps/web && npm run db:seed`. It wipes and recreates `gokopen-2027` (single day, 14 stations including "Mål" with 4 items, 14 patrols, some scores, a tie between 112 and 137) and `gokhajk-2027` (3 days, F/L/S codes).
 - Dev server: **use your own port** with `PORT=<your port> scripts/dev-server.sh start|stop` (run in `apps/web`). Never `pkill -f vite`: it kills other agents' servers. The log is `.dev-server-<port>.log`.
