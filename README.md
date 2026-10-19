@@ -2,6 +2,41 @@
 
 Patrol competitions for scouts: registration, stations, scoring in the forest (offline), live HQ, results and the prize ceremony. A rebuild of [gokapp](https://github.com/erydberg/gokapp).
 
+<p align="center">
+  <img src="docs/media/poang-pa-kontroll.gif" width="300" alt="En funktionär knappar in patrull 108, sätter 12 + 4 poäng och sparar. Poängen sparas i telefonen och väntar på täckning.">
+</p>
+
+## Se det i aktion
+
+All data in the recordings is invented. They come from the automated UAT (`apps/web/e2e/uat.e2e.ts`).
+
+**Funktionären på kontrollen, även utan täckning.** Join via QR, score, undo, two patrols scored offline, then everything syncs.
+
+VIDEO_01_FUNKTIONAR_OFFLINE
+
+**Ledningscentralen live.** The volunteer saves a score and HQ sees it without reloading. HQ then corrects a score with a reason and sends a message that pops up on the phone.
+
+VIDEO_02_LEDNINGSCENTRAL_LIVE
+
+**Mål med flera delar.** One scan, all parts on one screen: finish registration, nödbrev, händighet and orientering.
+
+VIDEO_03_MAL_ALLA_DELAR
+
+**Prisutdelning på storbild.** Places are revealed one at a time; tied patrols share a place.
+
+VIDEO_04_PRISUTDELNING
+
+<!--
+How to replace the VIDEO_… placeholders (GitHub only plays videos uploaded through its web UI):
+1. Edit this README on github.com (pencil icon) or open any issue/PR comment box.
+2. Drag the file into the editor: apps/web/e2e/uat/videos/highlights/01-funktionar-offline.mp4 etc.
+3. GitHub inserts https://github.com/user-attachments/assets/<id>. Put that URL alone on the
+   placeholder's line; it renders as an inline player. Limit: 10 MB per file (ours are < 1 MB).
+Re-recording: run the UAT, then re-cut the highlights as described in docs/media/README.md.
+-->
+
+## About
+
 - Architecture: [`docs/architecture/`](docs/architecture/README.md). Start with 01-overview.md.
 - Developer handbook: [`docs/dev/TEAM.md`](docs/dev/TEAM.md)
 - Stack: SvelteKit 3 + Svelte 5 (TypeScript 6), PostgreSQL 18, Drizzle, Node 24 LTS.
