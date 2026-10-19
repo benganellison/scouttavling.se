@@ -41,14 +41,36 @@ services:
       timeout: 3s
       retries: 20
 
+  # Never migrate without a fresh dump: this one-shot service must succeed first.
+  # Dumps land in the `backups` volume (docs/dev/MIGRATIONS.md §10).
+  backup-before-migrate:
+    image: postgres:18.6
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-scout}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-scout}
+      PGDATABASE: ${POSTGRES_DB:-scouttavling}
+    volumes:
+      - backups:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        f=/backups/pre-migrate-$$(date -u +%Y%m%dT%H%M%SZ).dump
+        pg_dump -Fc -f "$$f.tmp" && mv "$$f.tmp" "$$f" && echo "pre-migrate backup $$f"
+
   # Applies pending SQL migrations (apps/web/drizzle) and exits. The app waits for it.
+  # Deploy with scripts/deploy.sh so a failing migration never stops the running app.
   migrate:
     <<: *app
     command: ["node", "scripts/migrate.ts"]
     restart: "no"
     depends_on:
-      db:
-        condition: service_healthy
+      backup-before-migrate:
+        condition: service_completed_successfully
 
   app:
     <<: *app
@@ -61,3 +83,4 @@ services:
 
 volumes:
   pgdata:
+  backups:

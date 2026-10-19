@@ -21,7 +21,7 @@ npm run dev                                   # http://localhost:5173 → /login
 |---|---|
 | Type check | `npx svelte-check --tsconfig ./tsconfig.json` |
 | Unit tests | `npx vitest run` (repo root) |
-| New migration after a schema change | `npm run db:generate`, then commit `drizzle/` |
+| Schema change | follow [docs/dev/MIGRATIONS.md](docs/dev/MIGRATIONS.md) (generate → review → migrate with auto-backup → commit) |
 | Apply migrations | `npm run db:migrate` |
 | UAT (production build) | see the header of `e2e/uat.e2e.ts` |
 
@@ -37,8 +37,10 @@ Production (Traefik + Let's Encrypt + periodic DB dumps). Hosting is not decided
 
 ```sh
 cp .env.example .env.prod                                    # DOMAIN, ACME_EMAIL, passwords, keys, APP_IMAGE
-docker compose --env-file .env.prod -f compose.yaml -f compose.prod.yaml up -d
+scripts/deploy.sh          # backup → migrate → replace app; a failing migration never stops the running app
 ```
+
+Schema changes, backups, deploys and rollback: **[docs/dev/MIGRATIONS.md](docs/dev/MIGRATIONS.md)**.
 
 `ORIGIN` is baked into the image at build time, so each public domain needs its own build. Released images are built by CI with the repository variable `PUBLIC_ORIGIN`.
 

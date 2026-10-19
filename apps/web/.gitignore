@@ -34,3 +34,4 @@ e2e/uat-results/
 e2e/uat/videos/
 .uat-server.pid
 .uat-server.log
+.db-backups/

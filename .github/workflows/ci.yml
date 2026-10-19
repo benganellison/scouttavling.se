@@ -77,7 +77,8 @@ jobs:
         run: |
           cp .env.example .env
           sed -i 's/^DEV_LOGIN=.*/DEV_LOGIN="1"/' .env
-          npm run db:migrate
+          # CI's database is a throwaway service container: migrate directly, no backup step.
+          node --env-file=.env scripts/migrate.ts
           npm run db:seed
       - name: Build (production, ORIGIN baked in)
         run: ORIGIN=http://localhost:5210 npx vite build
