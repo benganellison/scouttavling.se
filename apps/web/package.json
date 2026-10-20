@@ -1,0 +1,55 @@
+{
+	"name": "@scouttavling/web",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev --port 5173 --strictPort",
+		"build": "vite build",
+		"preview": "vite preview --port 4173 --strictPort",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"test:e2e": "playwright test",
+		"test": "npm run test:e2e",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "scripts/db-backup.sh before-migrate && node --env-file=.env scripts/migrate.ts",
+		"db:seed": "node --env-file=.env scripts/seed.ts",
+		"e2e": "playwright test",
+		"db:reset": "scripts/db-backup.sh before-reset && node --env-file=.env scripts/db-reset.ts && node --env-file=.env scripts/migrate.ts && npm run db:seed",
+		"gen:grant-key": "node scripts/gen-grant-key.ts",
+		"db:backup": "scripts/db-backup.sh",
+		"db:restore": "scripts/db-restore.sh"
+	},
+	"devDependencies": {
+		"@fontsource-variable/bricolage-grotesque": "5.3.0",
+		"@fontsource-variable/figtree": "5.3.0",
+		"@fontsource/figtree": "^5.3.0",
+		"@playwright/test": "1.64.1",
+		"@sveltejs/adapter-node": "6.0.0",
+		"@sveltejs/kit": "3.1.0",
+		"@sveltejs/vite-plugin-svelte": "7.3.1",
+		"@types/node": "24.19.2",
+		"@types/qrcode": "1.5.6",
+		"barcode-detector": "3.2.2",
+		"dexie": "4.4.6",
+		"drizzle-kit": "0.31.11",
+		"svelte": "5.57.2",
+		"svelte-check": "4.7.6",
+		"typescript": "6.0.3",
+		"vite": "8.3.4"
+	},
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*"
+	},
+	"dependencies": {
+		"@scouttavling/domain": "0.1.0",
+		"drizzle-orm": "0.45.4",
+		"jose": "6.2.12",
+		"openid-client": "6.8.8",
+		"postgres": "3.4.9",
+		"qrcode": "1.5.4",
+		"valibot": "1.5.0"
+	}
+}

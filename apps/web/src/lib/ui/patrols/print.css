@@ -1,0 +1,107 @@
+/* Print-optimised A4 pages (admin-patrols /print/*). */
+@page {
+	size: A4;
+	margin: 0;
+}
+.print-root {
+	background: #dce3dd;
+	min-height: 100dvh;
+	padding: 0 0 40px;
+	color: #0f1f17;
+}
+.print-bar {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+	padding: 12px 20px;
+	background: var(--forest);
+	color: #fff;
+}
+.print-bar a {
+	color: #fff;
+	font-weight: 700;
+}
+.print-bar .meta {
+	font-size: 14px;
+	color: var(--on-forest);
+}
+.print-bar .opts {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+.print-bar .btn-ghost {
+	color: #fff;
+}
+.sheets {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 24px;
+	padding: 24px 12px;
+}
+.sheet {
+	width: 210mm;
+	height: 297mm;
+	box-sizing: border-box;
+	background: #fff;
+	box-shadow: 0 12px 30px #0f1f1726;
+	padding: 14mm 14mm;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	font-size: 12pt;
+	line-height: 1.35;
+	position: relative;
+	break-after: page;
+	page-break-after: always;
+}
+@media screen and (max-width: 820px) {
+	.sheets {
+		align-items: flex-start;
+		overflow-x: auto;
+	}
+}
+@media print {
+	html,
+	body {
+		background: #fff !important;
+	}
+	.print-root {
+		background: #fff;
+		padding: 0;
+	}
+	.no-print {
+		display: none !important;
+	}
+	.sheets {
+		display: block;
+		padding: 0;
+	}
+	.sheet {
+		box-shadow: none;
+		margin: 0;
+	}
+	.sheet:last-child {
+		break-after: auto;
+		page-break-after: auto;
+	}
+	* {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+}
+.print-empty {
+	background: #fff;
+	border-radius: 18px;
+	padding: 32px;
+	max-width: 640px;
+	margin: 32px auto;
+	text-align: center;
+}

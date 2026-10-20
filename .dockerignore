@@ -1,0 +1,19 @@
+# Keep the build context small and free of secrets / personal data.
+**/node_modules
+**/.svelte-kit
+**/build
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/*.xls
+**/*.xlsx
+**/*.csv
+**/*.ods
+.git
+docs
+apps/web/e2e
+apps/web/test-results
+apps/web/playwright-report
+apps/web/.dev-server-*
+apps/web/.uat-server.*

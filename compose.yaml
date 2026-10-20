@@ -1,0 +1,86 @@
+# scouttavling.se — base stack: PostgreSQL + one-shot migrations + the app.
+#
+# Local full stack (production build on http://localhost:3000):
+#   cp .env.example .env            # then fill in GRANT_SIGNING_KEY (npm run gen:grant-key -w apps/web)
+#   docker compose up -d --build
+#
+# Production: add the overlay → docker compose -f compose.yaml -f compose.prod.yaml up -d
+# Day-to-day development uses compose.dev.yaml (database only) + `npm run dev`.
+
+name: scouttavling
+
+x-app: &app
+  image: ${APP_IMAGE:-scouttavling:local}
+  build:
+    context: .
+    args:
+      # Baked into the build (SvelteKit's CSRF origin check). Must match the public URL.
+      ORIGIN: ${ORIGIN:-http://localhost:3000}
+  environment:
+    DATABASE_URL: postgres://${POSTGRES_USER:-scout}:${POSTGRES_PASSWORD:-scout}@db:5432/${POSTGRES_DB:-scouttavling}
+    ORIGIN: ${ORIGIN:-http://localhost:3000}
+    GRANT_SIGNING_KEY: ${GRANT_SIGNING_KEY:?Set GRANT_SIGNING_KEY (npm run gen:grant-key -w apps/web)}
+    SCOUTID_ISSUER: ${SCOUTID_ISSUER:-}
+    SCOUTID_CLIENT_ID: ${SCOUTID_CLIENT_ID:-}
+    SCOUTID_CLIENT_SECRET: ${SCOUTID_CLIENT_SECRET:-}
+    DEV_LOGIN: ${DEV_LOGIN:-}
+
+services:
+  db:
+    image: postgres:18.6
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-scout}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-scout}
+      POSTGRES_DB: ${POSTGRES_DB:-scouttavling}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Never migrate without a fresh dump: this one-shot service must succeed first.
+  # Dumps land in the `backups` volume (docs/dev/MIGRATIONS.md §10).
+  backup-before-migrate:
+    image: postgres:18.6
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-scout}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-scout}
+      PGDATABASE: ${POSTGRES_DB:-scouttavling}
+    volumes:
+      - backups:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        f=/backups/pre-migrate-$$(date -u +%Y%m%dT%H%M%SZ).dump
+        pg_dump -Fc -f "$$f.tmp" && mv "$$f.tmp" "$$f" && echo "pre-migrate backup $$f"
+
+  # Applies pending SQL migrations (apps/web/drizzle) and exits. The app waits for it.
+  # Deploy with scripts/deploy.sh so a failing migration never stops the running app.
+  migrate:
+    <<: *app
+    command: ["node", "scripts/migrate.ts"]
+    restart: "no"
+    depends_on:
+      backup-before-migrate:
+        condition: service_completed_successfully
+
+  app:
+    <<: *app
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+
+volumes:
+  pgdata:
+  backups:

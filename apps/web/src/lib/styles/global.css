@@ -1,0 +1,233 @@
+/*
+ * Design tokens from the design canvas ("orienteering control flag").
+ * Use the variables — never hard-code colours in components.
+ * White on --accent passes 5.18:1; --flag (#F26B2A) is decoration only.
+ */
+:root {
+	--ink: #0f1f17;
+	--ink-2: #44524a;
+	--ink-3: #6b7a71;
+	--ground: #f3f5f1;
+	--surface: #ffffff;
+	--line: #dce3dd;
+	--line-strong: #b9c6bd;
+	--forest: #17402f;
+	--forest-2: #1f5a3e;
+	--forest-dark: #0f2a1f;
+	--moss: #2f7a55;
+	--moss-tint: #e1eee5;
+	--sage-tint: #eef3ef;
+	--flag: #f26b2a;
+	--flag-soft: #ffb48a;
+	--accent: #c2410c;
+	--accent-ink: #9a3412;
+	--accent-tint: #fff1e8;
+	--danger: #b42318;
+	--danger-tint: #fff4f2;
+	--on-forest: #cfe3d6;
+	--on-forest-2: #9fc2ae;
+
+	/* Self-hosted (bundled + precached by the service worker): works offline, no third-party requests. */
+	--font-display: 'Bricolage Grotesque Variable', 'Figtree Variable', system-ui, sans-serif;
+	--font-ui: 'Figtree Variable', system-ui, sans-serif;
+
+	--r-sm: 10px;
+	--r-md: 14px;
+	--r-lg: 18px;
+	--r-xl: 22px;
+	--tap: 48px;
+	--tap-field: 56px;
+	--gap: 16px;
+	color-scheme: light;
+}
+
+/* "Sol" sunlight / high-contrast mode: <html data-contrast="high"> */
+:root[data-contrast='high'] {
+	--ink-2: #1d2a23;
+	--ink-3: #2e3b33;
+	--line: #8a978f;
+	--line-strong: #0f1f17;
+	--ground: #ffffff;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	background: var(--ground);
+	color: var(--ink);
+	font-family: var(--font-ui);
+	font-size: 16px;
+	line-height: 1.45;
+	-webkit-font-smoothing: antialiased;
+	-webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3 {
+	font-family: var(--font-display);
+	letter-spacing: -0.02em;
+	line-height: 1.1;
+	margin: 0;
+}
+
+a {
+	color: var(--forest);
+}
+a:hover {
+	color: var(--ink);
+}
+
+:focus-visible {
+	outline: 3px solid var(--flag);
+	outline-offset: 2px;
+}
+
+button,
+input,
+select,
+textarea {
+	font: inherit;
+	color: inherit;
+}
+
+input[type='text'],
+input[type='email'],
+input[type='tel'],
+input[type='date'],
+input[type='number'],
+input:not([type]),
+select,
+textarea {
+	min-height: var(--tap);
+	border: 1.5px solid var(--line-strong);
+	border-radius: var(--r-sm);
+	padding: 0 12px;
+	background: var(--surface);
+	width: 100%;
+}
+textarea {
+	padding: 10px 12px;
+}
+
+/* ---- shared building blocks ---- */
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: var(--tap);
+	padding: 0 18px;
+	border-radius: var(--r-md);
+	border: 1.5px solid var(--line-strong);
+	background: var(--surface);
+	color: var(--ink);
+	font-weight: 800;
+	text-decoration: none;
+	cursor: pointer;
+}
+.btn:hover {
+	color: var(--ink);
+	border-color: var(--ink-3);
+}
+.btn-primary {
+	background: var(--forest);
+	border-color: var(--forest);
+	color: #fff;
+}
+.btn-primary:hover {
+	color: #fff;
+	background: var(--forest-2);
+}
+.btn-accent {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: #fff;
+}
+.btn-accent:hover {
+	color: #fff;
+	background: var(--accent-ink);
+}
+.btn[disabled],
+.btn[aria-disabled='true'] {
+	background: var(--line);
+	border-color: var(--line);
+	color: var(--ink-2);
+	cursor: not-allowed;
+}
+.btn-ghost {
+	border-color: transparent;
+	background: transparent;
+}
+.card {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--r-lg);
+	padding: 18px 20px;
+}
+.pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	font-weight: 800;
+	padding: 4px 10px;
+	border-radius: 999px;
+	background: var(--sage-tint);
+	color: var(--forest);
+}
+.pill-ok {
+	background: var(--moss-tint);
+	color: var(--forest-2);
+}
+.pill-warn {
+	background: #ffe3d3;
+	color: var(--accent-ink);
+}
+.pill-bad {
+	background: #fde2de;
+	color: var(--danger);
+}
+.muted {
+	color: var(--ink-2);
+}
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.field > label,
+.label {
+	font-weight: 700;
+	font-size: 14px;
+}
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+.stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap);
+}
+.row {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+.error-text {
+	color: var(--danger);
+	font-weight: 700;
+	font-size: 14px;
+}
