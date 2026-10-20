@@ -53,6 +53,24 @@ export type WriteResult =
 	| { result: 'conflict'; server: { points: number; stylePoints: number; version: number; state: string } }
 	| { result: 'rejected'; reason: string };
 
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * A registered patrol that gets its first score is evidently out on the course:
+ * mark it "På banan" (active) so HQ, the desk and the follow page agree, even if
+ * nobody registered the start. Finished and resigned patrols are never touched.
+ */
+async function markOnCourse(tx: Tx, w: WriteScore) {
+	const [p] = await tx
+		.update(schema.patrol)
+		.set({ status: 'active' })
+		.where(and(eq(schema.patrol.id, w.patrolId), eq(schema.patrol.status, 'registered')))
+		.returning({ id: schema.patrol.id });
+	if (!p) return;
+	await tx.insert(schema.statusEvent).values({ patrolId: p.id, status: 'active', deviceId: w.deviceId ?? null, userId: w.userId ?? null });
+	await recordChange(tx, w.competitionId, 'patrol', p.id);
+}
+
 export async function writeScore(w: WriteScore): Promise<WriteResult> {
 	return db.transaction(async (tx) => {
 		const [item] = await tx.select().from(schema.scoreItem).where(eq(schema.scoreItem.id, w.itemId)).limit(1);
@@ -90,6 +108,7 @@ export async function writeScore(w: WriteScore): Promise<WriteResult> {
 				.returning();
 			await revision(row.id, 1, 'active');
 			await recordChange(tx, w.competitionId, 'score', row.id);
+			await markOnCourse(tx, w);
 			return { result: 'accepted', version: 1, ...value } as const;
 		}
 
@@ -117,6 +136,7 @@ export async function writeScore(w: WriteScore): Promise<WriteResult> {
 			.where(eq(schema.score.id, existing.id));
 		await revision(existing.id, version, 'active');
 		await recordChange(tx, w.competitionId, 'score', existing.id);
+		await markOnCourse(tx, w);
 		return { result: 'accepted', version, ...value } as const;
 	});
 }

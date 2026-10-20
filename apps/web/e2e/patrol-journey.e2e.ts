@@ -152,13 +152,28 @@ test('5: follow page off → admin turns it on → live update on a new score', 
 	await expect(page.getByTestId('done-count')).toHaveText('0');
 	await expect(page.getByTestId('follow-stations').locator('li')).not.toHaveCount(0);
 
-	const cid = await compId();
-	const [p] = await sql`select id from patrol where name = ${PATROL}`;
-	const [item] = await stationItems('Lägerplatsen');
-	await sql`insert into score (competition_id, patrol_id, item_id, points, style_points, raw, origin) values (${cid}, ${p.id}, ${item.id}, 14, 3, ${sql.json({ value: 14, style: 3 })}, 'admin')`;
-	await sql`insert into change_log (competition_id, kind, entity_id) values (${cid}, 'score', ${p.id})`;
+	// A freshly registered patrol is "Anmäld". HQ enters its first score through the real
+	// score path (patrol detail page); the first accepted score must mark it "På banan".
+	await expect(page.getByTestId('follow-summary')).toContainText('Anmäld');
+	const [p] = await sql`select number, status from patrol where name = ${PATROL}`;
+	expect(p.status).toBe('registered');
+	await adminPage.goto(`/admin/${SLUG}/patrol/${p.number}`);
+	await expect(async () => {
+		if (!(await adminPage.locator('form.item').count())) await adminPage.locator('button.cell[data-code="K1"]').click();
+		await expect(adminPage.locator('form.item').first()).toBeVisible({ timeout: 1000 });
+	}).toPass({ timeout: 15_000 });
+	const form = adminPage.locator('form.item').first();
+	await form.locator('label.chip', { hasText: /^\s*14\s*$/ }).first().click();
+	const style = form.locator('label.chip', { hasText: /^\s*3\s*$/ });
+	if ((await style.count()) > 1) await style.nth(1).click();
+	await form.getByLabel('Anledning').fill('rapport från papper');
+	await form.getByRole('button', { name: 'Spara ändring' }).click();
+	await expect(form.getByRole('status')).toContainText('sparad');
 	await expect(page.getByTestId('done-count')).toHaveText('1', { timeout: 25_000 });
-	await expect(page.getByTestId('placement')).toContainText('17');
+	await expect(page.getByTestId('follow-summary')).toContainText('På banan');
+	const [after] = await sql`select status from patrol where name = ${PATROL}`;
+	expect(after.status).toBe('active');
+	await expect(page.getByTestId('placement')).toContainText(/1[47]/);
 	await expect(page.getByTestId('follow-stations').locator('li.done')).toContainText('Lägerplatsen');
 	await shot(page, 'follow-on');
 
@@ -181,7 +196,9 @@ test('6: not yet open, full and closed registration', async ({ page }) => {
 	await page.goto(`/t/${SLUG}/anmal`);
 	await expect(page.getByTestId('reg-closed')).toContainText('Tävlingen är fullbokad');
 	await shot(page, 'full');
-	// Full still allows the contact to edit.
+	// Full still allows the contact to edit — for a patrol that hasn't started. Test 5 gave this
+	// patrol its first score, which (correctly) made it "På banan" and its pass read-only.
+	await sql`update patrol set status = 'registered' where name = ${PATROL}`;
 	await page.goto(path(manageUrl));
 	await expect(page.getByRole('button', { name: 'Spara ändringar' })).toBeVisible();
 
