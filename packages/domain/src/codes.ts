@@ -11,13 +11,27 @@ export interface CodeStation {
 	name: string;
 	/** Set when the organiser typed their own code. */
 	customCode?: string | null;
+	/**
+	 * Explicit station role: 'start' / 'finish', or null for an ordinary station.
+	 * Leave it undefined (not stored) to fall back to the name rule.
+	 */
+	role?: StationRole | null;
+}
+
+export type StationRole = 'start' | 'finish';
+
+/** Fallback when no explicit role is set: "… start" → start, "… mål" → finish (case-insensitive). */
+export function roleFromName(name: string): StationRole | null {
+	const n = name.trim().toLowerCase();
+	return n.endsWith('start') ? 'start' : n.endsWith('mål') ? 'finish' : null;
 }
 
 /**
  * Suggests paper codes for stations.
  * Single-day: K1, K2, … by order.
- * Multi-day: per day, a station named "… start" gets <prefix>S, "… mål" gets
- * <prefix>M and the rest are numbered: FS F1 F2 FM / LS L1 … LM.
+ * Multi-day: per day, a station with role start gets <prefix>S, role finish gets
+ * <prefix>M and the rest are numbered: FS F1 F2 FM / LS L1 … LM. Without an
+ * explicit role the name decides ("… start" / "… mål").
  * A custom code always wins.
  */
 export function stationCodes(stations: CodeStation[], days: CodeDay[]): Map<string, string> {
@@ -30,8 +44,8 @@ export function stationCodes(stations: CodeStation[], days: CodeDay[]): Map<stri
 	for (const day of days) {
 		let n = 0;
 		for (const s of ordered.filter((st) => st.dayId === day.id)) {
-			const name = s.name.trim().toLowerCase();
-			const code = name.endsWith('start') ? `${day.prefix}S` : name.endsWith('mål') ? `${day.prefix}M` : `${day.prefix}${++n}`;
+			const role = s.role !== undefined ? s.role : roleFromName(s.name);
+			const code = role === 'start' ? `${day.prefix}S` : role === 'finish' ? `${day.prefix}M` : `${day.prefix}${++n}`;
 			out.set(s.id, s.customCode || code);
 		}
 	}

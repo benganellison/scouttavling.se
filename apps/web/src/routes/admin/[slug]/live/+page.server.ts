@@ -10,7 +10,7 @@ export async function load(event) {
 	event.depends(`live:${comp.slug}`);
 	const dash = await loadDashboard(comp);
 	return {
-		comp: { slug: comp.slug, name: comp.name, backupMode: comp.backupMode, status: comp.status },
+		comp: { slug: comp.slug, name: comp.name, backupMode: comp.backupMode, status: comp.status, multiDay: comp.multiDay },
 		...dash
 	};
 }

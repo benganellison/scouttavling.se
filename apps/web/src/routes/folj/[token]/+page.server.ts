@@ -51,6 +51,8 @@ export async function load({ params, setHeaders, getClientAddress, depends }) {
 	const firstAt = (st: string) => events.filter((e) => e.status === st).map((e) => e.at).sort((a, b) => a.getTime() - b.getTime())[0];
 	const started = firstAt('active');
 	const finished = firstAt('finished');
+	const lastAt = (st: string) => events.filter((e) => e.status === st).map((e) => e.at).sort((a, b) => b.getTime() - a.getTime())[0];
+	const camp = patrol.status === 'camp' ? lastAt('camp') : undefined;
 
 	let placement: { place: number; total: number; of: number; tied: boolean } | null = null;
 	if (showScores && patrol.trackId) {
@@ -67,6 +69,8 @@ export async function load({ params, setHeaders, getClientAddress, depends }) {
 		patrol: { number: patrol.number, name: patrol.name, troop: patrol.troop, track, status: patrol.status },
 		started: started ? formatTime(started) : null,
 		finished: finished ? formatTime(finished) : null,
+		/** "I läger · klar för dagen 18:42" (multi-day, done for the day). */
+		campAt: camp ? formatTime(camp) : null,
 		done: list.filter((s) => s.done).length,
 		total: list.length,
 		stations: list,

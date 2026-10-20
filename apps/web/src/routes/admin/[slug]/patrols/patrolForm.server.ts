@@ -24,7 +24,7 @@ export const PatrolFormSchema = v.object({
 	contactEmail: v.union([v.literal(''), v.pipe(trimmed(160), v.email('Ogiltig e-postadress'))]),
 	contactMemberNo: v.pipe(trimmed(12), v.regex(/^\d*$/, 'Medlemsnummer är bara siffror')),
 	paid: v.boolean(),
-	status: v.picklist(['registered', 'active', 'finished', 'resigned'], 'Okänd status'),
+	status: v.picklist(['registered', 'active', 'camp', 'finished', 'resigned'], 'Okänd status'),
 	members: v.pipe(v.array(MemberSchema), v.maxLength(30, 'Högst 30 medlemmar'))
 });
 

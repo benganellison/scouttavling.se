@@ -53,7 +53,7 @@ async function main() {
 	for (const [i, d] of stationDefs.entries()) {
 		const [st] = await db
 			.insert(s.station)
-			.values({ competitionId: open.id, sort: i + 1, name: d.name, allTracks: !d.notSparare, startable: !d.checkpoint && !d.mal })
+			.values({ competitionId: open.id, sort: i + 1, name: d.name, role: d.mal ? 'finish' : null, allTracks: !d.notSparare, startable: !d.checkpoint && !d.mal })
 			.returning();
 		stations.push(st);
 		if (d.notSparare) {
@@ -140,7 +140,7 @@ async function main() {
 	];
 	for (const [i, [d, name]] of hajkStations.entries()) {
 		const checkpoint = /start$|mål$/.test(name);
-		const [st] = await db.insert(s.station).values({ competitionId: hajk.id, dayId: days[d].id, sort: i + 1, name, startable: !checkpoint }).returning();
+		const [st] = await db.insert(s.station).values({ competitionId: hajk.id, dayId: days[d].id, sort: i + 1, name, role: name.endsWith('start') ? 'start' : name.endsWith('mål') ? 'finish' : null, startable: !checkpoint }).returning();
 		await db.insert(s.scoreItem).values({
 			stationId: st.id, sort: 1, name, mode: checkpoint ? 'CHECKIN' : 'RANGE', min: 0, max: checkpoint ? 0 : 20,
 			styleEnabled: !checkpoint, styleMin: 0, styleMax: 5, countsForTiebreak: !checkpoint

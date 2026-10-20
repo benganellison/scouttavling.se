@@ -41,6 +41,7 @@ Read this first. Architecture: `docs/architecture/` (01-overview.md is binding).
 - Signal orange: `--accent` #C2410C is the button colour for the single main action; `--flag` #F26B2A is decoration only.
 - Display font Bricolage Grotesque (h1–h3, big numbers); UI font Figtree. Big bold numbers for scores and counts.
 - Statuses: Anmäld (white with dark outline), På banan (`--flag` orange with dark text), I mål (`--forest` with white text), Återbud (#5B6660 with white text).
+- Status flow (decided in `packages/domain/src/patrolStatus.ts`, applied in `scores.ts` for every accepted score): Anmäld → **På banan** at the first score; a check-in at a station with role `finish` (or an AUTO_ON_SCAN item) → **I läger** (`camp`, light forest tint) on a day that isn't the last, or **I mål** on the last day / single-day; I läger → På banan at the first score from a *later* day. Återbud is never touched; I mål is never downgraded. "Not seen for 45 min" alarms only look at På banan. Stations have an explicit `role` (`start`/`finish`/null).
 - No emoji. Icons are inline stroke SVGs with `aria-hidden="true"`.
 
 ## Ownership and routes

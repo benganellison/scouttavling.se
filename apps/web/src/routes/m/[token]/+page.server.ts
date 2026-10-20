@@ -32,7 +32,7 @@ export async function load({ params, url, setHeaders, getClientAddress }) {
 	const w = windowFor(comp, count);
 	let start: string | null = null;
 	if (patrol.startStationId) {
-		const codes = stationCodes(stations.map((s) => ({ id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode })), days);
+		const codes = stationCodes(stations.map((s) => ({ id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode, role: s.role })), days);
 		const st = stations.find((s) => s.id === patrol.startStationId);
 		if (st) start = `${codes.get(st.id) ?? ''} ${st.name}`.trim();
 	}

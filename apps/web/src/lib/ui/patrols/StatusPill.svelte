@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { STATUS_LABEL, type PatrolStatus } from './labels.ts';
 
-	let { status }: { status: PatrolStatus } = $props();
+	/** `detail` follows the label, e.g. "klar för dagen 18:42" → "I läger · klar för dagen 18:42". */
+	let { status, detail = null }: { status: PatrolStatus; detail?: string | null } = $props();
 </script>
 
-<span class="st st-{status}">{STATUS_LABEL[status]}</span>
+<span class="st st-{status}" data-status={status}>{detail ? `${STATUS_LABEL[status]} · ${detail}` : STATUS_LABEL[status]}</span>
 
 <style>
 	.st {
@@ -25,6 +26,12 @@
 	.st-active {
 		background: var(--flag);
 		color: var(--ink);
+	}
+	/* I läger: calm light forest tint, clearly lighter than På banan and I mål. */
+	.st-camp {
+		background: var(--moss-tint);
+		border-color: var(--moss);
+		color: var(--forest);
 	}
 	.st-finished {
 		background: var(--forest);

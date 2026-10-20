@@ -1,17 +1,20 @@
 <script lang="ts">
 	import '#lib/ui/patrols/prep.css';
 	import StatusPill from '#lib/ui/patrols/StatusPill.svelte';
+	import { STATUS_LABEL, STATUS_ORDER } from '#lib/ui/patrols/labels.ts';
 	import { enhance } from '$app/forms';
 
 	let { data } = $props();
 
 	let q = $state('');
 	let track = $state('');
+	let status = $state('');
 
 	const base = $derived(`/admin/${data.competition.slug}`);
 	const shown = $derived(
 		data.patrols.filter((p) => {
 			if (track === '__none' ? p.trackId : track && p.trackId !== track) return false;
+			if (status && p.status !== status) return false;
 			if (!q.trim()) return true;
 			const needle = q.trim().toLowerCase();
 			return [String(p.number), p.name, p.troop, p.contactName, p.track].some((s) => s.toLowerCase().includes(needle));
@@ -45,6 +48,13 @@
 				<option value="">Alla klasser</option>
 				{#each data.tracks as t (t.id)}<option value={t.id}>{t.name}</option>{/each}
 				<option value="__none">Utan klass</option>
+			</select>
+		</div>
+		<div class="field">
+			<label for="status">Status</label>
+			<select id="status" bind:value={status}>
+				<option value="">Alla</option>
+				{#each STATUS_ORDER as s (s)}<option value={s}>{STATUS_LABEL[s]}</option>{/each}
 			</select>
 		</div>
 	</div>

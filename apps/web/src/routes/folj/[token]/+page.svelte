@@ -48,7 +48,7 @@
 		<section class="card summary" aria-labelledby="h-sum" data-testid="follow-summary">
 			<h2 id="h-sum" class="sr-only">Läget</h2>
 			<div class="srow">
-				<StatusPill status={data.patrol.status} />
+				<StatusPill status={data.patrol.status} detail={data.campAt ? `klar för dagen ${data.campAt}` : null} />
 				<span class="muted small" aria-live="polite">Uppdaterad {data.updated}</span>
 			</div>
 			<p class="count"><strong data-testid="done-count">{data.done}</strong> av {data.total} kontroller klara</p>

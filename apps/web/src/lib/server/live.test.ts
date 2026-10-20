@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('$app/env/private', () => ({ DATABASE_URL: 'postgres://unused' }));
 vi.mock('./db/index.ts', () => ({ db: {}, schema: {} }));
 
-const { computeResults } = await import('./live.ts');
+const { computeResults, unseenAlarms } = await import('./live.ts');
 type Input = import('./live.ts').ResultsInput;
 
 /** Mirrors scripts/seed.ts for GökOpen 2027 (Upptäckare class and the first five RANGE stations). */
@@ -63,5 +63,21 @@ describe('computeResults', () => {
 		const [upp] = computeResults(input);
 		expect(upp.rows.some((r) => r.number === 119)).toBe(false);
 		expect(upp.rows[0].stationsTotal).toBe(7);
+	});
+});
+
+describe('unseenAlarms', () => {
+	const now = Date.parse('2027-06-11T22:30:00Z');
+	const twoHoursAgo = new Date(now - 2 * 3600_000);
+	const statuses = ['registered', 'active', 'camp', 'finished', 'resigned'];
+	const patrols = statuses.map((status, i) => ({ id: `p${i}`, number: 101 + i, name: `Patrull ${i}`, status }));
+	const last = new Map(patrols.map((p) => [p.id, twoHoursAgo]));
+
+	it('alarms only for patrols on the course, never for I läger (overnight in camp)', () => {
+		const alarms = unseenAlarms(patrols, last, now, 'hajk');
+		expect(alarms.map((a) => a.title)).toEqual(['102 Patrull 1 inte sedd på 2 h 0 min']);
+	});
+	it('stays quiet within 45 minutes', () => {
+		expect(unseenAlarms(patrols, new Map([['p1', new Date(now - 44 * 60_000)]]), now, 'hajk')).toEqual([]);
 	});
 });

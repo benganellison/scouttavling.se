@@ -30,7 +30,7 @@ export async function load(event) {
 	]);
 
 	const codes = stationCodes(
-		stations.map((s) => ({ id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode })),
+		stations.map((s) => ({ id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode, role: s.role })),
 		days.map((d) => ({ id: d.id, prefix: d.prefix }))
 	);
 	const invitedSet = new Set(invited.map((i) => i.stationId));

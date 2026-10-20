@@ -7,9 +7,10 @@
 	import Flag from '#lib/ui/Flag.svelte';
 
 	const app = useField();
-	const LABEL: Record<PatrolStatus, string> = { registered: 'Anmäld', active: 'På banan', finished: 'I mål', resigned: 'Återbud' };
-	const ORDER: PatrolStatus[] = ['registered', 'active', 'finished', 'resigned'];
-	const NEXT: Partial<Record<PatrolStatus, PatrolStatus>> = { registered: 'active', active: 'finished' };
+	const LABEL: Record<PatrolStatus, string> = { registered: 'Anmäld', active: 'På banan', camp: 'I läger', finished: 'I mål', resigned: 'Återbud' };
+	const ORDER: PatrolStatus[] = ['registered', 'active', 'camp', 'finished', 'resigned'];
+	const SV_DATE = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm' });
+	const svDate = (ms: number) => SV_DATE.format(ms);
 
 	type Filter = 'all' | PatrolStatus;
 	let filter = $state<Filter>('all');
@@ -21,7 +22,7 @@
 
 	const statusOf = (p: PackPatrol) => app.patrolStatus(p);
 	const counts = $derived.by(() => {
-		const c = { registered: 0, active: 0, finished: 0, resigned: 0 };
+		const c = { registered: 0, active: 0, camp: 0, finished: 0, resigned: 0 };
 		for (const p of app.patrols) c[statusOf(p)]++;
 		return c;
 	});
@@ -41,10 +42,18 @@
 		const s = prog(p)?.finishedAt;
 		return s ? Date.parse(s) : null;
 	}
+	function campAt(p: PackPatrol): number | null {
+		const o = app.statusOverride.get(p.id);
+		if (o?.status === 'camp') return o.at;
+		const s = prog(p)?.campAt;
+		return s ? Date.parse(s) : null;
+	}
 	function lastSeen(p: PackPatrol): { text: string; late: boolean } {
 		const st = statusOf(p);
 		if (st === 'resigned') return { text: 'Återbud', late: false };
 		if (st === 'finished') return { text: `Mål ${hhmm(finishedAt(p))}`, late: false };
+		// Done for the day: never "late" overnight.
+		if (st === 'camp') return { text: campAt(p) ? `Klar ${hhmm(campAt(p))}` : 'I läger', late: false };
 		const pr = prog(p);
 		const seen = pr?.lastSeenAt ? Date.parse(pr.lastSeenAt) : startedAt(p);
 		if (st === 'registered' || !seen) return { text: 'Ej startad', late: false };
@@ -55,7 +64,8 @@
 	function timeOut(p: PackPatrol): string {
 		const s = startedAt(p);
 		if (!s) return '–';
-		const mins = Math.max(0, Math.round(((finishedAt(p) ?? app.serverNow()) - s) / 60000));
+		const end = finishedAt(p) ?? (statusOf(p) === 'camp' ? campAt(p) : null) ?? app.serverNow();
+		const mins = Math.max(0, Math.round((end - s) / 60000));
 		return mins >= 60 ? `${Math.floor(mins / 60)} h ${String(mins % 60).padStart(2, '0')}` : `${mins} min`;
 	}
 
@@ -67,9 +77,28 @@
 			.filter((p) => !needle || String(p.number).startsWith(needle) || p.name.toLowerCase().includes(needle) || p.troop.toLowerCase().includes(needle));
 	});
 
+	/**
+	 * A scan advances Anmäld → På banan → I mål. On a competition day that is not the
+	 * last one, På banan → I läger instead, and next morning I läger → På banan. A second
+	 * scan the same evening leaves a patrol in camp.
+	 */
+	function nextFor(p: PackPatrol): PatrolStatus | null {
+		const cur = statusOf(p);
+		const c = app.pack?.competition;
+		const today = svDate(app.serverNow());
+		const earlierDay = !!c && c.startDate < c.endDate && today >= c.startDate && today < c.endDate;
+		if (cur === 'registered') return 'active';
+		if (cur === 'active') return earlierDay ? 'camp' : 'finished';
+		if (cur === 'camp') {
+			const at = campAt(p);
+			return at && svDate(at) < today ? 'active' : null;
+		}
+		return null;
+	}
+
 	async function advance(p: PackPatrol) {
 		const cur = statusOf(p);
-		const next = NEXT[cur];
+		const next = nextFor(p);
 		const groupId = next ? await app.setStatus(p.id, next) : null;
 		last = { patrolId: p.id, status: next ?? cur, changed: !!next, groupId, at: Date.now() };
 		navigator.vibrate?.(60);
@@ -115,6 +144,7 @@
 		{ k: 'all', l: 'Alla' },
 		{ k: 'registered', l: 'Ej startade' },
 		{ k: 'active', l: 'På banan' },
+		{ k: 'camp', l: 'I läger' },
 		{ k: 'finished', l: 'I mål' },
 		{ k: 'resigned', l: 'Återbud' }
 	];
@@ -162,6 +192,7 @@
 		<div class="counts">
 			<div><span class="cn">{counts.registered}</span><span class="cl">Anmälda</span></div>
 			<div><span class="cn">{counts.active}</span><span class="cl">På banan</span></div>
+			<div><span class="cn">{counts.camp}</span><span class="cl">I läger</span></div>
 			<div><span class="cn">{counts.finished}</span><span class="cl">I mål</span></div>
 			<div><span class="cn">{counts.resigned}</span><span class="cl">Återbud</span></div>
 		</div>
@@ -355,14 +386,14 @@
 	}
 	.counts {
 		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 8px;
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		gap: 6px;
 		margin-top: auto;
 	}
 	.counts div {
 		background: var(--forest-dark);
 		border-radius: 14px;
-		padding: 10px;
+		padding: 10px 6px;
 		display: flex;
 		flex-direction: column;
 	}
@@ -449,8 +480,8 @@
 	}
 	.tr {
 		display: grid;
-		grid-template-columns: minmax(150px, 1fr) 300px 92px 100px 44px;
-		gap: 10px;
+		grid-template-columns: minmax(130px, 1fr) 330px 92px 96px 44px;
+		gap: 8px;
 		padding: 8px 12px;
 		align-items: center;
 		border-bottom: 1px solid #eef1ee;
@@ -502,7 +533,7 @@
 	}
 	.seg {
 		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
+		grid-template-columns: repeat(5, minmax(0, 1fr));
 		background: #eef1ee;
 		border-radius: 12px;
 		padding: 3px;
@@ -530,6 +561,13 @@
 	.status-pill.s-active {
 		background: var(--flag);
 		color: var(--ink);
+	}
+	/* I läger: calm light forest tint, lighter than På banan (orange) and I mål (forest). */
+	.s-camp.on,
+	.status-pill.s-camp {
+		background: var(--moss-tint);
+		color: var(--forest);
+		box-shadow: 0 0 0 1.5px var(--moss) inset;
 	}
 	.s-finished.on,
 	.status-pill.s-finished {

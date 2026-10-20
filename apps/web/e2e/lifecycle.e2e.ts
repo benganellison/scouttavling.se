@@ -413,9 +413,7 @@ test('5 day 1: desk starts patrols, two volunteers score, one offline', async ({
 	await a.page.getByRole('link', { name: 'Logg' }).click();
 	await expect(a.page.getByText('4 rapporter väntar')).toBeVisible();
 	await shot(a.page, '18-anna-offline-log');
-	await goOnline(a.ctx, a.page);
-	await shot(a.page, '19-anna-synced');
-	await a.page.getByRole('link', { name: 'Kontroll' }).click();
+	// Anna stays without coverage until after Fredag mål: her Friday reports arrive late (below).
 
 	// Fredag mål: Fia checks in every patrol that finishes day 1 (checkpoint, no points).
 	const fia = await actor(browser, '09-fia-FM-checkin', PHONE, true);
@@ -434,6 +432,34 @@ test('5 day 1: desk starts patrols, two volunteers score, one offline', async ({
 	await home(fia.page);
 	await expect(fia.page.getByTestId('sync-pill')).toContainText('Synkad', { timeout: 30_000 });
 	await shot(fia.page, '19c-fm-home');
+
+	// Day 1 is over for them: the FM check-in puts every patrol "I läger" (not I mål, not På banan).
+	const d = desk.page;
+	for (const x of scorers) {
+		await expect(d.getByTestId(`row-${x.nr}`).getByRole('radio', { name: 'I läger' })).toHaveAttribute('aria-checked', 'true', { timeout: 40_000 });
+	}
+	await expect(d.getByTestId('row-106').getByRole('radio', { name: 'På banan' })).toHaveAttribute('aria-checked', 'true');
+	await expect(d.getByTestId('row-101')).toContainText(/Klar \d\d:\d\d/);
+	await shot(d, '19d-desk-i-lager');
+
+	// HQ: KPI and no "inte sedd" alarm for a patrol in camp (live.test.ts covers the 45-minute rule itself).
+	const hq = erik;
+	await hq.goto(`${ADMIN}/live`);
+	await expect(hq.locator('.kpi', { hasText: 'I läger' }).locator('.v')).toHaveText(String(scorers.length));
+	await expect(hq.locator('.kpi', { hasText: 'På banan' }).locator('.v')).toHaveText('1'); // 106, never scored
+	for (const x of scorers) await expect(hq.getByText(new RegExp(`^${x.nr} .* inte sedd`))).toHaveCount(0);
+	await shot(hq, '19e-hq-i-lager');
+
+	// Anna's late Friday reports (scored before FM, synced after) must not send anyone back "På banan".
+	await goOnline(a.ctx, a.page);
+	await shot(a.page, '19-anna-synced');
+	await a.page.getByRole('link', { name: 'Kontroll' }).click();
+	await beat(d, 1500);
+	for (const x of scorers) {
+		await expect(d.getByTestId(`row-${x.nr}`).getByRole('radio', { name: 'I läger' })).toHaveAttribute('aria-checked', 'true', { timeout: 20_000 });
+	}
+	await hq.reload();
+	await expect(hq.locator('.kpi', { hasText: 'I läger' }).locator('.v')).toHaveText(String(scorers.length));
 });
 
 // ------------------------------------------------------------------ 6/7 conflict
@@ -474,6 +500,12 @@ test('7 (step 6) day 2: volunteers score, HQ sees it live, Mål sets I mål, des
 	for (const [i, x] of PLAN.filter((y) => y.LS).entries()) await scoreStation(gus.page, x.nr, x.LS!, i === 0 ? '23a-ls-chiffer-phone' : undefined);
 	await home(gus.page);
 	await expect(gus.page.getByTestId('sync-pill')).toContainText('Synkad', { timeout: 30_000 });
+	// Day 2 has begun: the LS check-in + Chiffer brings them back "På banan".
+	const d = phones.per.page;
+	for (const x of PLAN.filter((y) => y.LS)) {
+		await expect(d.getByTestId(`row-${x.nr}`).getByRole('radio', { name: 'På banan' })).toHaveAttribute('aria-checked', 'true', { timeout: 40_000 });
+	}
+	await expect(p.locator('.kpi', { hasText: 'I läger' }).locator('.v')).toHaveText('0', { timeout: 20_000 });
 
 	phones.dan = await actor(browser, '05-dan-L1', PHONE, true);
 	phones.eva = await actor(browser, '06-eva-L2', PHONE, true);
@@ -495,7 +527,6 @@ test('7 (step 6) day 2: volunteers score, HQ sees it live, Mål sets I mål, des
 	await home(phones.eva.page);
 
 	// Desk: 106 drops out; 107 arrives at the desk before Mål.
-	const d = phones.per.page;
 	await d.getByTestId('row-106').getByRole('radio', { name: 'Återbud' }).click();
 	await d.getByLabel('Patrullnummer').fill('107');
 	await d.getByRole('button', { name: 'Registrera' }).click();

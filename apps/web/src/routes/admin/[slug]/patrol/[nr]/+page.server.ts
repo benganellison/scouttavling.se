@@ -3,9 +3,9 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { itemDef, writeScore } from '#lib/server/scores.ts';
+import { STATUS_LABEL } from '#lib/ui/patrols/labels.ts';
 import { firstName, formatTime, getResults, loadStations, stationAppliesTo } from '#lib/server/live.ts';
 
-const STATUS_SV = { registered: 'Anmäld', active: 'På banan', finished: 'I mål', resigned: 'Återbud' } as const;
 const pts = (p: number, s: number) => (s ? `${p} + ${s}` : `${p}`);
 
 async function loadPatrol(competitionId: string, nrParam: string) {
@@ -74,7 +74,7 @@ export async function load(event) {
 	}
 	for (const { e, deviceName, userName } of statusEvents) {
 		const who = deviceName ?? (userName ? firstName(userName) : null);
-		events.push({ at: e.at, time: formatTime(e.at), text: `Status: ${STATUS_SV[e.status]}${who ? ` · ${who}` : ''}`, kind: 'status', reason: null });
+		events.push({ at: e.at, time: formatTime(e.at), text: `Status: ${STATUS_LABEL[e.status]}${who ? ` · ${who}` : ''}`, kind: 'status', reason: null });
 	}
 	events.sort((a, b) => b.at.getTime() - a.at.getTime());
 
@@ -87,7 +87,12 @@ export async function load(event) {
 		patrol: {
 			number: p.number, name: p.name, troop: p.troop, status: p.status, contactName: p.contactName, contactPhone: p.contactPhone,
 			track: track?.name ?? 'Ingen klass', trackCount: results.tracks.find((t) => t.trackId === p.trackId)?.rows.length ?? 0,
-			startStation: stations.find((s) => s.id === p.startStationId) ?? null
+			startStation: stations.find((s) => s.id === p.startStationId) ?? null,
+			/** "I läger · klar för dagen 18:42". */
+			campAt: p.status === 'camp' ? (() => {
+				const last = statusEvents.filter(({ e }) => e.status === 'camp').map(({ e }) => e.at).sort((a, b) => b.getTime() - a.getTime())[0];
+				return last ? formatTime(last) : null;
+			})() : null
 		},
 		members: members.map((m) => `${m.firstName} ${m.lastName}`.trim()),
 		result: row ? { place: row.place, total: row.total, scorePoints: row.scorePoints, stylePoints: row.stylePoints, tied: row.tied } : null,

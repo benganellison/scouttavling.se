@@ -119,24 +119,24 @@ export const actions = {
 			await tx.insert(schema.track).values(tracks.map((t, i) => ({ competitionId: comp.id, name: t, sort: i + 1 })));
 
 			// Station layout.
-			type Def = { name: string; dayId: string | null; checkpoint: boolean };
+			type Def = { name: string; dayId: string | null; checkpoint: boolean; role: 'start' | 'finish' | null };
 			const defs: Def[] = [];
 			if (!multiDay) {
-				for (let i = 1; i <= stationCount; i++) defs.push({ name: `Kontroll ${i}`, dayId: null, checkpoint: false });
+				for (let i = 1; i <= stationCount; i++) defs.push({ name: `Kontroll ${i}`, dayId: null, checkpoint: false, role: null });
 			} else {
 				let k = 0;
 				const base = Math.floor(stationCount / dayRows.length);
 				const extra = stationCount % dayRows.length;
 				for (const [di, d] of dayRows.entries()) {
-					defs.push({ name: `${d.name} start`, dayId: d.id, checkpoint: true });
-					for (let j = 0; j < base + (di < extra ? 1 : 0); j++) defs.push({ name: `Kontroll ${++k}`, dayId: d.id, checkpoint: false });
-					defs.push({ name: `${d.name} mål`, dayId: d.id, checkpoint: true });
+					defs.push({ name: `${d.name} start`, dayId: d.id, checkpoint: true, role: 'start' });
+					for (let j = 0; j < base + (di < extra ? 1 : 0); j++) defs.push({ name: `Kontroll ${++k}`, dayId: d.id, checkpoint: false, role: null });
+					defs.push({ name: `${d.name} mål`, dayId: d.id, checkpoint: true, role: 'finish' });
 				}
 			}
 			if (defs.length) {
 				const stations = await tx
 					.insert(schema.station)
-					.values(defs.map((d, i) => ({ competitionId: comp.id, dayId: d.dayId, sort: i + 1, name: d.name, startable: !d.checkpoint })))
+					.values(defs.map((d, i) => ({ competitionId: comp.id, dayId: d.dayId, sort: i + 1, name: d.name, role: d.role, startable: !d.checkpoint })))
 					.returning();
 				await tx.insert(schema.scoreItem).values(
 					stations.map((s, i) =>

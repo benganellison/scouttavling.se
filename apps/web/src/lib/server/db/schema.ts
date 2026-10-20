@@ -12,7 +12,7 @@ const id = () => uuid('id').primaryKey().defaultRandom();
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
 
 export const competitionRole = pgEnum('competition_role', ['owner', 'organiser', 'hq', 'startfinish']);
-export const patrolStatus = pgEnum('patrol_status', ['registered', 'active', 'finished', 'resigned']);
+export const patrolStatus = pgEnum('patrol_status', ['registered', 'active', 'finished', 'resigned', 'camp']);
 export const deviceRole = pgEnum('device_role', ['station_volunteer', 'startfinish']);
 export const scoreState = pgEnum('score_state', ['active', 'void']);
 export const scoreOrigin = pgEnum('score_origin', ['device', 'admin', 'paper']);
@@ -116,6 +116,11 @@ export const station = pgTable(
 		/** Organiser override of the suggested paper code (K1, FS, L3…). */
 		customCode: text('custom_code'),
 		allTracks: boolean('all_tracks').notNull().default(true),
+		/**
+		 * The day's start or finish (null = ordinary station). A finish station sets
+		 * "I läger" on non-last days and "I mål" on the last day; also drives paper codes.
+		 */
+		role: text('role', { enum: ['start', 'finish'] }),
 		/** Checkpoints such as lunch are never start stations. */
 		startable: boolean('startable').notNull().default(true),
 		contactName: text('contact_name'),

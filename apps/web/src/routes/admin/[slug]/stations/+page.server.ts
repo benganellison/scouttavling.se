@@ -37,6 +37,7 @@ export async function load(event) {
 			sort: s.sort,
 			dayId: s.dayId,
 			customCode: s.customCode,
+			role: s.role,
 			allTracks: s.allTracks,
 			startable: s.startable,
 			trackIds: links.filter((l) => l.stationId === s.id).map((l) => l.trackId),
@@ -82,6 +83,8 @@ const StationIn = v.object({
 	name: v.string(),
 	customCode: v.string(),
 	dayId: v.nullable(v.string()),
+	/** "Roll": the day's start / finish, null = ordinary station. Absent = keep the stored role. */
+	role: v.optional(v.nullable(v.picklist(['start', 'finish']))),
 	allTracks: v.boolean(),
 	trackIds: v.array(v.string()),
 	startable: v.boolean(),
@@ -197,7 +200,7 @@ export const actions = {
 			const codes = stationCodes(
 				ctx.stations.map((s) =>
 					s.id === input.id
-						? { id: s.id, dayId: comp.multiDay ? input.dayId : null, order: s.sort, name: input.name, customCode: code || null }
+						? { id: s.id, dayId: comp.multiDay ? input.dayId : null, order: s.sort, name: input.name, customCode: code || null, role: input.role === undefined ? s.role : input.role }
 						: { id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode }
 				),
 				ctx.days.map((d) => ({ id: d.id, prefix: d.prefix }))
@@ -230,6 +233,7 @@ export const actions = {
 					name: input.name.trim(),
 					customCode: code || null,
 					dayId: comp.multiDay ? input.dayId : null,
+					...(input.role !== undefined ? { role: input.role } : {}),
 					allTracks: input.allTracks,
 					startable: input.startable
 				})
@@ -245,12 +249,12 @@ export const actions = {
 				else await tx.insert(schema.scoreItem).values(row);
 			}
 			if (dayChanged) {
-				// Moving to another day: place it last on that day, before its "mål" checkpoint.
+				// Moving to another day: place it last on that day, before its finish station.
 				const stations = await tx.select().from(schema.station).where(eq(schema.station.competitionId, comp.id));
 				const ordered = displayOrder(stations, ctx.days).filter((s) => s.id !== input.id);
 				const moved = stations.find((s) => s.id === input.id)!;
 				const sameDay = ordered.filter((s) => s.dayId === input.dayId);
-				const mal = sameDay.find((s) => s.name.trim().toLowerCase().endsWith('mål'));
+				const mal = moved.role === 'finish' ? undefined : sameDay.find((s) => s.role === 'finish');
 				const anchor = mal ?? sameDay.at(-1);
 				const at = anchor ? ordered.indexOf(anchor) + (mal ? 0 : 1) : ordered.length;
 				ordered.splice(at, 0, moved);
@@ -274,9 +278,9 @@ export const actions = {
 				.values({ competitionId: comp.id, dayId, sort: ctx.stations.length + 1, name })
 				.returning();
 			await tx.insert(schema.scoreItem).values({ stationId: st.id, sort: 1, name, mode: 'RANGE', min: 0, max: 20, styleEnabled: true, countsForTiebreak: true });
-			// Multi-day: insert before that day's "mål" checkpoint.
+			// Multi-day: insert before that day's finish station.
 			const ordered = displayOrder(ctx.stations, ctx.days);
-			const mal = ordered.find((s) => s.dayId === dayId && s.name.trim().toLowerCase().endsWith('mål'));
+			const mal = ordered.find((s) => s.dayId === dayId && s.role === 'finish');
 			const sameDay = ordered.filter((s) => s.dayId === dayId);
 			const at = mal ? ordered.indexOf(mal) : sameDay.length ? ordered.indexOf(sameDay.at(-1)!) + 1 : ordered.length;
 			ordered.splice(at, 0, st);

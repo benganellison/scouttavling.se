@@ -376,19 +376,19 @@ test.describe('4 desk', () => {
 		await beat(page, 1000);
 		const counts = page.locator('.counts');
 		const read = async () => (await counts.locator('.cn').allTextContents()).map(Number);
-		const [reg0, act0, fin0] = await read();
+		const [reg0, act0, camp0, fin0] = await read(); // Anmälda, På banan, I läger, I mål, Återbud
 		await shot(page, '24-desk');
 		await page.getByLabel('Patrullnummer').pressSequentially('144', { delay: 120 });
 		await page.getByRole('button', { name: 'Registrera' }).click();
 		await expect(page.getByTestId('last-scan')).toContainText('PÅ BANAN');
-		await expect.poll(read).toEqual([reg0 - 1, act0 + 1, fin0, expect.any(Number)]);
+		await expect.poll(read).toEqual([reg0 - 1, act0 + 1, camp0, fin0, expect.any(Number)]);
 		await beat(page, 1200);
 		await shot(page, '25-desk-active');
 		await page.getByLabel('Patrullnummer').pressSequentially('144', { delay: 120 });
 		await page.getByRole('button', { name: 'Registrera' }).click();
 		await expect(page.getByTestId('last-scan')).toContainText('I MÅL');
 		await expect(page.getByTestId('row-144').getByRole('radio', { name: 'I mål' })).toHaveAttribute('aria-checked', 'true');
-		await expect.poll(read).toEqual([reg0 - 1, act0, fin0 + 1, expect.any(Number)]);
+		await expect.poll(read).toEqual([reg0 - 1, act0, camp0, fin0 + 1, expect.any(Number)]);
 		await beat(page, 1200);
 		await shot(page, '26-desk-finished');
 		await expect.poll(() => statusOf(144), { timeout: 20_000 }).toBe('finished');

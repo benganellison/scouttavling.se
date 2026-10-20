@@ -71,7 +71,7 @@ export async function stationCodeMap(competitionId: string) {
 		db.select().from(schema.day).where(eq(schema.day.competitionId, competitionId))
 	]);
 	const codes = stationCodes(
-		stations.map((s) => ({ id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode })),
+		stations.map((s) => ({ id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode, role: s.role })),
 		days.map((d) => ({ id: d.id, prefix: d.prefix }))
 	);
 	return { stations: stations.sort((a, b) => a.sort - b.sort), days, codes };
@@ -275,7 +275,7 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 		: [];
 
 	// Desk: per-patrol progress (kontroller x/y, poäng, senast sedd, tid ute).
-	let progress: Record<string, { stationsDone: number; points: number; lastSeenAt: string | null; lastStationId: string | null; startedAt: string | null; finishedAt: string | null }> = {};
+	let progress: Record<string, { stationsDone: number; points: number; lastSeenAt: string | null; lastStationId: string | null; startedAt: string | null; finishedAt: string | null; campAt: string | null }> = {};
 	if (isDesk) {
 		const itemStation = new Map(allItems.map((i) => [i.id, i.stationId]));
 		const all = await db
@@ -288,10 +288,10 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 			.innerJoin(schema.patrol, eq(schema.patrol.id, schema.statusEvent.patrolId))
 			.where(eq(schema.patrol.competitionId, comp.id))
 			.orderBy(schema.statusEvent.at);
-		const acc = new Map<string, { stations: Set<string>; points: number; last: Date | null; lastStation: string | null; started: Date | null; finished: Date | null }>();
+		const acc = new Map<string, { stations: Set<string>; points: number; last: Date | null; lastStation: string | null; started: Date | null; finished: Date | null; camp: Date | null }>();
 		const get = (id: string) => {
 			let a = acc.get(id);
-			if (!a) acc.set(id, (a = { stations: new Set(), points: 0, last: null, lastStation: null, started: null, finished: null }));
+			if (!a) acc.set(id, (a = { stations: new Set(), points: 0, last: null, lastStation: null, started: null, finished: null, camp: null }));
 			return a;
 		};
 		for (const s of all) {
@@ -306,8 +306,10 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 		}
 		for (const e of events) {
 			const a = get(e.patrolId);
-			if (e.status === 'active') a.started = e.at;
+			// First start counts ("Tid ute" spans every day); a camp → active next morning is not a new start.
+			if (e.status === 'active' && !a.started) a.started = e.at;
 			if (e.status === 'finished') a.finished = e.at;
+			if (e.status === 'camp') a.camp = e.at;
 			if (!a.last || e.at > a.last) {
 				a.last = e.at;
 				a.lastStation = null;
@@ -322,7 +324,8 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 					lastSeenAt: a.last?.toISOString() ?? null,
 					lastStationId: a.lastStation,
 					startedAt: a.started?.toISOString() ?? null,
-					finishedAt: a.finished?.toISOString() ?? null
+					finishedAt: a.finished?.toISOString() ?? null,
+					campAt: a.camp?.toISOString() ?? null
 				}
 			])
 		);
@@ -449,15 +452,13 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 			if (body.type === 'SetStatus') return setStatus(ctx, body);
 			const base = {
 				competitionId: comp.id, patrolId: body.payload.patrolId, itemId: body.payload.itemId, baseVersion: body.baseVersion,
-				origin: 'device' as const, deviceId: device.id, commandId: body.commandId
+				origin: 'device' as const, deviceId: device.id, commandId: body.commandId, at: clientDate(body)
 			};
 			const r =
 				body.type === 'SetScore'
 					? await writeScore({ ...base, raw: { value: body.payload.value, style: body.payload.style }, note: body.payload.note ?? null })
 					: await voidScore({ ...base, reason: 'Ångrad på kontrollen' });
-			if (body.type === 'SetScore' && r.result === 'accepted' && compItems.get(body.payload.itemId)?.mode === 'AUTO_ON_SCAN') {
-				await markFinished(ctx, body); // C10: the Mål station's auto item sets "I mål"
-			}
+			// Status (På banan / I läger / I mål, incl. C10 AUTO_ON_SCAN) follows in writeScore.
 			switch (r.result) {
 				case 'accepted':
 					return { commandId: body.commandId, result: 'accepted', version: r.version };
@@ -513,16 +514,6 @@ async function setStatus(ctx: DeviceContext, body: Extract<CommandBody, { type: 
 		await tx.insert(schema.statusEvent).values({ patrolId: p.id, status: body.payload.status, deviceId: ctx.device.id, at: clientDate(body) });
 		await recordChange(tx, ctx.comp.id, 'patrol', p.id);
 		return { commandId: body.commandId, result: 'accepted', version: 1 } as const;
-	});
-}
-
-async function markFinished(ctx: DeviceContext, body: CommandBody) {
-	await db.transaction(async (tx) => {
-		const [p] = await tx.select().from(schema.patrol).where(eq(schema.patrol.id, body.payload.patrolId)).for('update').limit(1);
-		if (!p || p.status === 'finished' || p.status === 'resigned') return;
-		await tx.update(schema.patrol).set({ status: 'finished' }).where(eq(schema.patrol.id, p.id));
-		await tx.insert(schema.statusEvent).values({ patrolId: p.id, status: 'finished', deviceId: ctx.device.id, at: clientDate(body) });
-		await recordChange(tx, ctx.comp.id, 'patrol', p.id);
 	});
 }
 

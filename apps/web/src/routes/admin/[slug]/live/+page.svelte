@@ -50,6 +50,7 @@
 
 	<section class="kpis" aria-label="Läget just nu">
 		<Kpi label="På banan" value={data.kpi.active} />
+		{#if data.comp.multiDay || data.kpi.camp}<Kpi label="I läger" value={data.kpi.camp} note="klara för dagen" />{/if}
 		<Kpi label="I mål" value={data.kpi.finished} />
 		<Kpi label="Ej startade" value={data.kpi.registered} />
 		<Kpi label="Återbud" value={data.kpi.resigned} />
@@ -68,6 +69,7 @@
 							<span class="dot {t.state}" title={t.state === 'online' ? 'Online' : t.state === 'none' ? 'Ingen enhet' : 'Offline'}></span>
 						</div>
 						<span class="name">{t.name}</span>
+						{#if t.finishSets}<span class="role">Sätter {t.finishSets === 'camp' ? 'I läger' : 'I mål'}</span>{/if}
 						<div class="bar" role="progressbar" aria-valuemin={0} aria-valuemax={t.expected} aria-valuenow={t.done} aria-label="{t.name}: {t.done} av {t.expected}">
 							<span style="width: {pct(t.done, t.expected)}%"></span>
 						</div>
@@ -215,6 +217,11 @@
 	.banner a {
 		color: #fff;
 		font-weight: 800;
+	}
+	.role {
+		font-size: 12px;
+		font-weight: 700;
+		color: var(--ink-2);
 	}
 	.kpis {
 		display: grid;

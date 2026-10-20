@@ -3,7 +3,7 @@ import fc from 'fast-check';
 import {
 	buildImport, daysBetween, distribute, evaluate, guessColumns, InvalidScoreError, isScoutnetExport,
 	normalizePhone, parseCsv, parseHtmlTable, parseMembers, parsePatrolCode, patrolCodeUrl, rank,
-	rankOfValue, stationCodes, verifyPatrolCode, type ScoreItemDef
+	rankOfValue, roleFromName, stationCodes, verifyPatrolCode, type ScoreItemDef
 } from './index.ts';
 
 const rangeItem = (id: string, max = 20, style = true): ScoreItemDef => ({
@@ -112,6 +112,23 @@ describe('station codes', () => {
 		];
 		const m = stationCodes(st, days);
 		expect(st.map((s) => m.get(s.id))).toEqual(['FS', 'F1', 'FM', 'LS', 'L1', 'MAT']);
+	});
+	it('prefers the explicit role over the name', () => {
+		const days = [{ id: 'f', prefix: 'F' }, { id: 'l', prefix: 'L' }];
+		const st = [
+			{ id: '1', dayId: 'f', order: 1, name: 'Samling', role: 'start' as const },
+			{ id: '2', dayId: 'f', order: 2, name: 'Lägerbygge', role: null },
+			{ id: '3', dayId: 'f', order: 3, name: 'Kvällsincheckning', role: 'finish' as const },
+			// explicitly an ordinary station despite the name
+			{ id: '4', dayId: 'l', order: 4, name: 'Bivack mål', role: null },
+			// no role stored: the name rule is the fallback
+			{ id: '5', dayId: 'l', order: 5, name: 'Lördag mål' }
+		];
+		const m = stationCodes(st, days);
+		expect(st.map((s) => m.get(s.id))).toEqual(['FS', 'F1', 'FM', 'L1', 'LM']);
+	});
+	it('derives a role from the name (case-insensitive)', () => {
+		expect([roleFromName('Fredag START'), roleFromName('Lördag Mål '), roleFromName('Målgång'), roleFromName('Eldstaden')]).toEqual(['start', 'finish', null, null]);
 	});
 	it('generates Swedish day names and unique prefixes', () => {
 		expect(daysBetween('2027-05-14', '2027-05-16').map((d) => `${d.name}:${d.prefix}`)).toEqual(['Fredag:F', 'Lördag:L', 'Söndag:S']);

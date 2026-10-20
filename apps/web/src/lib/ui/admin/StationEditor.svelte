@@ -20,6 +20,8 @@
 		name: string;
 		customCode: string | null;
 		dayId: string | null;
+		/** The day's start / finish (null = ordinary station). */
+		role: 'start' | 'finish' | null;
 		allTracks: boolean;
 		trackIds: string[];
 		startable: boolean;
@@ -51,7 +53,7 @@
 		tracks: { id: string; name: string }[];
 		compStyle: boolean;
 		multiDay: boolean;
-		suggestCode: (dayId: string | null, name: string) => string;
+		suggestCode: (dayId: string | null, name: string, role: 'start' | 'finish' | null) => string;
 		errors?: Record<string, string>;
 		saved?: boolean;
 		invitesHref: string;
@@ -67,20 +69,21 @@
 	let allTracks = $state(init.allTracks);
 	let trackIds = $state<string[]>(init.trackIds);
 	let startable = $state(init.startable);
+	let role = $state<'start' | 'finish' | null>(init.role ?? null);
 	let items = $state<EditItem[]>(init.items);
 	let confirmDelete = $state(false);
 	let saving = $state(false);
 	let newValue = $state<Record<number, { value: string; label: string }>>({});
 
-	const auto = $derived(suggestCode(multiDay ? dayId : null, name));
+	const auto = $derived(suggestCode(multiDay ? dayId : null, name, role));
 	const code = $derived(customCode.trim().toUpperCase() || auto);
 	const payload = $derived(
-		JSON.stringify({ id: station.id, name, customCode, dayId: multiDay ? dayId : null, allTracks, trackIds, startable, items })
+		JSON.stringify({ id: station.id, name, customCode, dayId: multiDay ? dayId : null, role, allTracks, trackIds, startable, items })
 	);
 	const dirty = $derived(
 		payload !==
 			JSON.stringify({
-				id: init.id, name: init.name, customCode: init.customCode ?? '', dayId: multiDay ? (init.dayId ?? days[0]?.id ?? null) : null,
+				id: init.id, name: init.name, customCode: init.customCode ?? '', dayId: multiDay ? (init.dayId ?? days[0]?.id ?? null) : null, role: init.role ?? null,
 				allTracks: init.allTracks, trackIds: init.trackIds, startable: init.startable, items: init.items
 			})
 	);
@@ -104,6 +107,11 @@
 			: null
 	);
 	const totalScores = $derived(items.reduce((a, i) => a + i.scores, 0));
+	const ROLES = $derived<{ k: 'start' | 'finish' | null; l: string; d: string }[]>([
+		{ k: null, l: 'Vanlig kontroll', d: 'på banan' },
+		{ k: 'start', l: multiDay ? 'Dagens start' : 'Start', d: multiDay ? `${days.find((d) => d.id === dayId)?.prefix ?? ''}S-kod` : 'första kontrollen' },
+		{ k: 'finish', l: multiDay ? 'Dagens mål' : 'Mål', d: multiDay ? 'I läger / I mål' : 'sätter I mål' }
+	]);
 	const MODES: { k: ItemMode; d: string }[] = [
 		{ k: 'RANGE', d: 'min–max' },
 		{ k: 'DISTINCT', d: 't.ex. 0/5/10' },
@@ -202,6 +210,29 @@
 						{#if err('dayId')}<span class="error-text">{err('dayId')}</span>{/if}
 					</fieldset>
 				{/if}
+
+				<fieldset class="fs">
+					<legend class="label">Roll</legend>
+					<div class="seg">
+						{#each ROLES as r (r.k ?? 'none')}
+							<label class="opt" class:on={role === r.k}>
+								<input type="radio" name="st-role" value={r.k ?? ''} checked={role === r.k} onchange={() => (role = r.k)} />
+								<span class="ot">{r.l}</span><span class="od">{r.d}</span>
+							</label>
+						{/each}
+					</div>
+					<span class="help">
+						{#if role === 'finish'}
+							{multiDay
+								? 'Patrullen blir "I läger" (klar för dagen) när den rapporteras här. Sista dagen blir den "I mål".'
+								: 'Patrullen blir "I mål" när den rapporteras här.'}
+						{:else if role === 'start'}
+							Dagens första kontroll. Påverkar koden på papper.
+						{:else}
+							En vanlig kontroll på banan.
+						{/if}
+					</span>
+				</fieldset>
 
 				<fieldset class="fs">
 					<legend class="label">Vilka klasser gör kontrollen?</legend>

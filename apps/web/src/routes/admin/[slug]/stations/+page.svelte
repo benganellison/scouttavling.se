@@ -12,7 +12,7 @@
 	const multi = $derived(c.multiDay && data.days.length > 1);
 	const codes = $derived(
 		stationCodes(
-			data.stations.map((s) => ({ id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode })),
+			data.stations.map((s) => ({ id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode, role: s.role })),
 			data.days.map((d) => ({ id: d.id, prefix: d.prefix }))
 		)
 	);
@@ -37,13 +37,13 @@
 	function isCheckpoint(s: (typeof data.stations)[number]) {
 		return s.items.length > 0 && s.items.every((i) => i.mode === 'CHECKIN' || i.mode === 'AUTO_ON_SCAN');
 	}
-	function suggestCode(dayId: string | null, name: string) {
+	function suggestCode(dayId: string | null, name: string, role: 'start' | 'finish' | null) {
 		if (!selected) return '';
 		const m = stationCodes(
 			data.stations.map((s) =>
 				s.id === selected.id
-					? { id: s.id, dayId: multi ? dayId : s.dayId, order: s.sort, name, customCode: null }
-					: { id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode }
+					? { id: s.id, dayId: multi ? dayId : s.dayId, order: s.sort, name, customCode: null, role }
+					: { id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode, role: s.role }
 			),
 			data.days.map((d) => ({ id: d.id, prefix: d.prefix }))
 		);

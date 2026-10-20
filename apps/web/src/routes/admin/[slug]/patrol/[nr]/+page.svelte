@@ -38,7 +38,7 @@
 		<div class="who stack">
 			<div class="row">
 				<h1>{data.patrol.name}</h1>
-				<StatusPill status={data.patrol.status} />
+				<StatusPill status={data.patrol.status} detail={data.patrol.campAt ? `klar för dagen ${data.patrol.campAt}` : null} />
 			</div>
 			<p class="muted meta">
 				{data.patrol.troop} · {data.patrol.track}

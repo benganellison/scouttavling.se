@@ -199,6 +199,10 @@ export interface StationInfo {
 	allTracks: boolean;
 	trackIds: string[];
 	startable: boolean;
+	/** The day's start / finish (null = ordinary station). */
+	role: 'start' | 'finish' | null;
+	/** What a report here does to the patrol's status: finish stations set I läger, or I mål on the last day. */
+	finishSets: 'camp' | 'finished' | null;
 	/** All items are CHECKIN / AUTO_ON_SCAN (lunch, rest stops). */
 	checkpoint: boolean;
 	contactPhone: string | null;
@@ -223,14 +227,17 @@ export async function loadStations(competitionId: string): Promise<StationInfo[]
 			.orderBy(asc(schema.scoreItem.sort))
 	]);
 	const codes = stationCodes(
-		stations.map((s: StationRow) => ({ id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode })),
+		stations.map((s: StationRow) => ({ id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode, role: s.role })),
 		days.map((d) => ({ id: d.id, prefix: d.prefix }))
 	);
+	const lastDay = [...days].sort((a, b) => a.sort - b.sort || a.date.localeCompare(b.date)).at(-1);
 	return stations.map((s) => {
 		const its = items.filter((r) => r.item.stationId === s.id).map((r) => r.item);
+		const finish = s.role === 'finish' || its.some((i) => i.mode === 'AUTO_ON_SCAN');
 		return {
 			id: s.id, code: codes.get(s.id) ?? '?', name: s.name, sort: s.sort, allTracks: s.allTracks,
-			trackIds: links.filter((l) => l.stationId === s.id).map((l) => l.trackId), startable: s.startable,
+			trackIds: links.filter((l) => l.stationId === s.id).map((l) => l.trackId), startable: s.startable, role: s.role,
+			finishSets: (finish ? (!lastDay || s.dayId === lastDay.id ? 'finished' : 'camp') : null) as StationInfo['finishSets'],
 			checkpoint: its.length > 0 && its.every((i) => i.mode === 'CHECKIN' || i.mode === 'AUTO_ON_SCAN'),
 			contactPhone: s.contactPhone, items: its
 		};
@@ -270,6 +277,28 @@ export function acknowledgeAlarm(competitionId: string, key: string) {
 
 const minutesSince = (d: Date, now: number) => Math.floor((now - d.getTime()) / 60_000);
 
+/**
+ * "Not seen for 45 min": only patrols out on the course (active). Anmäld, I läger
+ * (done for the day, overnight in camp), I mål and Återbud never alarm.
+ */
+export function unseenAlarms(
+	patrols: { id: string; number: number; name: string; status: string }[],
+	lastByPatrol: Map<string, Date>,
+	now: number,
+	slug: string
+): Alarm[] {
+	const out: Alarm[] = [];
+	for (const p of patrols.filter((p) => p.status === 'active').sort((a, b) => a.number - b.number)) {
+		const last = lastByPatrol.get(p.id);
+		if (!last || now - last.getTime() < UNSEEN_ALARM_MS) continue;
+		out.push({
+			key: `unseen:${p.id}:${last.getTime()}`, kind: 'unseen', title: `${p.number} ${p.name} inte sedd på ${formatDuration(minutesSince(last, now))}`,
+			detail: `Senast rapporterad ${formatTime(last)}`, href: `/admin/${slug}/patrol/${p.number}`
+		});
+	}
+	return out;
+}
+
 export async function loadDashboard(comp: CompRow) {
 	const now = Date.now();
 	const [stations, patrols, scores, devices, statusEvents, conflicts, feed] = await Promise.all([
@@ -299,6 +328,7 @@ export async function loadDashboard(comp: CompRow) {
 
 	const kpi = {
 		active: patrols.filter((p) => p.status === 'active').length,
+		camp: patrols.filter((p) => p.status === 'camp').length,
 		finished: patrols.filter((p) => p.status === 'finished').length,
 		registered: patrols.filter((p) => p.status === 'registered').length,
 		resigned: patrols.filter((p) => p.status === 'resigned').length,
@@ -324,7 +354,7 @@ export async function loadDashboard(comp: CompRow) {
 		const state: 'online' | 'stale' | 'offline' | 'none' =
 			devs.length === 0 ? 'none' : offMs === null ? 'offline' : offMs < ONLINE_MS ? 'online' : offMs < OFFLINE_ALARM_MS ? 'stale' : 'offline';
 		return {
-			id: st.id, code: st.code, name: st.name, checkpoint: st.checkpoint, expected, done, devices: devs.length, state,
+			id: st.id, code: st.code, name: st.name, checkpoint: st.checkpoint, finishSets: st.finishSets, expected, done, devices: devs.length, state,
 			lastSeenAt: last, offlineMinutes: last && state !== 'online' ? minutesSince(last, now) : null
 		};
 	});
@@ -340,14 +370,7 @@ export async function loadDashboard(comp: CompRow) {
 	};
 	for (const s of scores) bump(s.patrolId, s.updatedAt);
 	for (const e of statusEvents) bump(e.patrolId, e.at ? new Date(e.at) : null);
-	for (const p of patrols.filter((p) => p.status === 'active').sort((a, b) => a.number - b.number)) {
-		const last = lastByPatrol.get(p.id);
-		if (!last || now - last.getTime() < UNSEEN_ALARM_MS) continue;
-		alarms.push({
-			key: `unseen:${p.id}:${last.getTime()}`, kind: 'unseen', title: `${p.number} ${p.name} inte sedd på ${formatDuration(minutesSince(last, now))}`,
-			detail: `Senast rapporterad ${formatTime(last)}`, href: `/admin/${comp.slug}/patrol/${p.number}`
-		});
-	}
+	alarms.push(...unseenAlarms(patrols, lastByPatrol, now, comp.slug));
 	for (const t of tiles.filter((t) => t.state === 'offline')) {
 		alarms.push({
 			key: `offline:${t.id}:${t.lastSeenAt?.getTime() ?? 0}`, kind: 'offline', title: `${t.code} ${t.name} offline`,

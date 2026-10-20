@@ -1,15 +1,17 @@
 /** Shared Swedish labels and colours for the patrol/preparation pages. */
 
-export type PatrolStatus = 'registered' | 'active' | 'finished' | 'resigned';
+export type PatrolStatus = 'registered' | 'active' | 'camp' | 'finished' | 'resigned';
 
 export const STATUS_LABEL: Record<PatrolStatus, string> = {
 	registered: 'Anmäld',
 	active: 'På banan',
+	/** Multi-day: done for the day (the day's finish station), not yet I mål. */
+	camp: 'I läger',
 	finished: 'I mål',
 	resigned: 'Återbud'
 };
 
-export const STATUS_ORDER: PatrolStatus[] = ['registered', 'active', 'finished', 'resigned'];
+export const STATUS_ORDER: PatrolStatus[] = ['registered', 'active', 'camp', 'finished', 'resigned'];
 
 /**
  * Class colours for charts. They differ in lightness, not only hue

@@ -44,7 +44,7 @@ export async function loadStations(competitionId: string): Promise<{ days: PrepD
 		? await db.select().from(schema.scoreItem).where(inArray(schema.scoreItem.stationId, ids)).orderBy(asc(schema.scoreItem.sort))
 		: [];
 	const codes = stationCodes(
-		rows.map((r) => ({ id: r.id, dayId: r.dayId, order: r.sort, name: r.name, customCode: r.customCode })),
+		rows.map((r) => ({ id: r.id, dayId: r.dayId, order: r.sort, name: r.name, customCode: r.customCode, role: r.role })),
 		days.map((d) => ({ id: d.id, prefix: d.prefix }))
 	);
 	const daySort = new Map(days.map((d) => [d.id, d.sort]));

@@ -1,5 +1,5 @@
-import { and, eq, sql } from 'drizzle-orm';
-import { evaluate, InvalidScoreError, type ScoreItemDef } from '@scouttavling/domain';
+import { and, asc, desc, eq, ne, sql } from 'drizzle-orm';
+import { evaluate, InvalidScoreError, nextPatrolStatus, type ScoreItemDef } from '@scouttavling/domain';
 import { db, schema } from './db';
 import { recordChange } from './changes';
 
@@ -45,6 +45,8 @@ export interface WriteScore {
 	note?: string | null;
 	/** HQ resolving a conflict may overwrite deliberately. */
 	force?: boolean;
+	/** When it happened (device clock, capped at now); used for status events. Default: now. */
+	at?: Date | null;
 }
 
 export type WriteResult =
@@ -56,18 +58,59 @@ export type WriteResult =
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
- * A registered patrol that gets its first score is evidently out on the course:
- * mark it "På banan" (active) so HQ, the desk and the follow page agree, even if
- * nobody registered the start. Finished and resigned patrols are never touched.
+ * Patrol status follows the scores (rules in @scouttavling/domain nextPatrolStatus):
+ * first score → "På banan"; a finish-role station or an AUTO_ON_SCAN item → "I läger"
+ * on earlier days, "I mål" on the last day (or when there are no days); a score from
+ * a later day brings a camp patrol back on the course. Lives here so phone, HQ
+ * correction and paper entry behave the same. Resigned/finished are never touched.
  */
-async function markOnCourse(tx: Tx, w: WriteScore) {
-	const [p] = await tx
-		.update(schema.patrol)
-		.set({ status: 'active' })
-		.where(and(eq(schema.patrol.id, w.patrolId), eq(schema.patrol.status, 'registered')))
-		.returning({ id: schema.patrol.id });
-	if (!p) return;
-	await tx.insert(schema.statusEvent).values({ patrolId: p.id, status: 'active', deviceId: w.deviceId ?? null, userId: w.userId ?? null });
+async function applyStatusRules(tx: Tx, w: WriteScore, item: ItemRow) {
+	const [p] = await tx.select({ id: schema.patrol.id, status: schema.patrol.status }).from(schema.patrol).where(eq(schema.patrol.id, w.patrolId)).for('update').limit(1);
+	if (!p || p.status === 'resigned' || p.status === 'finished') return;
+	const [st] = await tx.select({ dayId: schema.station.dayId, role: schema.station.role }).from(schema.station).where(eq(schema.station.id, item.stationId)).limit(1);
+	const days = await tx
+		.select({ id: schema.day.id })
+		.from(schema.day)
+		.where(eq(schema.day.competitionId, w.competitionId))
+		.orderBy(asc(schema.day.sort), asc(schema.day.date));
+	const dayIndex = (id: string | null | undefined) => {
+		const i = id ? days.findIndex((d) => d.id === id) : -1;
+		return i < 0 ? null : i;
+	};
+
+	let campDay: number | null = null;
+	if (p.status === 'camp') {
+		// The day of the finish station that put the patrol in camp (its latest other finish score)…
+		const others = await tx
+			.select({ dayId: schema.station.dayId, role: schema.station.role, mode: schema.scoreItem.mode })
+			.from(schema.score)
+			.innerJoin(schema.scoreItem, eq(schema.scoreItem.id, schema.score.itemId))
+			.innerJoin(schema.station, eq(schema.station.id, schema.scoreItem.stationId))
+			.where(and(eq(schema.score.patrolId, p.id), eq(schema.score.state, 'active'), ne(schema.score.itemId, item.id)))
+			.orderBy(desc(schema.score.updatedAt));
+		const fin = others.find((o) => o.role === 'finish' || o.mode === 'AUTO_ON_SCAN');
+		if (fin) campDay = dayIndex(fin.dayId);
+		// …or, when camp was set by hand, the latest day it was seen.
+		else for (const o of others) {
+			const d = dayIndex(o.dayId);
+			if (d !== null && (campDay === null || d > campDay)) campDay = d;
+		}
+	}
+
+	const next = nextPatrolStatus({
+		current: p.status,
+		finishTrigger: st?.role === 'finish' || item.mode === 'AUTO_ON_SCAN',
+		stationDay: dayIndex(st?.dayId),
+		dayCount: days.length,
+		campDay
+	});
+	if (!next) return;
+	const at = w.at ?? new Date();
+	const ev = (status: typeof next, when = at) => ({ patrolId: p.id, status, deviceId: w.deviceId ?? null, userId: w.userId ?? null, at: when });
+	await tx.update(schema.patrol).set({ status: next }).where(eq(schema.patrol.id, p.id));
+	// Straight from Anmäld to I läger / I mål: record the start too (follow page "Startade").
+	if (p.status === 'registered' && next !== 'active') await tx.insert(schema.statusEvent).values(ev('active', new Date(at.getTime() - 1)));
+	await tx.insert(schema.statusEvent).values(ev(next));
 	await recordChange(tx, w.competitionId, 'patrol', p.id);
 }
 
@@ -108,7 +151,7 @@ export async function writeScore(w: WriteScore): Promise<WriteResult> {
 				.returning();
 			await revision(row.id, 1, 'active');
 			await recordChange(tx, w.competitionId, 'score', row.id);
-			await markOnCourse(tx, w);
+			await applyStatusRules(tx, w, item);
 			return { result: 'accepted', version: 1, ...value } as const;
 		}
 
@@ -136,7 +179,7 @@ export async function writeScore(w: WriteScore): Promise<WriteResult> {
 			.where(eq(schema.score.id, existing.id));
 		await revision(existing.id, version, 'active');
 		await recordChange(tx, w.competitionId, 'score', existing.id);
-		await markOnCourse(tx, w);
+		await applyStatusRules(tx, w, item);
 		return { result: 'accepted', version, ...value } as const;
 	});
 }
