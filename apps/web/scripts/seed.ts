@@ -27,7 +27,11 @@ async function main() {
 		.values({
 			slug: 'gokopen-2027', name: 'GökOpen 2027', ownerGroupNo: '900', ownerGroupName: 'Granlidens scoutkår',
 			startDate: '2027-05-15', endDate: '2027-05-15', location: 'Gökskogens lägerplats', hqPhone: '070-111 22 33',
-			publicResults: true, registrationOpen: true, status: 'live', patrolCodeKey: 'dev-key-gokopen', createdBy: erik.id
+			publicResults: true, registrationOpen: true, status: 'live', patrolCodeKey: 'dev-key-gokopen', createdBy: erik.id,
+			registrationOpensOn: '2026-09-01', registrationClosesOn: '2027-05-01', maxPatrols: 40,
+			infoText: 'Välkomna till GökOpen! Banan är cirka 6 km genom Gökskogen. Samling vid lägerplatsens flaggstång kl. 08.30, första start 09.00.\n\nTa med matsäck, vattenflaska, kläder efter väder och en penna.',
+			confirmationText: 'Startavgiften är 150 kr per patrull och betalas till kårens konto senast 1 maj.',
+			followEnabled: true, followShowScores: true
 		})
 		.returning();
 	await db.insert(s.competitionMember).values({ competitionId: open.id, userId: erik.id, role: 'owner' });

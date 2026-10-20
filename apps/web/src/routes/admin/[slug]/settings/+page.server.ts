@@ -66,13 +66,44 @@ export const actions = {
 				.update(schema.competition)
 				.set({
 					name, location: location || null, hqPhone: hqPhone || null, ownerGroupNo: group!.groupNo, ownerGroupName: group!.name,
-					styleEnabled: f.get('styleEnabled') === 'on', publicResults: f.get('publicResults') === 'on', registrationOpen: f.get('registrationOpen') === 'on',
+					styleEnabled: f.get('styleEnabled') === 'on', publicResults: f.get('publicResults') === 'on',
 					...(comp.multiDay ? {} : { startDate: date, endDate: date })
 				})
 				.where(eq(schema.competition.id, comp.id));
 			await recordChange(tx, comp.id, 'competition', comp.id);
 		});
 		return { section: 'basics', ok: true };
+	},
+
+	registration: async (event) => {
+		const { comp } = await requireCompetition(event, event.params.slug, [...EDIT]);
+		const f = await event.request.formData();
+		const s = (k: string) => String(f.get(k) ?? '').trim();
+		const opensOn = s('registrationOpensOn');
+		const closesOn = s('registrationClosesOn');
+		const max = s('maxPatrols');
+		const infoText = s('infoText');
+		const confirmationText = s('confirmationText');
+		const errors: Errors = {};
+		if (opensOn && !ISO.test(opensOn)) errors.registrationOpensOn = 'Välj ett datum.';
+		if (closesOn && !ISO.test(closesOn)) errors.registrationClosesOn = 'Välj ett datum.';
+		if (opensOn && closesOn && !errors.registrationOpensOn && !errors.registrationClosesOn && opensOn > closesOn) errors.registrationClosesOn = 'Sista dagen kan inte vara före första dagen.';
+		if (max && (!/^\d{1,4}$/.test(max) || Number(max) < 1)) errors.maxPatrols = 'Skriv ett antal (1–9999) eller lämna tomt.';
+		if (infoText.length > 4000) errors.infoText = 'Högst 4000 tecken.';
+		if (confirmationText.length > 1000) errors.confirmationText = 'Högst 1000 tecken.';
+		if (Object.keys(errors).length) return fail(400, { section: 'registration', errors });
+		await db.transaction(async (tx) => {
+			await tx
+				.update(schema.competition)
+				.set({
+					registrationOpen: f.get('registrationOpen') === 'on', registrationOpensOn: opensOn || null, registrationClosesOn: closesOn || null,
+					maxPatrols: max ? Number(max) : null, infoText: infoText || null, confirmationText: confirmationText || null,
+					followEnabled: f.get('followEnabled') === 'on', followShowScores: f.get('followShowScores') === 'on'
+				})
+				.where(eq(schema.competition.id, comp.id));
+			await recordChange(tx, comp.id, 'competition', comp.id);
+		});
+		return { section: 'registration', ok: true };
 	},
 
 	days: async (event) => {

@@ -9,7 +9,7 @@ export async function load(event) {
 	const { comp, user } = await requireCompetition(event, event.params.slug);
 	const cid = comp.id;
 	const [patrols, [{ members }], stations, items, invited, days, tracks] = await Promise.all([
-		db.select({ id: schema.patrol.id, start: schema.patrol.startStationId }).from(schema.patrol).where(eq(schema.patrol.competitionId, cid)),
+		db.select({ id: schema.patrol.id, start: schema.patrol.startStationId, status: schema.patrol.status }).from(schema.patrol).where(eq(schema.patrol.competitionId, cid)),
 		db
 			.select({ members: sql<number>`count(*)::int` })
 			.from(schema.member)
@@ -48,6 +48,7 @@ export async function load(event) {
 			stationsWithoutItems: stations.filter((s) => !itemStations.has(s.id)).length,
 			withoutInvite: withoutInvite.map((s) => `${codes.get(s.id)} ${s.name}`),
 			startAssigned: patrols.filter((p) => p.start).length,
+			finished: patrols.filter((p) => p.status === 'finished').length,
 			trackNames: tracks.map((t) => t.name)
 		}
 	};

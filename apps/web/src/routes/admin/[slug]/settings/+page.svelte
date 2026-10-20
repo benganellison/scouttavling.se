@@ -19,6 +19,7 @@
 	const eD = $derived(errs('days'));
 	const eT = $derived(errs('tracks'));
 	const eM = $derived(errs('members'));
+	const eR = $derived(errs('registration'));
 	const canEdit = $derived(data.roles.includes('owner') || data.roles.includes('organiser'));
 </script>
 
@@ -67,11 +68,58 @@
 		<div class="toggles">
 			<Toggle name="styleEnabled" checked={c.styleEnabled} label="Använd stilpoäng" description="Av = stilpoäng försvinner på funktionärens skärm, protokoll och resultat." />
 			<Toggle name="publicResults" checked={c.publicResults} label="Publika resultat" description="Resultatlistan syns för alla under dagen." />
-			<Toggle name="registrationOpen" checked={c.registrationOpen} label="Öppen självanmälan" description="Patrulledare kan anmäla via tävlingssidan." />
 		</div>
 		<div class="act">
 			<button class="btn btn-primary" disabled={!canEdit}>Spara grundinfo</button>
 			{#if ok('basics')}<span class="pill pill-ok" role="status">Sparat</span>{/if}
+		</div>
+	</form>
+</section>
+
+<section class="card sec" id="anmalan" aria-labelledby="h-reg">
+	<div class="sec-head">
+		<h2 id="h-reg">Anmälan och tävlingssida</h2>
+		<a class="btn btn-ghost sm" href="/t/{c.slug}" target="_blank" rel="noopener">Visa tävlingssidan</a>
+	</div>
+	<p class="muted lead">Tävlingssidan <strong>scouttavling.se/t/{c.slug}</strong> syns för alla när tävlingen inte är ett utkast.</p>
+	<form method="POST" action="?/registration" class="stack" use:enhance={keep} novalidate>
+		<div class="toggles">
+			<Toggle name="registrationOpen" checked={c.registrationOpen} label="Öppen självanmälan" description="Patrulledare kan anmäla via tävlingssidan." />
+		</div>
+		<div class="grid2">
+			<div class="field">
+				<label for="registrationOpensOn">Anmälan öppnar</label>
+				<input id="registrationOpensOn" name="registrationOpensOn" type="date" value={c.registrationOpensOn ?? ''} aria-invalid={eR.registrationOpensOn ? 'true' : undefined} />
+				{#if eR.registrationOpensOn}<span class="error-text">{eR.registrationOpensOn}</span>{:else}<span class="muted small">Tomt = direkt</span>{/if}
+			</div>
+			<div class="field">
+				<label for="registrationClosesOn">Sista anmälningsdag</label>
+				<input id="registrationClosesOn" name="registrationClosesOn" type="date" value={c.registrationClosesOn ?? ''} aria-invalid={eR.registrationClosesOn ? 'true' : undefined} />
+				{#if eR.registrationClosesOn}<span class="error-text">{eR.registrationClosesOn}</span>{:else}<span class="muted small">Tomt = till och med tävlingsdagen</span>{/if}
+			</div>
+			<div class="field">
+				<label for="maxPatrols">Max antal patruller</label>
+				<input id="maxPatrols" name="maxPatrols" inputmode="numeric" value={c.maxPatrols ?? ''} placeholder="Obegränsat" aria-invalid={eR.maxPatrols ? 'true' : undefined} />
+				{#if eR.maxPatrols}<span class="error-text">{eR.maxPatrols}</span>{/if}
+			</div>
+		</div>
+		<div class="field">
+			<label for="infoText">Information på tävlingssidan</label>
+			<textarea id="infoText" name="infoText" rows="5" maxlength="4000" placeholder="Samlingstid, vad patrullerna ska ta med, startavgift …" aria-invalid={eR.infoText ? 'true' : undefined}>{c.infoText ?? ''}</textarea>
+			{#if eR.infoText}<span class="error-text">{eR.infoText}</span>{/if}
+		</div>
+		<div class="field">
+			<label for="confirmationText">Text i bekräftelsen</label>
+			<textarea id="confirmationText" name="confirmationText" rows="3" maxlength="1000" placeholder="Visas när en patrull har anmält sig, t.ex. hur avgiften betalas." aria-invalid={eR.confirmationText ? 'true' : undefined}>{c.confirmationText ?? ''}</textarea>
+			{#if eR.confirmationText}<span class="error-text">{eR.confirmationText}</span>{/if}
+		</div>
+		<div class="toggles">
+			<Toggle name="followEnabled" checked={c.followEnabled} label="Följ patrullen" description="Ledare och föräldrar kan följa sin patrull live via patrullens egen länk." />
+			<Toggle name="followShowScores" checked={c.followShowScores} label="Visa poäng och placering" description="Av = följ-sidan visar bara vilka kontroller patrullen klarat." />
+		</div>
+		<div class="act">
+			<button class="btn btn-primary" disabled={!canEdit}>Spara anmälan</button>
+			{#if ok('registration')}<span class="pill pill-ok" role="status">Sparat</span>{/if}
 		</div>
 	</form>
 </section>
@@ -212,6 +260,17 @@
 	}
 	.lead {
 		margin: -8px 0 0;
+	}
+	.sec-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+	.sm {
+		min-height: 40px;
+		font-size: 14px;
 	}
 	.grid2 {
 		display: grid;

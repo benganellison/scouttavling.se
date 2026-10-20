@@ -44,19 +44,21 @@ interface Plan {
 	troop: string;
 	F1?: PS;
 	F2?: PS;
+	/** Day-2 start LS: scored item "Chiffer" (0–20 + style); the check-in item on LS gives no points. */
+	LS?: PS;
 	L1?: PS;
 	L2?: PS;
 	/** Nödbrev (0/20), Händighet (0–20), Orientering count (×2). */
 	mal?: [number, number, number];
 }
 const PLAN: Plan[] = [
-	{ nr: 101, name: 'Ekorrarna', cls: 'Upptäckare', troop: 'Påhittsby scoutkår', F1: [15, 3], F2: [12, 2], L1: [14, 4], L2: [10, 2], mal: [20, 12, 6] },
-	{ nr: 102, name: 'Mårdarna', cls: 'Upptäckare', troop: 'Hittepå scoutkår', F1: [15, 3], F2: [12, 2], L1: [14, 4], L2: [10, 2], mal: [20, 12, 6] }, // designed tie with 101
-	{ nr: 103, name: 'Grodorna', cls: 'Upptäckare', troop: 'Påhittsby scoutkår', F1: [18, 5], F2: [16, 4], L1: [17, 5], L2: [15, 4], mal: [20, 15, 8] },
-	{ nr: 104, name: 'Vargarna', cls: 'Utmanare', troop: 'Låtsasby scoutkår', F1: [19, 5], F2: [17, 4], L1: [18, 3], L2: [16, 5], mal: [20, 18, 9] },
-	{ nr: 105, name: 'Lodjuren', cls: 'Utmanare', troop: 'Hittepå scoutkår', F1: [14, 2], F2: [15, 3], L1: [13, 2], L2: [12, 3], mal: [0, 14, 7] },
+	{ nr: 101, name: 'Ekorrarna', cls: 'Upptäckare', troop: 'Påhittsby scoutkår', F1: [15, 3], F2: [12, 2], LS: [11, 3], L1: [14, 4], L2: [10, 2], mal: [20, 12, 6] },
+	{ nr: 102, name: 'Mårdarna', cls: 'Upptäckare', troop: 'Hittepå scoutkår', F1: [15, 3], F2: [12, 2], LS: [11, 3], L1: [14, 4], L2: [10, 2], mal: [20, 12, 6] }, // designed tie with 101
+	{ nr: 103, name: 'Grodorna', cls: 'Upptäckare', troop: 'Påhittsby scoutkår', F1: [18, 5], F2: [16, 4], LS: [16, 4], L1: [17, 5], L2: [15, 4], mal: [20, 15, 8] },
+	{ nr: 104, name: 'Vargarna', cls: 'Utmanare', troop: 'Låtsasby scoutkår', F1: [19, 5], F2: [17, 4], LS: [18, 5], L1: [18, 3], L2: [16, 5], mal: [20, 18, 9] },
+	{ nr: 105, name: 'Lodjuren', cls: 'Utmanare', troop: 'Hittepå scoutkår', F1: [14, 2], F2: [15, 3], LS: [9, 2], L1: [13, 2], L2: [12, 3], mal: [0, 14, 7] },
 	{ nr: 106, name: 'Örnarna', cls: 'Utmanare', troop: 'Låtsasby scoutkår' }, // Återbud on day 2, never scored
-	{ nr: 107, name: 'Sniglarna', cls: 'Upptäckare', troop: 'Snigelbo scoutkår', F1: [8, 1], F2: [9, 2], L1: [7, 1], L2: [6, 1], mal: [0, 8, 3] } // added by hand
+	{ nr: 107, name: 'Sniglarna', cls: 'Upptäckare', troop: 'Snigelbo scoutkår', F1: [8, 1], F2: [9, 2], LS: [5, 1], L1: [7, 1], L2: [6, 1], mal: [0, 8, 3] } // added by hand
 ];
 /** HQ correction in step 8: 107 L2 6 + 1 → 7 + 1. The conflict in step 7 is resolved with "Behåll" (keeps 105 F2 15 + 3). */
 const CORRECTED: Record<number, Partial<Plan>> = { 107: { L2: [7, 1] } };
@@ -66,11 +68,16 @@ function expected(nr: number) {
 	const p = plan(nr);
 	let points = 0;
 	let style = 0;
-	for (const k of ['F1', 'F2', 'L1', 'L2'] as const) if (p[k]) ((points += p[k]![0]), (style += p[k]![1]));
+	for (const k of ['F1', 'F2', 'LS', 'L1', 'L2'] as const) if (p[k]) ((points += p[k]![0]), (style += p[k]![1]));
 	if (p.mal) points += p.mal[0] + p.mal[1] + p.mal[2] * 2;
 	return { points, style, total: points + style };
 }
-/** Hand-written expected places, from the totals above (101 = 102 exactly → shared 2nd). */
+/**
+ * Hand-written expected results (FM/LS check-ins add 0 points):
+ * Upptäckare 103 Grodorna 155 (1), 101 Ekorrarna 120 (2), 102 Mårdarna 120 (2, exact tie), 107 Sniglarna 56 (4);
+ * Utmanare 104 Vargarna 166 (1), 105 Lodjuren 103 (2); 106 Örnarna Återbud, never scored.
+ */
+const EXPECTED_TOTALS: Record<number, number> = { 103: 155, 101: 120, 102: 120, 107: 56, 104: 166, 105: 103 };
 const EXPECTED_PLACES: Record<number, number> = { 103: 1, 101: 2, 102: 2, 107: 4, 104: 1, 105: 2 };
 
 // ------------------------------------------------------------------ helpers
@@ -200,6 +207,7 @@ test('1 organiser creates the competition and shapes the stations', async () => 
 
 	await nav(p, 'Kontroller');
 	const list = p.getByRole('navigation', { name: 'Kontroller' });
+	await expect(list.locator('.code')).toHaveCount(8);
 	const codes = (await list.locator('.code').allTextContents()).map((c) => c.trim());
 	console.log('WIZARD codes: ' + codes.join(' '));
 	expect(codes).toEqual(['FS', 'F1', 'F2', 'FM', 'LS', 'L1', 'L2', 'LM']);
@@ -224,11 +232,18 @@ test('1 organiser creates the competition and shapes the stations', async () => 
 		await expect(list.getByText(name, { exact: true })).toBeVisible();
 	}
 
-	// Day 1 has no finish checkpoint in this competition.
-	await select('FM');
-	await p.getByRole('button', { name: 'Ta bort kontroll' }).click();
-	await p.getByRole('button', { name: 'Ja, ta bort' }).click();
-	await expect(list.locator('.code', { hasText: /^FM$/ })).toHaveCount(0);
+	// Day-2 start keeps its check-in item and gets a scored item "Chiffer" (style on, like the competition default).
+	await select('LS');
+	await p.getByRole('button', { name: '+ Lägg till del' }).click();
+	await p.locator('#it-1-name').fill('Chiffer');
+	const chiffer = p.locator('li.item').nth(1);
+	await expect(chiffer.locator('input[name="mode-1"][value="RANGE"]')).toBeChecked();
+	await chiffer.getByText('Stilpoäng', { exact: true }).click();
+	await expect(chiffer.locator('#it-1-smax')).toHaveValue('5');
+	await shot(p, '03a-ls-chiffer-editor', true);
+	await save();
+	await expect(p.locator('#ed-title .code')).toHaveText('LS');
+	await expect(list.locator('a.pick', { hasText: 'Lördag start' })).toContainText('2 delar');
 
 	// Day 2 finish → "Mål" with 4 items.
 	await select('LM');
@@ -253,7 +268,7 @@ test('1 organiser creates the competition and shapes the stations', async () => 
 	await shot(p, '03-mal-editor', true);
 	await save();
 	const finalCodes = (await list.locator('.code').allTextContents()).map((c) => c.trim());
-	expect(finalCodes).toEqual(['FS', 'F1', 'F2', 'LS', 'L1', 'L2', 'LM']);
+	expect(finalCodes).toEqual(['FS', 'F1', 'F2', 'FM', 'LS', 'L1', 'L2', 'LM']);
 	await expect(list.getByText('4 delar', { exact: false })).toBeVisible();
 	await p.evaluate(() => scrollTo(0, 0));
 	await shot(p, '04-stations-final');
@@ -320,7 +335,7 @@ test('3 distribute start stations and print', async () => {
 test('4 invites through the UI, then go live', async () => {
 	const p = erik;
 	await nav(p, 'Funktionärer');
-	for (const name of ['Eldstaden', 'Knopar', 'Kanoten', 'Första hjälpen', 'Mål']) {
+	for (const name of ['Fredag start', 'Eldstaden', 'Knopar', 'Fredag mål', 'Lördag start', 'Kanoten', 'Första hjälpen', 'Mål']) {
 		await p.getByRole('link', { name: new RegExp(`^\\w+ ${name}$`) }).click();
 		await expect(p.getByRole('heading', { name: new RegExp(`· ${name}$`) })).toBeVisible();
 		await p.getByRole('button', { name: 'Skapa inbjudan' }).click();
@@ -355,6 +370,20 @@ test('5 day 1: desk starts patrols, two volunteers score, one offline', async ({
 	}
 	await shot(desk.page, '15-desk-day1');
 
+	// Fredag start: Hugo checks every team in at the start of day 1.
+	const hugo = await actor(browser, '11-hugo-FS-checkin', PHONE, true);
+	await join(hugo.page, links['Fredag start'], 'Hugo');
+	await expect(hugo.page.getByRole('heading', { name: 'FS · Fredag start' })).toBeVisible();
+	for (const x of PLAN.filter((y) => y.F1)) {
+		await toScan(hugo.page, x.nr);
+		await hugo.page.getByRole('button', { name: `Checka in ${x.name}` }).click();
+		await expect(hugo.page.getByText('Sparat!')).toBeVisible();
+		await hugo.page.getByRole('link', { name: 'Skanna nästa patrull' }).click();
+	}
+	await home(hugo.page);
+	await expect(hugo.page.getByTestId('sync-pill')).toContainText('Synkad', { timeout: 30_000 });
+	await shot(hugo.page, '15a-fs-home');
+
 	phones.anna = await actor(browser, '02-anna-F1', PHONE, true);
 	phones.bo = await actor(browser, '03-bo-F2', PHONE, true);
 	phones.cia = await actor(browser, '04-cia-F2-second-device', PHONE, true);
@@ -387,6 +416,24 @@ test('5 day 1: desk starts patrols, two volunteers score, one offline', async ({
 	await goOnline(a.ctx, a.page);
 	await shot(a.page, '19-anna-synced');
 	await a.page.getByRole('link', { name: 'Kontroll' }).click();
+
+	// Fredag mål: Fia checks in every patrol that finishes day 1 (checkpoint, no points).
+	const fia = await actor(browser, '09-fia-FM-checkin', PHONE, true);
+	phones.fia = fia;
+	await join(fia.page, links['Fredag mål'], 'Fia');
+	await expect(fia.page.getByRole('heading', { name: 'FM · Fredag mål' })).toBeVisible();
+	for (const [i, x] of scorers.entries()) {
+		await toScan(fia.page, x.nr);
+		await expect(fia.page.getByText('Checkpoint · inga poäng')).toBeVisible();
+		if (i === 0) await shot(fia.page, '19a-fm-checkin');
+		await fia.page.getByRole('button', { name: `Checka in ${x.name}` }).click();
+		await expect(fia.page.getByText('Sparat!')).toBeVisible();
+		if (i === 0) await shot(fia.page, '19b-fm-checked-in');
+		await fia.page.getByRole('link', { name: 'Skanna nästa patrull' }).click();
+	}
+	await home(fia.page);
+	await expect(fia.page.getByTestId('sync-pill')).toContainText('Synkad', { timeout: 30_000 });
+	await shot(fia.page, '19c-fm-home');
 });
 
 // ------------------------------------------------------------------ 6/7 conflict
@@ -418,6 +465,15 @@ test('7 (step 6) day 2: volunteers score, HQ sees it live, Mål sets I mål, des
 	await expect(p.getByTestId('live-status')).toHaveAttribute('data-status', 'open', { timeout: 20_000 });
 	const navs: string[] = [];
 	p.on('framenavigated', (f) => f === p.mainFrame() && navs.push(f.url()));
+
+	// Lördag start: Gus registers each patrol at the day-2 start and scores Chiffer on the same screen.
+	const gus = await actor(browser, '10-gus-LS-chiffer', PHONE, true);
+	phones.gus = gus;
+	await join(gus.page, links['Lördag start'], 'Gus');
+	await expect(gus.page.getByRole('heading', { name: 'LS · Lördag start' })).toBeVisible();
+	for (const [i, x] of PLAN.filter((y) => y.LS).entries()) await scoreStation(gus.page, x.nr, x.LS!, i === 0 ? '23a-ls-chiffer-phone' : undefined);
+	await home(gus.page);
+	await expect(gus.page.getByTestId('sync-pill')).toContainText('Synkad', { timeout: 30_000 });
 
 	phones.dan = await actor(browser, '05-dan-L1', PHONE, true);
 	phones.eva = await actor(browser, '06-eva-L2', PHONE, true);
@@ -511,7 +567,10 @@ test('9 results vs independent calculation, public page, ceremony, close, CSV', 
 			const row = p.locator(`[data-testid="result-row"][data-number="${x.nr}"]`);
 			await expect(row).toHaveAttribute('data-place', String(EXPECTED_PLACES[x.nr]));
 			const e = expected(x.nr);
+			expect(e.total, `independent total for ${x.nr}`).toBe(EXPECTED_TOTALS[x.nr]);
 			await expect(row).toContainText(String(e.total));
+			await expect(row, 'every station visited: FS, F1, F2, FM, LS, L1, L2, LM').toContainText('8/8');
+			console.log(`RESULT ${cls} ${x.nr}: ` + (await row.innerText()).replace(/\s+/g, ' '));
 			await expect(row).toContainText(`${e.points} + ${e.style} stil`);
 		}
 		if (cls === 'Upptäckare') await expect(p.locator('[data-testid="result-row"][data-number="101"]')).toContainText('Delad plats med 102');
@@ -600,7 +659,7 @@ test('10 database agrees with what the UI did', async () => {
 		for (const r of sc) {
 			const e = expected(r.number);
 			expect([r.number, r.pts, r.sty]).toEqual([r.number, e.points, e.style]);
-			expect(r.n).toBe(8); // F1, F2, L1, L2 + 4 Mål items
+			expect(r.n).toBe(12); // FS check-in, F1, F2, FM check-in, LS check-in + Chiffer, L1, L2, 4 Mål items
 		}
 		expect(sc.map((r) => r.number)).toEqual([101, 102, 103, 104, 105, 107]);
 		const [{ open: openConflicts }] = await sql`select count(*)::int open from score_conflict where competition_id = ${c.id} and status = 'open'`;

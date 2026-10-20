@@ -90,6 +90,17 @@
 				href: `${base}/invites`
 			},
 			{
+				state: c.registrationOpen || c.infoText ? 'done' : 'todo',
+				title: 'Tävlingssida & anmälan',
+				desc: c.registrationOpen
+					? `Självanmälan öppen${c.maxPatrols ? ` · max ${c.maxPatrols} patruller` : ''}${c.followEnabled ? ' · Följ patrullen på' : ''}`
+					: 'Självanmälan är avstängd. Tävlingssidan visar info och klasser.',
+				cta: c.status === 'draft' ? 'Förhandsgranska' : 'Visa sidan',
+				href: `/t/${c.slug}`,
+				cta2: 'Ändra',
+				href2: `${base}/settings#anmalan`
+			},
+			{
 				state: 'todo',
 				title: 'Utskrifter',
 				desc: 'Kontrollskyltar med QR-kod, patrullpass och reservprotokoll',
@@ -115,6 +126,9 @@
 	<Kpi label="Patruller" value={s.patrols} note={s.patrols ? `${s.startAssigned} med startkontroll` : 'Inga än'} />
 	<Kpi label="Scouter" value={s.members} note={s.patrols ? `snitt ${(s.members / s.patrols).toLocaleString('sv-SE', { maximumFractionDigits: 1 })} per patrull` : ''} />
 	<Kpi label="Kontroller" value={s.stations} note={s.checkpoints ? `varav ${s.checkpoints} checkpoints` : ''} />
+	{#if c.status === 'closed'}
+		<Kpi label="I mål" value={s.finished} of={s.patrols ? ` / ${s.patrols}` : ''} note="patruller" />
+	{:else}
 	<Kpi
 		label="Utan funktionär"
 		value={s.withoutInvite.length}
@@ -122,8 +136,26 @@
 		note={s.withoutInvite.length ? 'saknar inbjudan' : s.stations ? 'alla inbjudna' : ''}
 		tone={s.withoutInvite.length ? 'warn' : 'ok'}
 	/>
+	{/if}
 </div>
 
+{#if c.status === 'closed'}
+<section class="card closed" aria-labelledby="closed-h" data-testid="closed-summary">
+	<div class="cl-head">
+		<h2 id="closed-h">Tävlingen är avslutad</h2>
+		<StatusPill status={c.status} />
+	</div>
+	<p class="d">Resultaten är låsta för funktionärer. {s.finished} av {s.patrols} patruller gick i mål.</p>
+	<div class="closed-links">
+		<a class="btn btn-primary" href="{base}/results">Resultat</a>
+		<a class="btn" href="{base}/results.csv" download>Exportera (CSV)</a>
+		<a class="btn" href="/r/{c.slug}/ceremony">Prisutdelning</a>
+	</div>
+	<form method="POST" action="?/status" use:enhance class="reopen">
+		<button class="cta" name="to" value="live">Öppna tävlingen igen</button>
+	</form>
+</section>
+{:else}
 <section class="card checklist" aria-labelledby="cl">
 	<div class="cl-head">
 		<h2 id="cl">Att göra innan tävlingsdagen</h2>
@@ -171,6 +203,7 @@
 		</li>
 	</ul>
 </section>
+{/if}
 
 <style>
 	.head {
@@ -199,6 +232,25 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
 		gap: 14px;
+	}
+	.closed {
+		border-radius: 20px;
+		padding: 22px 24px;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.closed .d {
+		margin: 0;
+		font-size: 15px;
+	}
+	.closed-links {
+		display: flex;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+	.reopen {
+		margin: 0;
 	}
 	.checklist {
 		border-radius: 20px;

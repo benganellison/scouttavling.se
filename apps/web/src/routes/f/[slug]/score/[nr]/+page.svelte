@@ -149,6 +149,16 @@
 				</div>
 			{/each}
 
+			{#if !checkin}
+				<!-- A start/finish checkpoint can also have scored parts: saving checks the patrol in too. -->
+				{#each app.items.filter((i) => i.mode === 'CHECKIN') as it (it.id)}
+					<div class="auto">
+						<span class="tick"><Icon name="check" size={20} stroke={3} /></span>
+						<span class="auto-name">{it.name}</span>
+						<span class="auto-at">checkas in när du sparar</span>
+					</div>
+				{/each}
+			{/if}
 			{#if checkin}
 				<div class="checkin">
 					<span class="eyebrow">Checkpoint · inga poäng</span>

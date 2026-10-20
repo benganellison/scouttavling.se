@@ -35,6 +35,9 @@
 	{#if app.authProblem}
 		<div class="auth" role="alert">{app.authProblem}</div>
 	{/if}
+	{#if app.closed}
+		<div class="closed" role="alert" data-testid="closed-banner">Tävlingen är avslutad — rapporter tas inte emot</div>
+	{/if}
 	{@render children()}
 {/if}
 
@@ -60,6 +63,14 @@
 		font-size: 17px;
 		color: var(--ink-2);
 		max-width: 32ch;
+	}
+	.closed {
+		background: var(--forest);
+		color: #fff;
+		font-weight: 800;
+		padding: 12px 16px;
+		font-size: 16px;
+		text-align: center;
 	}
 	.auth {
 		background: var(--danger);

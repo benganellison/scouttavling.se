@@ -6,7 +6,7 @@
 
 	new LiveStream(() => ({ url: `/api/v1/live/${data.comp.slug}/events`, depends: `live:${data.comp.slug}` }));
 
-	const ORIGIN = { device: 'Enhet', admin: 'Ledningen', paper: 'Papper' } as Record<string, string>;
+	const ORIGIN = { device: 'Okänd enhet', admin: 'Ledningen', paper: 'Papper' } as Record<string, string>;
 	type S = (typeof data.conflicts)[number]['existing'];
 	const val = (s: S) => (s.state === 'void' ? 'Ångrad' : s.points === null ? '–' : s.stylePoints ? `${s.points} + ${s.stylePoints}` : `${s.points}`);
 	const src = (s: S) => [s.device ?? (s.origin ? ORIGIN[s.origin] : null), s.reason].filter(Boolean).join(' · ');

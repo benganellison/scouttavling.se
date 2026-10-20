@@ -1,5 +1,5 @@
 import { fail } from '@sveltejs/kit';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { recordChange } from '#lib/server/changes.ts';
@@ -13,6 +13,7 @@ interface Side {
 	state?: string;
 	origin?: string;
 	deviceId?: string | null;
+	userId?: string | null;
 	raw?: { value: number; style: number | null };
 	reason?: string;
 }
@@ -31,16 +32,36 @@ export async function load(event) {
 		db.select({ id: schema.device.id, name: schema.device.displayName }).from(schema.device).where(eq(schema.device.competitionId, comp.id))
 	]);
 	const devName = new Map(devices.map((d) => [d.id, d.name]));
+	// The stored `existing` side has no author; look it up from the score revision with that version.
+	const authors = await Promise.all(
+		rows.map(async ({ c }) => {
+			const ex = c.existing as Side;
+			const [r] = await db
+				.select({ deviceId: schema.scoreRevision.deviceId, userId: schema.scoreRevision.userId, origin: schema.scoreRevision.origin })
+				.from(schema.scoreRevision)
+				.innerJoin(schema.score, eq(schema.score.id, schema.scoreRevision.scoreId))
+				.where(and(eq(schema.score.patrolId, c.patrolId), eq(schema.score.itemId, c.itemId), ex.version ? eq(schema.scoreRevision.version, ex.version) : undefined))
+				.orderBy(desc(schema.scoreRevision.version))
+				.limit(1);
+			return r ?? null;
+		})
+	);
+	const userIds = [...new Set([...authors.map((a) => a?.userId), ...rows.map(({ c }) => (c.incoming as Side).userId)].filter((x): x is string => !!x))];
+	const users = userIds.length ? await db.select({ id: schema.appUser.id, name: schema.appUser.name }).from(schema.appUser).where(inArray(schema.appUser.id, userIds)) : [];
+	const userName = new Map(users.map((u) => [u.id, u.name]));
+	/** Who reported: device display name, the organiser's name, or "Papper". */
+	const who = (x: Side): string | null =>
+		x.deviceId ? (devName.get(x.deviceId) ?? 'Okänd enhet') : x.userId && userName.get(x.userId) ? (x.origin === 'paper' ? `Papper (${userName.get(x.userId)})` : userName.get(x.userId)!) : x.origin === 'paper' ? 'Papper' : null;
 	const where = new Map(stations.flatMap((s) => s.items.map((i) => [i.id, s.items.length > 1 ? `${s.code} ${s.name} · ${i.name}` : `${s.code} ${s.name}`] as const)));
 	const side = (x: Side) => ({
 		points: x.points ?? null, stylePoints: x.stylePoints ?? 0, state: x.state ?? 'active', origin: x.origin ?? null,
-		device: x.deviceId ? (devName.get(x.deviceId) ?? 'okänd enhet') : null, reason: x.reason ?? null
+		device: who(x), reason: x.reason ?? null
 	});
 	return {
 		comp: { slug: comp.slug, name: comp.name },
-		conflicts: rows.map(({ c, patrolNumber, patrolName }) => ({
+		conflicts: rows.map(({ c, patrolNumber, patrolName }, i) => ({
 			id: c.id, kind: c.kind, time: formatTime(c.createdAt), patrol: `${patrolNumber} ${patrolName}`, patrolNumber,
-			where: where.get(c.itemId) ?? 'Okänd kontroll', existing: side(c.existing as Side), incoming: side(c.incoming as Side)
+			where: where.get(c.itemId) ?? 'Okänd kontroll', existing: side({ ...(c.existing as Side), ...(authors[i] ? { deviceId: authors[i]!.deviceId, userId: authors[i]!.userId, origin: (c.existing as Side).origin ?? authors[i]!.origin } : {}) }), incoming: side(c.incoming as Side)
 		}))
 	};
 }

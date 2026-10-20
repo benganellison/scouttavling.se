@@ -57,6 +57,19 @@ export const competition = pgTable('competition', {
 	styleEnabled: boolean('style_enabled').notNull().default(true),
 	publicResults: boolean('public_results').notNull().default(false),
 	registrationOpen: boolean('registration_open').notNull().default(false),
+	/** Self-registration window (inclusive dates, Swedish time). null = no limit on that side; closes defaults to endDate. */
+	registrationOpensOn: date('registration_opens_on'),
+	registrationClosesOn: date('registration_closes_on'),
+	/** Max patrols (resigned patrols do not count). null = unlimited. */
+	maxPatrols: integer('max_patrols'),
+	/** Organiser's text on the public competition page. */
+	infoText: text('info_text'),
+	/** Extra text shown on the registration confirmation. */
+	confirmationText: text('confirmation_text'),
+	/** "Följ patrullen": /folj/<token> pages show data only when on. */
+	followEnabled: boolean('follow_enabled').notNull().default(false),
+	/** Follow pages also show points and placement. */
+	followShowScores: boolean('follow_show_scores').notNull().default(false),
 	status: text('status', { enum: ['draft', 'live', 'closed'] }).notNull().default('draft'),
 	/** Backup mode ("Reservläge") broadcast flag. */
 	backupMode: boolean('backup_mode').notNull().default(false),
@@ -156,11 +169,19 @@ export const patrol = pgTable(
 		contactEmail: text('contact_email'),
 		/** Links the contact to ScoutID ("my patrols"). */
 		contactMemberNo: text('contact_member_no'),
-		/** SHA-256 of the /f/<token> follow link secret. */
+		/** SHA-256 of the /folj/<token> follow link secret. */
 		followTokenHash: text('follow_token_hash'),
+		/** AES-GCM encrypted follow token so the manage page can re-display the link (see #lib/server/registration.ts). */
+		followTokenEnc: text('follow_token_enc'),
+		/** SHA-256 of the /m/<token> manage link secret (shown once, never stored in clear). */
+		manageTokenHash: text('manage_token_hash'),
 		createdAt: createdAt()
 	},
-	(t) => [unique('patrol_comp_number').on(t.competitionId, t.number)]
+	(t) => [
+		unique('patrol_comp_number').on(t.competitionId, t.number),
+		unique('patrol_follow_token_hash').on(t.followTokenHash),
+		unique('patrol_manage_token_hash').on(t.manageTokenHash)
+	]
 );
 
 export const member = pgTable('member', {

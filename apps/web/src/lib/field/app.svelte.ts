@@ -70,7 +70,12 @@ export class FieldApp {
 	pendingRows = $derived(this.outbox.filter((o) => o.state === 'pending'));
 	/** Pending reports (a Mål save with 4 items counts as one). */
 	pendingCount = $derived(new Set(this.pendingRows.map((o) => o.groupId)).size);
-	conflictCount = $derived(this.scores.filter((s) => s.conflict || s.problem).length);
+	/** Real conflicts only (someone else changed the score). */
+	conflictCount = $derived(this.scores.filter((s) => s.conflict).length);
+	/** Reports the server refused (e.g. competition closed); the reason is in the log. */
+	rejectedCount = $derived(this.scores.filter((s) => !s.conflict && s.problem).length + this.outbox.filter((o) => o.type === 'SetStatus' && o.state === 'rejected' && this.statusOverride.get(o.payload.patrolId)?.commandId === o.commandId).length);
+	/** The organiser closed the competition: the server no longer accepts reports. */
+	closed = $derived(this.pack?.competition.status === 'closed');
 	unreadCount = $derived((this.pack?.messages ?? []).filter((m) => !m.read).length);
 
 	private timer: ReturnType<typeof setTimeout> | null = null;

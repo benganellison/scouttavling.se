@@ -15,6 +15,13 @@
       "when": 1792389165391,
       "tag": "0001_change_log_seq_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792441179461,
+      "tag": "0002_public_registration_follow",
+      "breakpoints": true
     }
   ]
 }

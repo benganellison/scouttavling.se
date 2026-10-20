@@ -250,8 +250,10 @@
 		gap: 6px;
 		min-width: 0;
 	}
+	/* Checkpoints are told apart neutrally; tints are reserved for tiles that need attention. */
 	.tile.cp {
-		background: var(--accent-tint);
+		border-style: dashed;
+		border-color: var(--line-strong);
 	}
 	.tile.stale {
 		border: 2px solid var(--flag);

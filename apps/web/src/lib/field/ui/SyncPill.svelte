@@ -5,6 +5,8 @@
 	const pill = $derived(
 		app.conflictCount > 0
 			? { cls: 'bad', icon: 'alert' as const, text: 'Konflikt' }
+			: app.rejectedCount > 0
+				? { cls: 'bad', icon: 'alert' as const, text: app.rejectedCount === 1 ? 'Nekad' : `${app.rejectedCount} nekade` }
 			: app.pendingCount > 0
 				? { cls: 'warn', icon: 'clock' as const, text: !app.online || app.lastFailedAt ? `${app.pendingCount} väntar på täckning` : `${app.pendingCount} väntar` }
 				: app.lastSyncAt
