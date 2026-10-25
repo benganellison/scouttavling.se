@@ -7,7 +7,7 @@
 	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
 	import ScouternaLogo from '#lib/ui/brand/ScouternaLogo.svelte';
 	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import { SCOUTBLA, parseHex, readableText, trackColors } from '#lib/brand/colors.ts';
 	import { effectiveCoverFit, type AssetKind } from '#lib/brand/branding.ts';
 
@@ -218,7 +218,7 @@
 				{#if b.cover}<img class="pv-cover {previewFit}" src={b.cover.url} alt="" data-testid="preview-cover" />{/if}
 				<div class="pv-top" style="border-bottom-color:{accentCustom ? accentHex : 'transparent'}">
 					<div class="pv-brand">
-						{#if b.eventLogo}<EventLogo logo={b.eventLogo} height={30} onDark />{:else}<Flag size={22} onDark />{/if}
+						{#if b.eventLogo}<EventLogo logo={b.eventLogo} height={30} onDark />{:else}<ScouternaSymbol size={22} onDark />{/if}
 						<span>{c.name}</span>
 					</div>
 					{#if chipText && accentCustom}<span class="pv-chip" style="background:{accentHex};color:{chipText}">Anmälan öppen</span>{/if}

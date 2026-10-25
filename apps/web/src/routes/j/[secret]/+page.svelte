@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { distinctList } from '@scouttavling/domain';
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import Icon from '#lib/field/ui/Icon.svelte';
 	import { generateDeviceKey } from '#lib/field/protocol.ts';
 	import { storeJoin } from '#lib/field/app.svelte.ts';
@@ -63,13 +63,13 @@
 
 {#if !inv}
 	<main class="screen center">
-		<Flag size={48} />
+		<ScouternaSymbol size={48} />
 		<h1>Inbjudan fungerar inte</h1>
 		<p class="muted">Länken är ogiltig eller har ersatts av en ny kod. Be tävlingsledningen om en ny QR-kod.</p>
 	</main>
 {:else}
 	<form class="screen" onsubmit={join}>
-		<div class="brand"><Flag size={28} /><span>{inv.competition.name} · Funktionär</span></div>
+		<div class="brand"><ScouternaSymbol size={28} /><span>{inv.competition.name} · Funktionär</span></div>
 
 		<div class="intro">
 			<span class="by">{inv.inviter} i tävlingsledningen bjuder in dig till</span>

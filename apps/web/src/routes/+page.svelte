@@ -1,12 +1,12 @@
 <script lang="ts">
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import ScouternaLogo from '#lib/ui/brand/ScouternaLogo.svelte';
 </script>
 
 <svelte:head><title>Scouttävling</title></svelte:head>
 
 <main>
-	<div class="row"><Flag size={44} /> <span class="brand">Scouttävling</span></div>
+	<div class="row"><ScouternaSymbol size={44} /> <span class="brand">Scouttävling</span></div>
 	<h1>Från anmälan till prisutdelning — utan en enda manual.</h1>
 	<div class="row">
 		<a class="btn btn-primary" href="/admin">Tävlingsledning</a>

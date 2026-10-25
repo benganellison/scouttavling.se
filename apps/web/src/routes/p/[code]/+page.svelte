@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	let { data } = $props();
 </script>
 
@@ -9,7 +9,7 @@
 </svelte:head>
 
 <main>
-	<Flag size={44} />
+	<ScouternaSymbol size={44} />
 	{#if data.patrol}
 		<span class="comp">{data.patrol.competition}</span>
 		<h1>Patrull {data.patrol.number}<br />{data.patrol.name}</h1>

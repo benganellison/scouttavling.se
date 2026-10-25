@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
 	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 	import SenderFooter from '#lib/ui/brand/SenderFooter.svelte';
@@ -33,7 +33,7 @@
 
 <div class="wrap" style={accentStyle(data.branding)}>
 	<header class="top">
-		<div class="brand">{#if data.branding.eventLogo}<EventLogo logo={data.branding.eventLogo} height={40} onDark />{:else}<Flag size={28} onDark />{/if} <span>{data.comp.name}</span></div>
+		<div class="brand">{#if data.branding.eventLogo}<EventLogo logo={data.branding.eventLogo} height={40} onDark />{:else}<ScouternaSymbol size={28} onDark />{/if} <span>{data.comp.name}</span></div>
 		<p class="state" data-status={live.status}><span class="dot" aria-hidden="true"></span> Preliminärt · live</p>
 	</header>
 

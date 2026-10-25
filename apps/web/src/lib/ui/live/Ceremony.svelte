@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
 	import ScouternaLogo from '#lib/ui/brand/ScouternaLogo.svelte';
 	import type { BrandImage } from '#lib/brand/branding.ts';
@@ -81,7 +81,7 @@
 	<div class="stage" style="transform: translate(-50%, -50%) scale({scale}); --stripe: {stripe}">
 
 		<header class="top">
-			<div class="brand">{#if eventLogo}<EventLogo logo={eventLogo} height={64} onDark />{:else}<Flag size={44} onDark />{/if} <span>{compName}</span></div>
+			<div class="brand">{#if eventLogo}<EventLogo logo={eventLogo} height={64} onDark />{:else}<ScouternaSymbol size={44} onDark />{/if} <span>{compName}</span></div>
 			<span class="snap">Resultat fryst {takenAt} · <a href={refreshHref}>Uppdatera</a> · <a href={backHref}>Byt klass</a></span>
 		</header>
 

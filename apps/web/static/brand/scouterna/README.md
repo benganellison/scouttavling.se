@@ -6,6 +6,12 @@ Official logo files from Scouterna's graphic profile (Oct 2023), copied **unchan
 - `scouterna_blue_RGB.svg`: blue logo, for white and light backgrounds (and light, calm images).
 - `scouterna_white_RGB.svg`: white logo, for Scoutblå and dark backgrounds/images.
 - `scouterna_tagline_blue_RGB.svg` / `scouterna_tagline_white_RGB.svg`: with "Raised by Adventure".
+- `Scoutsymbolen_rgb.png`: the scout symbol alone (blue, 591×591, transparent), downloaded unchanged on 2026-10-25 from
+  https://media.scoutcontent.se/uploads/2021/03/Scoutsymbolen_rgb.png (sha256 `eb84e14d…823e8d`). For small square spots
+  where the full logo does not fit (compact headers, loading screens, favicon). Render it with
+  `#lib/ui/brand/ScouternaSymbol.svelte` (on Scoutblå/dark it sits on a white plate, since the symbol is blue only).
+  `static/icons/scouterna-{32,48,180,192,512}.png` (favicon, apple-touch, PWA) are this file **scaled only**, centred at
+  80 % on a white square; no recolouring or effects.
 
 Do not edit these files. Render them with `#lib/ui/brand/ScouternaLogo.svelte`, which applies the rules below.
 

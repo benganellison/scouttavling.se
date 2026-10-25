@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 
 	let { userName }: { userName: string } = $props();
 </script>
 
 <header class="topbar">
-	<a class="brand" href="/admin"><Flag size={34} /> <span>Scouttävling</span></a>
+	<a class="brand" href="/admin"><ScouternaSymbol size={34} /> <span>Scouttävling</span></a>
 	<div class="right">
 		<span class="who">{userName}</span>
 		<form method="POST" action="/auth/logout">

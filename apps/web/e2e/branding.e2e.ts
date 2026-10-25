@@ -1,11 +1,13 @@
 /**
  * Event branding: uploads (event logo, organiser logo, cover), accent colour, where it shows
  * (/t, /m, /folj, volunteer phone, scorecards), the SVG-disguised-as-PNG rejection and
- * Scouterna as sender (blue logo on light, white on dark). Images are generated; no real files.
+ * Scouterna as sender (blue logo on light, white on dark). The uploads are the invented seed images
+ * (scripts/seed-assets/, rendered by scripts/make-seed-assets.ts); the metadata check uses a generated PNG.
  * Run: (in apps/web) PORT=5205 scripts/dev-server.sh start && npx playwright test -c e2e/branding.config.ts
  */
 import { test, expect, type Page } from '@playwright/test';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { encodePng } from '../src/lib/server/pngEncode.ts';
 import { SLUG, compId, createInvite, sql } from './field-db.ts';
 
@@ -20,7 +22,29 @@ const TOKEN_F = 'brandingFollowToken012';
 const png = (w: number, h: number, rgb: [number, number, number]) =>
 	Buffer.from(encodePng(w, h, (x, y) => ((x + y) % 7 === 0 ? [255, 255, 255, 255] : [...rgb, 255]), { Author: 'Testperson', GPS: '59.3N 18.0E' }));
 
+/** An invented seed image, with text chunks added so the metadata stripping is still tested. */
+const seedAsset = (file: string) => {
+	const b = readFileSync(`scripts/seed-assets/${file}`);
+	// Insert a tEXt chunk right after IHDR (8-byte signature + 25-byte IHDR chunk).
+	const text = Buffer.from('Author\0Testperson');
+	const chunk = Buffer.alloc(12 + text.length);
+	chunk.writeUInt32BE(text.length, 0);
+	chunk.write('tEXt', 4, 'latin1');
+	text.copy(chunk, 8);
+	chunk.writeUInt32BE(crc32(chunk.subarray(4, 8 + text.length)), 8 + text.length);
+	return { name: file, mimeType: 'image/png', buffer: Buffer.concat([b.subarray(0, 33), chunk, b.subarray(33)]) };
+};
+function crc32(b: Uint8Array) {
+	let c = ~0;
+	for (const x of b) {
+		c ^= x;
+		for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xedb88320 : c >>> 1;
+	}
+	return ~c >>> 0;
+}
+
 let origAccent: string | null = null;
+let origFit: string | null = null;
 
 async function upload(page: Page, kind: string, file: { name: string; mimeType: string; buffer: Buffer }) {
 	const box = page.getByTestId(`img-${kind}`);
@@ -30,15 +54,15 @@ async function upload(page: Page, kind: string, file: { name: string; mimeType: 
 
 test.beforeAll(async () => {
 	const cid = await compId();
-	[{ accent_color: origAccent }] = await sql`select accent_color from competition where id = ${cid}`;
+	[{ accent_color: origAccent, cover_fit: origFit }] = await sql`select accent_color, cover_fit from competition where id = ${cid}`;
 	await sql`update competition set follow_enabled = true, cover_fit = null where id = ${cid}`;
 	await sql`update patrol set manage_token_hash = ${sha(TOKEN_M)}, follow_token_hash = ${sha(TOKEN_F)} where competition_id = ${cid} and number = 112`;
 });
 
 test.afterAll(async () => {
 	const cid = await compId();
-	await sql`update competition set accent_color = ${origAccent} where id = ${cid}`;
-	await sql`delete from asset where competition_id = ${cid} and kind in ('organiser_logo', 'cover')`;
+	// The uploads were the seed images themselves, so only the settings need restoring.
+	await sql`update competition set accent_color = ${origAccent}, cover_fit = ${origFit} where id = ${cid}`;
 	await sql.end();
 });
 
@@ -62,17 +86,28 @@ test('organiser uploads logos and cover, sets the accent; SVG in disguise is rej
 	await upload(page, 'cover', { name: 'cover.png', mimeType: 'image/png', buffer: fake });
 	await expect(page.getByTestId('img-cover').getByRole('alert')).toContainText('skadad');
 
+	// A generated image is accepted too (its metadata is stripped, checked below), then replaced by the real logo.
 	await upload(page, 'event_logo', { name: 'event.png', mimeType: 'image/png', buffer: png(120, 120, [0, 54, 96]) });
 	await expect(page.getByTestId('img-event_logo').getByText('Uppladdad')).toBeVisible();
-	await upload(page, 'organiser_logo', { name: 'kar.png', mimeType: 'image/png', buffer: png(160, 80, [65, 166, 42]) });
+	const [gen] = await sql`select a.data from asset a join competition c on c.id = a.competition_id where c.slug = ${SLUG} and a.kind = 'event_logo'`;
+	expect(Buffer.from(gen.data).includes(Buffer.from('Testperson'))).toBe(false);
+	expect(Buffer.from(gen.data).includes(Buffer.from('59.3N'))).toBe(false);
+
+	await upload(page, 'event_logo', seedAsset('gokopen-logo.png'));
+	await expect(page.getByTestId('img-event_logo').getByText('Uppladdad')).toBeVisible();
+	await upload(page, 'organiser_logo', seedAsset('granliden-logo.png'));
 	await expect(page.getByTestId('img-organiser_logo').getByText('Uppladdad')).toBeVisible();
-	// A wide banner (3:1): shown whole by default.
-	await upload(page, 'cover', { name: 'banner.png', mimeType: 'image/png', buffer: png(600, 200, [30, 90, 60]) });
+	// A wide banner (1600×560, wider than 2.5:1): shown whole by default.
+	await upload(page, 'cover', seedAsset('gokopen-cover.png'));
 	await expect(page.getByTestId('img-cover').getByText('Uppladdad')).toBeVisible();
 
 	// Accent: Utmanarrosa, live contrast note, saved.
-	await page.getByRole('button', { name: 'Utmanarrosa' }).first().click();
-	await expect(page.locator('input[name=accentColor]')).toHaveValue('#da005e');
+	// (Retried: the last upload's page data may still be refreshing when the swatch is first tapped.)
+	await page.waitForLoadState('networkidle');
+	await expect(async () => {
+		await page.getByRole('button', { name: 'Utmanarrosa' }).first().click();
+		await expect(page.locator('input[name=accentColor]')).toHaveValue('#da005e', { timeout: 1500 });
+	}).toPass({ timeout: 15_000 });
 	await expect(page.getByTestId('contrast-note')).toContainText('Vit text på färgen');
 	await page.getByRole('button', { name: 'Spara utseende' }).click();
 	await expect.poll(async () => (await sql`select accent_color from competition where slug = ${SLUG}`)[0].accent_color).toBe('#da005e');

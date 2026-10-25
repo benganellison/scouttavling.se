@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import ScouternaLogo from '#lib/ui/brand/ScouternaLogo.svelte';
 
 	let { data } = $props();
@@ -9,7 +9,7 @@
 
 <div class="wrap">
 	<section class="hero">
-		<div class="row"><Flag size={40} onDark /> <span class="brand">Scouttävling</span></div>
+		<div class="row"><ScouternaSymbol size={40} onDark /> <span class="brand">Scouttävling</span></div>
 		<h1>Planera, genomför och avsluta er patrulltävling.</h1>
 		<p>Logga in med samma konto som i Scoutnet. Ingen ny användare, inget nytt lösenord.</p>
 		<div class="sender"><ScouternaLogo onDark tagline /></div>

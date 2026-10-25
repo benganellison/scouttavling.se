@@ -4,7 +4,7 @@
 	import Icon from '#lib/field/ui/Icon.svelte';
 	import SyncPill from '#lib/field/ui/SyncPill.svelte';
 	import CameraView from '#lib/field/ui/CameraView.svelte';
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
 	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 
@@ -157,7 +157,7 @@
 <div class="desk">
 	<aside>
 		<div class="brand">
-			<span class="b">{#if app.pack?.competition.branding?.eventLogo}<EventLogo logo={app.pack.competition.branding.eventLogo} height={34} onDark />{:else}<Flag size={30} onDark />{/if} Start &amp; mål</span>
+			<span class="b">{#if app.pack?.competition.branding?.eventLogo}<EventLogo logo={app.pack.competition.branding.eventLogo} height={34} onDark />{:else}<ScouternaSymbol size={30} onDark />{/if} Start &amp; mål</span>
 			<SyncPill />
 		</div>
 

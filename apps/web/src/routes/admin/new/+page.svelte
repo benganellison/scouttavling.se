@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { daysBetween } from '@scouttavling/domain';
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import Toggle from '#lib/ui/admin/Toggle.svelte';
 	import { slugify, shortDate } from '#lib/ui/admin/format.ts';
 
@@ -69,7 +69,7 @@
 
 <div class="page">
 	<header class="top">
-		<a class="brand" href="/admin"><Flag size={36} /> <span>Scouttävling</span></a>
+		<a class="brand" href="/admin"><ScouternaSymbol size={36} /> <span>Scouttävling</span></a>
 		<a href="/admin" class="cancel">Avbryt</a>
 	</header>
 

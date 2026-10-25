@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import ScouternaLogo from '#lib/ui/brand/ScouternaLogo.svelte';
 	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
 	import type { BrandImage } from '#lib/brand/branding.ts';
@@ -53,7 +53,7 @@
 
 <aside class="sidebar">
 	<a class="brand" href="/admin/{slug}">
-		{#if eventLogo}<EventLogo logo={eventLogo} height={36} onDark />{:else}<Flag size={30} onDark />{/if}
+		{#if eventLogo}<EventLogo logo={eventLogo} height={36} onDark />{:else}<ScouternaSymbol size={30} onDark />{/if}
 		<span class="brand-text">
 			<span class="comp">{name}</span>
 			<span class="date">{dateText}</span>

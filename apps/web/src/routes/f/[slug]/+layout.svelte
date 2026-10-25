@@ -2,7 +2,7 @@
 	import { onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { FieldApp, provideField } from '#lib/field/app.svelte.ts';
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import { accentStyle } from '#lib/brand/branding.ts';
 
 	let { children } = $props();
@@ -19,16 +19,16 @@
 </svelte:head>
 
 {#if !app.ready}
-	<div class="center" aria-busy="true"><Flag size={48} /></div>
+	<div class="center" aria-busy="true"><ScouternaSymbol size={48} /></div>
 {:else if !app.grant}
 	<main class="center">
-		<Flag size={48} />
+		<ScouternaSymbol size={48} />
 		<h1>Telefonen är inte kopplad hit</h1>
 		<p>Skanna QR-koden du fick av tävlingsledningen för att öppna din kontroll.</p>
 	</main>
 {:else if !app.pack}
 	<main class="center" aria-busy="true">
-		<Flag size={48} />
+		<ScouternaSymbol size={48} />
 		<h1>Hämtar kontrollen…</h1>
 		{#if app.authProblem}<p class="error-text">{app.authProblem}</p>{:else if !app.online}<p>Behöver täckning en gång för att hämta patrullerna.</p>{/if}
 	</main>

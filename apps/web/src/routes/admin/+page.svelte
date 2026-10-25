@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import Topbar from '#lib/ui/admin/Topbar.svelte';
 	import StatusPill from '#lib/ui/admin/StatusPill.svelte';
 	import { dateRange } from '#lib/ui/admin/format.ts';
@@ -25,7 +26,7 @@
 
 	{#if data.competitions.length === 0}
 		<section class="empty card">
-			<svg width="56" height="56" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="6" fill="#fff" stroke="#aab3be" stroke-width="2" stroke-dasharray="4 3"></rect><polygon points="5,27 27,5 27,27" fill="#dde2e8"></polygon></svg>
+			<ScouternaSymbol size={56} />
 			<h2>Inga tävlingar än</h2>
 			<p class="muted">Skapa din första tävling på tre minuter: namn, datum, klasser och kontroller. Detaljerna fixar du sen.</p>
 			<a class="btn btn-accent" href="/admin/new">Skapa en tävling</a>

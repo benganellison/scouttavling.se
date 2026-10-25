@@ -9,13 +9,16 @@
  *   npx playwright test -c e2e/demo.config.ts
  *   kill $(cat .uat-server.pid)
  *
- * Raw videos land in e2e/demo-results/<name>/, caption timings in e2e/demo-results/captions.json.
+ * Raw videos land in e2e/demo-results/<name>/, caption timings in e2e/demo-results/captions.json, and
+ * the moment each recording first shows a real page in e2e/demo-results/ready.json (the cut starts there,
+ * so no blank first frame).
  * Then: node scripts/demo-cut.ts  → e2e/demo-results/final/*.mp4 (captions burned in a band below).
  * All data is invented.
  */
 import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { SLUG, clearScores, createInvite, setStatus, sql } from './field-db.ts';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { SLUG, clearScores, compId, createInvite, setStatus, sql } from './field-db.ts';
 
 const BASE = 'http://localhost:5210';
 const OUT = 'e2e/demo-results';
@@ -24,8 +27,12 @@ mkdirSync(OUT, { recursive: true });
 const PHONE = { width: 390, height: 844 };
 const DESKTOP = { width: 1440, height: 900 };
 const STAGE = { width: 1600, height: 900 };
+/** Clip 5's desktop parts: 1280×800 scales to the 1152×720 cut with readable text. */
+const DESK5 = { width: 1280, height: 800 };
 
 const timing: Record<string, number> = {};
+/** Absolute time (ms) when a recording first shows a real, painted page. */
+const ready: Record<string, number> = {};
 const open: BrowserContext[] = [];
 
 /** Tap marker: an orange ring wherever the "finger" presses. Captions are NOT drawn in the page
@@ -74,6 +81,11 @@ async function actor(browser: Browser, name: string, viewport: { width: number; 
 }
 
 const now = (page: Page) => (Date.now() - timing[actorOf.get(page)!]) / 1000;
+/** Marks the first frame worth showing (call once the first real page is on screen). */
+async function shown(page: Page) {
+	await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+	ready[actorOf.get(page)!] ??= Date.now() + 250;
+}
 function closeOpen(page: Page) {
 	const list = captions[actorOf.get(page)!];
 	const last = list.at(-1);
@@ -96,6 +108,7 @@ async function tap(page: Page, locator: ReturnType<Page['getByRole']>, after = 9
 
 async function join(p: Page, secret: string, name: string) {
 	await p.goto(`/j/${secret}`);
+	await shown(p);
 	await say(p, 'Funktionären skannar QR-koden på kontrollskylten. Inget konto, inget lösenord.');
 	await p.getByLabel('Vad heter du?').pressSequentially(name, { delay: 140 });
 	await pause(p, 700);
@@ -127,8 +140,12 @@ test.describe.configure({ mode: 'serial' });
 
 test.afterEach(async () => {
 	for (const c of open.splice(0)) await c.close().catch(() => undefined);
-	writeFileSync(`${OUT}/timing.json`, JSON.stringify(timing, null, 2));
-	writeFileSync(`${OUT}/captions.json`, JSON.stringify(captions, null, 2));
+	// Merged into the existing files, so one clip can be re-recorded alone (--grep 05).
+	for (const [file, data] of [['timing', timing], ['captions', captions], ['ready', ready]] as const) {
+		const path = `${OUT}/${file}.json`;
+		const prev = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {};
+		writeFileSync(path, JSON.stringify({ ...prev, ...data }, null, 2));
+	}
 });
 test.afterAll(async () => { await sql.end(); });
 
@@ -137,7 +154,7 @@ test('01 funktionär, även utan täckning', async ({ browser }) => {
 	const { page, ctx } = await actor(browser, 'demo-01-funktionar', PHONE, true);
 	await join(page, await createInvite('Repstegen'), 'Anna');
 	await expect(page.getByTestId('sync-pill')).toContainText('Synkad');
-	await say(page, 'Kontrollens startsida: vilka patruller som väntas, och om allt är skickat.');
+	await say(page, 'Överst tävlingens egen logga. Startsidan visar vilka patruller som väntas, och om allt är skickat.');
 
 	await pickPatrol(page, 104, 'Kameran läser patrullpasset, eller så knappar man in numret.');
 	await say(page, 'Rätt patrull? Tryck ”Ja, sätt poäng”.');
@@ -189,6 +206,9 @@ test('02 ledningscentralen live', async ({ browser }) => {
 	await ph.getByLabel('Vad heter du?').fill('Omar');
 	await ph.getByRole('button', { name: 'Öppna min kontroll' }).click();
 	await expect(ph.getByRole('heading', { name: 'K8 · Repstegen' })).toBeVisible();
+	// Both start at the same moment (side by side in the cut): once HQ and the phone are ready.
+	await shown(ph);
+	ready['demo-02-hq'] = ready['demo-02-phone'];
 
 	await say(hq, 'Ledningscentralen: alla kontroller, larm och de senaste rapporterna.');
 	await say(ph, 'Samtidigt ute i skogen: funktionären på K8 Repstegen.', -1500);
@@ -268,6 +288,7 @@ test('04 prisutdelning', async ({ browser }) => {
 	await page.goto(`/r/${SLUG}/ceremony`);
 	await page.getByRole('link', { name: /Upptäckare/ }).click();
 	await expect(page.getByTestId('reveal-card')).toContainText('Strax dags');
+	await shown(page);
 	await say(page, 'Prisutdelning på storbild: placeringarna avslöjas en i taget.');
 	await hush(page);
 	for (let i = 0; i < 12; i++) {
@@ -280,4 +301,89 @@ test('04 prisutdelning', async ({ browser }) => {
 	await page.getByRole('button', { name: 'Avslöja vinnaren' }).click();
 	await expect(page.getByTestId('reveal-name')).toHaveText('Ugglorna');
 	await pause(page, 4000);
+});
+
+test('05 tävlingens eget utseende', async ({ browser }) => {
+	// The patrol's own links (pass and follow page) for patrol 112, as after a registration.
+	const sha = (t: string) => createHash('sha256').update(t).digest('base64url');
+	const tokenM = 'demoManageToken0123456';
+	const tokenF = 'demoFollowToken0123456';
+	await sql`update patrol set manage_token_hash = ${sha(tokenM)}, follow_token_hash = ${sha(tokenF)} where competition_id = ${await compId()} and number = 112`;
+
+	// The organiser: Inställningar → Utseende, then the public page on a big screen.
+	const { page: org } = await actor(browser, 'demo-05-utseende', DESK5);
+	await org.goto('/login');
+	await org.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await org.waitForURL(/\/admin$/);
+	await org.goto(`/admin/${SLUG}/settings#utseende`);
+	const look = org.locator('#utseende');
+	await expect(look.getByRole('heading', { name: 'Utseende' })).toBeVisible();
+	await look.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+	await shown(org);
+	await say(org, 'Under Inställningar, Utseende: tävlingens egen logga, omslagsbild och färg.');
+	// (Instant scrolls: smooth scrolling costs a lot of video bytes.)
+	const swatch = (name: string) => look.getByRole('button', { name }).first();
+	await say(org, 'Färgen väljs bland Scouternas profilfärger. Vi provar Äventyrarorange.', -600);
+	await tap(org, swatch('Äventyrarorange'), 700);
+	await expect(org.locator('input[name=accentColor]')).toHaveValue('#e95f13');
+	await org.getByTestId('preview-public').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+	await say(org, 'Förhandsvisningen visar direkt hur tävlingssidan och telefonen ser ut.', 600);
+	await look.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+	await pause(org, 500);
+	await tap(org, swatch('Upptäckarblå'), 600);
+	await expect(org.locator('input[name=accentColor]')).toHaveValue('#00a8e1');
+	await say(org, 'Tillbaka till Upptäckarblå. Sidhuvuden och knappar är alltid Scoutblå.');
+
+	await org.goto(`/t/${SLUG}`);
+	await expect(org.getByTestId('cover')).toBeVisible();
+	await say(org, 'Tävlingssidan: omslagsbilden, tävlingens logga och färgen som rand.', 400);
+	await org.evaluate(() => scrollTo({ top: document.body.scrollHeight }));
+	const sender = org.getByRole('contentinfo', { name: 'Avsändare' });
+	await expect(sender.locator('img[alt="Granlidens scoutkår"]')).toBeVisible();
+	await pause(org, 900);
+	await say(org, 'I sidfoten: arrangörens logga, med Scouterna som tydlig avsändare.', 600);
+	await hush(org);
+	await pause(org, 400);
+	await org.context().close(); // ends this recording here (the clip plays the parts one after another)
+
+	// The same look on a phone: registration, the patrol pass, the follow page and live results.
+	const { page: ph } = await actor(browser, 'demo-05-telefon', PHONE, true);
+	await ph.goto(`/t/${SLUG}`);
+	await expect(ph.getByTestId('cover')).toBeVisible();
+	await shown(ph);
+	await say(ph, 'I telefonen har tävlingssidan samma utseende.');
+	await tap(ph, ph.getByRole('link', { name: 'Anmäl en patrull' }), 900);
+	await say(ph, 'Anmälan: varje klass har sin färg.');
+	await ph.getByLabel('Patrullens namn').pressSequentially('Trastarna', { delay: 120 });
+	await pause(ph, 500);
+	const option = ph.locator('label.option').nth(1);
+	await option.scrollIntoViewIfNeeded();
+	await tap(ph, option, 900);
+
+	await ph.goto(`/m/${tokenM}`);
+	await expect(ph.getByTestId('patrol-pass')).toBeVisible();
+	await say(ph, 'Patrullpasset med QR-kod, under tävlingens logga.');
+	await ph.goto(`/folj/${tokenF}`);
+	await expect(ph.getByTestId('follow-summary')).toBeVisible();
+	await say(ph, 'Föräldrar följer patrullen på följ-sidan.');
+	await ph.goto(`/r/${SLUG}`);
+	await expect(ph.getByTestId('public-list')).toBeVisible();
+	await say(ph, 'Liveresultat: klasserna känns igen på sina färger.');
+	await tap(ph, ph.getByRole('button', { name: /Upptäckare/ }), 900);
+	await tap(ph, ph.getByRole('button', { name: /Äventyrare/ }), 1200);
+	await hush(ph);
+	await pause(ph, 300);
+	await ph.context().close();
+
+	// Printed scorecards carry the event logo too.
+	const { page: pr } = await actor(browser, 'demo-05-utskrift', DESK5);
+	await pr.goto('/login');
+	await pr.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await pr.waitForURL(/\/admin$/);
+	await pr.goto(`/admin/${SLUG}/print/scorecards`);
+	await expect(pr.getByTestId('print-event-logo').first()).toBeVisible();
+	await shown(pr);
+	await say(pr, 'Poängkorten skrivs ut med tävlingens logga och klassens färg.', 1200);
+	await hush(pr);
+	await pause(pr, 600);
 });

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
 	import SenderFooter from '#lib/ui/brand/SenderFooter.svelte';
 	import { accentStyle, type Branding } from '#lib/brand/branding.ts';
@@ -44,7 +44,7 @@
 				{#if branding?.eventLogo}
 					<EventLogo logo={branding.eventLogo} height={40} onDark />
 				{:else}
-					<Flag size={26} onDark />
+					<ScouternaSymbol size={26} onDark />
 				{/if}
 				{#if href}<a {href}>{title}</a>{:else}<span>{title}</span>{/if}
 			</div>

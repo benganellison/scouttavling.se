@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import Ceremony from '#lib/ui/live/Ceremony.svelte';
 	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
 	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
@@ -27,7 +27,7 @@
 {:else}
 	<div class="pick">
 		<div class="inner stack">
-			<div class="row brand">{#if data.branding.eventLogo}<EventLogo logo={data.branding.eventLogo} height={48} onDark />{:else}<Flag size={36} onDark />{/if} <span>{data.comp.name}</span></div>
+			<div class="row brand">{#if data.branding.eventLogo}<EventLogo logo={data.branding.eventLogo} height={48} onDark />{:else}<ScouternaSymbol size={36} onDark />{/if} <span>{data.comp.name}</span></div>
 			<h1>Prisutdelning</h1>
 			<p>Välj klass. Resultatet fryses när prisutdelningen startar, så sena ändringar påverkar inte avslöjandet.</p>
 			<ul>

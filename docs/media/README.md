@@ -3,7 +3,7 @@
 | File | What | Where it lives |
 |---|---|---|
 | `poang-pa-kontroll.gif` | Score entry on a phone (~5 s loop, 300 px wide) | Committed here |
-| `01-funktionar-offline.mp4` … `04-prisutdelning.mp4` | Captioned demo clips (27–82 s, ≤ 497 KB each) | **Not in git.** Uploaded as GitHub user-attachments (2026-10-25, Scouterna profile) and linked from the root README |
+| `01-funktionar-offline.mp4` … `05-tavlingssida-varumarke.mp4` | Captioned demo clips (27–84 s, ≤ 559 KB each), each opening with a 1.5 s title card | **Not in git.** Uploaded as GitHub user-attachments (2026-10-25, Scouterna profile) and linked from the root README |
 
 All data shown is invented (seed data and UAT fixtures).
 
@@ -24,6 +24,9 @@ The README clips come from a dedicated **demo** spec, not the UAT. It runs at hu
 2. Cut: `node scripts/demo-cut.ts` (needs Docker, uses `linuxserver/ffmpeg:9.0.2`). It writes `e2e/demo-results/final/*.mp4`:
    - 15 fps H.264 with the captions in a band below the screen;
    - clip 2 puts HQ and the phone side by side, each with its own captions;
+   - clip 5 (event branding) plays three recordings one after another (organiser on desktop, phone, scorecards) on one 1280×810 canvas;
+   - every clip starts with a 1.5 s **title card** (Scoutblå, the clip's name, the GökOpen logo, Scouterna's white logo), rendered with Playwright at the clip's size, because GitHub shows the first frame as the still. `CARDS_ONLY=1 node scripts/demo-cut.ts` renders just the cards (`e2e/demo-results/_cut/card-*.png`);
+   - each recording is trimmed to its first painted frame (`e2e/demo-results/ready.json`), so there is no blank start. One clip can be re-recorded alone with `--grep 05`; the JSON files are merged;
    - **size guard:** each clip is re-encoded with stronger compression until it is no larger than its byte budget in `scripts/demo-cut.ts` (the sizes of the clips currently in the README), so the videos never grow. Raise a budget deliberately if a clip really needs it.
 
    To change what is shown or said, edit the `say(…)` captions and steps in `e2e/demo.e2e.ts`. Each caption stays up for ≈ 1.2 s + 55 ms per character.

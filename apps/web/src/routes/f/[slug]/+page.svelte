@@ -5,6 +5,7 @@
 	import SyncPill from '#lib/field/ui/SyncPill.svelte';
 	import TabBar from '#lib/field/ui/TabBar.svelte';
 	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
+	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 
 	const app = useField();
 	const base = `/f/${app.slug}`;
@@ -45,7 +46,7 @@
 <div class="screen">
 	<header class="fhead">
 		<div class="top">
-			{#if app.pack?.competition.branding?.eventLogo}<EventLogo logo={app.pack.competition.branding.eventLogo} height={32} />{/if}
+			{#if app.pack?.competition.branding?.eventLogo}<EventLogo logo={app.pack.competition.branding.eventLogo} height={44} />{:else}<ScouternaSymbol size={32} />{/if}
 			<span class="hello">Hej {firstName} · {app.pack?.competition.name}</span>
 			<SyncPill />
 		</div>
