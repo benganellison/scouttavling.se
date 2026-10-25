@@ -16,8 +16,8 @@ const FFMPEG_IMAGE = 'linuxserver/ffmpeg:9.0.2';
 const ROOT = resolve(import.meta.dirname, '..');
 const DIR = join(ROOT, 'e2e/demo-results');
 const WORK = join(DIR, '_cut');
-const FONT = resolve(ROOT, '../../node_modules/@fontsource/figtree/files/figtree-latin-700-normal.woff');
-const BG = '0x0F1F17';
+const FONT = resolve(ROOT, '../../node_modules/@fontsource/libre-franklin/files/libre-franklin-latin-700-normal.woff');
+const BG = '0x003660'; // Scoutblå
 
 interface Cap { start: number; end: number | null; text: string }
 const captions: Record<string, Cap[]> = JSON.parse(readFileSync(join(DIR, 'captions.json'), 'utf8'));

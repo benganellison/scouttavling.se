@@ -24,21 +24,21 @@
 		color: var(--ink);
 	}
 	.st-active {
-		background: var(--flag);
+		background: var(--orange);
 		color: var(--ink);
 	}
-	/* I läger: calm light forest tint, clearly lighter than På banan and I mål. */
+	/* I läger: light neutral grey with a Scoutblå outline, clearly lighter than På banan and I mål. */
 	.st-camp {
-		background: var(--moss-tint);
-		border-color: var(--moss);
-		color: var(--forest);
+		background: var(--st-camp);
+		border-color: var(--brand);
+		color: var(--brand);
 	}
 	.st-finished {
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 	}
 	.st-resigned {
-		background: #5b6660;
+		background: var(--st-resigned);
 		color: #fff;
 	}
 </style>

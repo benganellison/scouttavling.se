@@ -30,7 +30,8 @@ RUN npx --workspace apps/web svelte-kit sync \
 FROM ${NODE_IMAGE} AS runtime
 ENV NODE_ENV=production \
 	PORT=3000 \
-	HOST=0.0.0.0
+	HOST=0.0.0.0 \
+	BODY_SIZE_LIMIT=3M
 WORKDIR /app
 
 # Runtime deps (pruned), the built server, migrations and the migrate script.

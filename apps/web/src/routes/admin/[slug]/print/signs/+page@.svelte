@@ -2,6 +2,8 @@
 	import '#lib/ui/patrols/print.css';
 	import { enhance } from '$app/forms';
 	import PrintBar from '#lib/ui/patrols/PrintBar.svelte';
+	import PrintEventLogo from '#lib/ui/brand/PrintEventLogo.svelte';
+	import ScouternaLogo from '#lib/ui/brand/ScouternaLogo.svelte';
 
 	let { data } = $props();
 </script>
@@ -21,8 +23,11 @@
 		{#each data.signs as s (s.id)}
 			<section class="sheet sign" aria-label="Skylt {s.code} {s.name}">
 				<header>
-					<svg width="96" height="96" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="2" fill="#fff" stroke="#0F1F17" stroke-width="1.2"></rect><polygon points="3,29 29,3 29,29" fill="#F26B2A"></polygon></svg>
-					<span class="comp">{data.competition.name}</span>
+					<div class="ev">
+						<PrintEventLogo logo={data.branding.eventLogo} mm={24} />
+						<span class="comp">{data.competition.name}</span>
+					</div>
+					<ScouternaLogo print />
 				</header>
 				<div class="code" class:long={s.code.length > 2}>{s.code}</div>
 				<h1 class="name">{s.name}</h1>
@@ -49,6 +54,11 @@
 		justify-content: space-between;
 		align-items: flex-start;
 	}
+	.ev {
+		display: flex;
+		flex-direction: column;
+		gap: 3mm;
+	}
 	.comp {
 		font-weight: 700;
 		font-size: 14pt;
@@ -72,7 +82,7 @@
 		display: flex;
 		gap: 10mm;
 		align-items: center;
-		border-top: 3px solid #0f1f17;
+		border-top: 3px solid #000000;
 		padding-top: 8mm;
 	}
 	.qr {
@@ -86,7 +96,7 @@
 		display: block;
 	}
 	.qr.none {
-		border: 2px dashed #8a978f;
+		border: 2px dashed #7d8794;
 		display: flex;
 		align-items: center;
 		justify-content: center;

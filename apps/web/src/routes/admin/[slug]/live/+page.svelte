@@ -263,7 +263,7 @@
 		border-color: var(--line-strong);
 	}
 	.tile.stale {
-		border: 2px solid var(--flag);
+		border: 2px solid var(--orange);
 	}
 	.tile.offline {
 		border: 2px solid var(--danger);
@@ -287,11 +287,11 @@
 		background: var(--line-strong);
 	}
 	.dot.online {
-		background: var(--moss);
-		box-shadow: 0 0 0 4px var(--moss-tint);
+		background: var(--ok);
+		box-shadow: 0 0 0 4px var(--ok-tint);
 	}
 	.dot.stale {
-		background: var(--flag);
+		background: var(--orange);
 	}
 	.dot.offline {
 		background: var(--danger);
@@ -306,13 +306,13 @@
 	.bar {
 		height: 8px;
 		border-radius: 999px;
-		background: var(--sage-tint);
+		background: var(--tint);
 		overflow: hidden;
 	}
 	.bar span {
 		display: block;
 		height: 100%;
-		background: var(--forest);
+		background: var(--brand);
 		border-radius: 999px;
 	}
 	.t-foot {
@@ -331,13 +331,13 @@
 		color: var(--danger);
 	}
 	.stale .note {
-		color: var(--accent-ink);
+		color: var(--warn-ink);
 	}
 	.between {
 		justify-content: space-between;
 	}
 	.count {
-		background: var(--accent);
+		background: var(--cta);
 		color: #fff;
 		font-weight: 800;
 		border-radius: 999px;
@@ -364,14 +364,14 @@
 		gap: 12px;
 		align-items: center;
 		padding: 10px 0 10px 12px;
-		border-left: 4px solid var(--flag);
+		border-left: 4px solid var(--orange);
 		border-top: 1px solid var(--line);
 	}
 	.alarm.offline {
 		border-left-color: var(--danger);
 	}
 	.alarm.conflict {
-		border-left-color: var(--accent);
+		border-left-color: var(--cta);
 	}
 	.a-text {
 		flex: 1;

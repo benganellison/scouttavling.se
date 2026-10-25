@@ -5,6 +5,7 @@ import { db, schema } from '#lib/server/db/index.ts';
 import {
 	NO_STORE, decryptToken, missLimiter, patrolByManageToken, publicOrigin, qrSvg, spotCount, updateRegistration, windowFor
 } from '#lib/server/registration.ts';
+import { loadBranding, trackColorFor } from '#lib/server/assets.ts';
 import { canEditRegistration, dayMonth, readForm, validateManage } from '#lib/registration/rules.ts';
 
 /** Manage link: the registered contact's view (equivalent to patrol_leader for their own patrol). */
@@ -38,6 +39,8 @@ export async function load({ params, url, setHeaders, getClientAddress }) {
 	}
 	const followToken = comp.followEnabled ? await decryptToken(comp.patrolCodeKey, patrol.followTokenEnc) : null;
 	return {
+		branding: await loadBranding(comp),
+		trackColor: patrol.trackId ? await trackColorFor(comp.id, patrol.trackId) : null,
 		comp: { slug: comp.slug, name: comp.name, status: comp.status, startDate: comp.startDate, endDate: comp.endDate, location: comp.location, hqPhone: comp.hqPhone },
 		patrol: {
 			number: patrol.number, name: patrol.name, troop: patrol.troop, track, status: patrol.status, start,

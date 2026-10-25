@@ -2,6 +2,7 @@
 	import PublicShell from '#lib/ui/public/PublicShell.svelte';
 	import { dateRange } from '#lib/ui/admin/format.ts';
 	import { dayMonth } from '#lib/registration/rules.ts';
+	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 
 	let { data } = $props();
 	const c = $derived(data.comp);
@@ -15,7 +16,7 @@
 	{#if data.preview}<meta name="robots" content="noindex" />{/if}
 </svelte:head>
 
-<PublicShell title="Scouttävling">
+<PublicShell title="Scouttävling" branding={data.branding} showCover>
 	{#snippet hero()}
 		<div class="hero">
 			{#if c.organiser}<p class="org">{c.organiser} bjuder in till</p>{/if}
@@ -68,7 +69,9 @@
 	{#if paragraphs.length}
 		<section class="card info" aria-labelledby="h-info">
 			<h2 id="h-info">Information</h2>
-			{#each paragraphs as p, i (i)}<p>{p}</p>{/each}
+			<div class="prose">
+				{#each paragraphs as p, i (i)}<p>{p}</p>{/each}
+			</div>
 		</section>
 	{/if}
 
@@ -80,7 +83,7 @@
 		{#if data.tracks.length}
 			<ul class="tracks">
 				{#each data.tracks as t (t.name)}
-					<li><span class="tn">{t.name}</span><span class="tc"><strong>{t.patrols}</strong> {t.patrols === 1 ? 'patrull' : 'patruller'}</span></li>
+					<li><span class="tn"><TrackChip color={t.color} />{t.name}</span><span class="tc"><strong>{t.patrols}</strong> {t.patrols === 1 ? 'patrull' : 'patruller'}</span></li>
 				{/each}
 			</ul>
 		{:else}
@@ -98,7 +101,7 @@
 	}
 	.org {
 		margin: 0;
-		color: var(--on-forest);
+		color: var(--on-brand);
 		font-weight: 700;
 		font-size: 15px;
 	}
@@ -114,7 +117,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
-		color: var(--on-forest);
+		color: var(--on-brand);
 		font-weight: 700;
 	}
 	.facts li {
@@ -123,14 +126,14 @@
 		align-items: center;
 	}
 	.facts svg {
-		color: var(--flag-soft);
+		color: var(--on-brand-hi);
 		flex: none;
 	}
 	.preview {
 		margin: 0;
-		background: var(--accent-tint);
-		border: 1px solid var(--flag-soft);
-		color: var(--accent-ink);
+		background: var(--warn-tint);
+		border: 1px solid var(--orange);
+		color: var(--warn-ink);
 		border-radius: var(--r-md);
 		padding: 12px 14px;
 		font-size: 15px;
@@ -139,7 +142,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
-		box-shadow: 0 6px 24px rgb(15 31 23 / 8%);
+		box-shadow: 0 6px 24px rgb(0 0 0 / 8%);
 	}
 	.reg:first-child {
 		margin-top: -26px;
@@ -194,7 +197,7 @@
 		width: 12px;
 		height: 12px;
 		border-radius: 50%;
-		background: var(--flag);
+		background: var(--event-accent);
 		flex: none;
 	}
 	h2 {
@@ -202,6 +205,11 @@
 		font-weight: 800;
 	}
 	.info {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.info .prose {
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
@@ -238,6 +246,9 @@
 	}
 	.tn {
 		font-weight: 800;
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
 	}
 	.tc {
 		color: var(--ink-2);

@@ -2,7 +2,7 @@
 	import '#lib/ui/patrols/prep.css';
 	import { enhance } from '$app/forms';
 	import { distribute, type Strategy } from '@scouttavling/domain';
-	import { needsOutline, trackColor } from '#lib/ui/patrols/labels.ts';
+	import { needsOutline } from '#lib/brand/colors.ts';
 
 	let { data, form } = $props();
 
@@ -17,8 +17,8 @@
 	let saving = $state(false);
 
 	const classes = $derived([
-		...data.tracks.map((t, i) => ({ id: t.id, name: t.name, color: trackColor(i) })),
-		...(data.distPatrols.some((p) => !p.trackId) ? [{ id: '', name: 'Utan klass', color: '#B9C6BD' }] : [])
+		...data.tracks.map((t) => ({ id: t.id, name: t.name, color: data.trackColors[t.id] ?? '#b4bcc6' })),
+		...(data.distPatrols.some((p) => !p.trackId) ? [{ id: '', name: 'Utan klass', color: '#b4bcc6' }] : [])
 	]);
 	const result = $derived(distribute(data.distPatrols, data.distStations, strategy, seed));
 	const trackOf = $derived(new Map(data.distPatrols.map((p) => [p.id, p.trackId])));
@@ -158,12 +158,12 @@
 		cursor: pointer;
 	}
 	.strat:focus-within {
-		outline: 3px solid var(--flag);
+		outline: 3px solid var(--orange);
 		outline-offset: 2px;
 	}
 	.strat.on {
-		background: var(--forest);
-		border-color: var(--forest);
+		background: var(--brand);
+		border-color: var(--brand);
 		color: #fff;
 	}
 	.strat-top {
@@ -186,7 +186,7 @@
 		font-weight: 800;
 		padding: 3px 8px;
 		border-radius: 999px;
-		background: var(--flag);
+		background: var(--orange);
 		color: var(--ink);
 		text-transform: uppercase;
 	}
@@ -227,7 +227,7 @@
 		color: var(--danger);
 	}
 	.good {
-		color: var(--forest-2);
+		color: var(--brand-2);
 	}
 	.legend {
 		list-style: none;
@@ -251,7 +251,7 @@
 		display: inline-block;
 	}
 	.outline {
-		box-shadow: inset 0 0 0 1px #8a978f;
+		box-shadow: inset 0 0 0 1px #7d8794;
 	}
 	.bars-scroll {
 		overflow-x: auto;

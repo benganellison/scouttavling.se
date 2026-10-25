@@ -45,11 +45,11 @@
 		padding: 8px 12px;
 		border: 1.5px dashed var(--line-strong);
 		border-radius: var(--r-sm);
-		background: var(--sage-tint);
+		background: var(--tint);
 		font-size: 14px;
 		font-weight: 700;
 		word-break: break-all;
-		color: var(--forest);
+		color: var(--brand);
 	}
 	.copy {
 		flex: none;

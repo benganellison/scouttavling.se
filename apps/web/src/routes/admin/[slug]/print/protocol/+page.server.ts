@@ -1,3 +1,4 @@
+import { loadBranding } from '#lib/server/assets.ts';
 import { selectableValues, styleValues } from '@scouttavling/domain';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { itemDef } from '#lib/server/scores.ts';
@@ -60,6 +61,7 @@ export async function load(event) {
 	}
 	return {
 		competition: { slug: comp.slug, name: comp.name, hqPhone: comp.hqPhone ?? '' },
+		branding: await loadBranding(comp),
 		distributed,
 		printedAt: new Date().toLocaleString('sv-SE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Stockholm' }),
 		pages

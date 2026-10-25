@@ -2,6 +2,7 @@
 	import { onMount, tick, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import PublicShell from '#lib/ui/public/PublicShell.svelte';
+	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 	import MembersEditor from '#lib/ui/public/MembersEditor.svelte';
 	import CopyLink from '#lib/ui/public/CopyLink.svelte';
 	import { stepOf, validateRegistration, type FormErrors, type RawRegistration } from '#lib/registration/rules.ts';
@@ -95,7 +96,7 @@
 	<meta name="referrer" content="no-referrer" />
 </svelte:head>
 
-<PublicShell title={data.comp.name} href="/t/{data.comp.slug}" eyebrow={done ? 'Anmälan klar' : 'Anmäl en patrull'}>
+<PublicShell title={data.comp.name} href="/t/{data.comp.slug}" eyebrow={done ? 'Anmälan klar' : 'Anmäl en patrull'} branding={data.branding}>
 	{#if done}
 		<section class="card done" aria-labelledby="h-done" data-testid="confirmation">
 			<span class="badge" aria-hidden="true">
@@ -184,7 +185,7 @@
 						{#each data.tracks as t (t.id)}
 							<label class="option" class:sel={trackId === t.id}>
 								<input type="radio" name="trackId" value={t.id} bind:group={trackId} />
-								<span class="on">{t.name}</span>
+								<span class="on"><TrackChip color={t.color} />{t.name}</span>
 								<span class="oc">{t.patrols} {t.patrols === 1 ? 'patrull' : 'patruller'} anmälda</span>
 							</label>
 						{/each}
@@ -265,7 +266,7 @@
 		background: var(--line);
 	}
 	.progress span.on {
-		background: var(--flag);
+		background: var(--orange);
 	}
 	.stepno {
 		margin: -6px 0 0;
@@ -320,19 +321,22 @@
 		cursor: pointer;
 	}
 	.option:has(input:focus-visible) {
-		outline: 3px solid var(--flag);
+		outline: 3px solid var(--orange);
 		outline-offset: 2px;
 	}
 	.option.sel,
 	.option:has(input:checked) {
-		border-color: var(--forest);
-		background: var(--moss-tint);
-		box-shadow: inset 0 0 0 1px var(--forest);
+		border-color: var(--brand);
+		background: var(--ok-tint);
+		box-shadow: inset 0 0 0 1px var(--brand);
 	}
 	.on {
 		font-family: var(--font-display);
 		font-weight: 800;
 		font-size: 18px;
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
 	}
 	.oc {
 		font-size: 13px;
@@ -383,7 +387,7 @@
 		width: 60px;
 		height: 60px;
 		border-radius: 50%;
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		display: flex;
 		align-items: center;
@@ -405,8 +409,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
-		border: 2px solid var(--flag);
-		background: var(--accent-tint);
+		border: 2px solid var(--orange);
+		background: var(--warn-tint);
 	}
 	.save p,
 	section p {

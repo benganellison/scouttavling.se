@@ -17,7 +17,7 @@
 		font-weight: 800;
 		font-size: calc(var(--s) * 0.45);
 		color: var(--ink);
-		background: var(--sage-tint);
+		background: var(--tint);
 		flex: none;
 	}
 	.gold {

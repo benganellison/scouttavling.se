@@ -188,7 +188,7 @@
 	.check input {
 		width: 22px;
 		height: 22px;
-		accent-color: var(--forest);
+		accent-color: var(--brand);
 	}
 	.hint {
 		font-size: 13px;

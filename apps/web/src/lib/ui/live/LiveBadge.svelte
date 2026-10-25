@@ -18,12 +18,12 @@
 		font-weight: 800;
 		padding: 4px 10px;
 		border-radius: 999px;
-		background: var(--sage-tint);
+		background: var(--tint);
 		color: var(--ink-2);
 	}
 	.live.open {
-		background: var(--moss-tint);
-		color: var(--forest-2);
+		background: var(--ok-tint);
+		color: var(--brand-2);
 	}
 	.dot {
 		width: 8px;
@@ -32,7 +32,7 @@
 		background: var(--ink-3);
 	}
 	.open .dot {
-		background: var(--moss);
+		background: var(--ok);
 		animation: pulse 2s infinite;
 	}
 	@keyframes pulse {

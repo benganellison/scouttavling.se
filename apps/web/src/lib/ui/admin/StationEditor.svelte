@@ -432,7 +432,7 @@
 		height: 36px;
 		padding: 0 8px;
 		border-radius: 9px;
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		display: inline-flex;
 		align-items: center;
@@ -527,12 +527,12 @@
 	}
 	.opt:has(input:focus-visible),
 	.tchip:has(input:focus-visible) {
-		outline: 3px solid var(--flag);
+		outline: 3px solid var(--orange);
 		outline-offset: 2px;
 	}
 	.opt.on {
-		background: var(--forest);
-		border-color: var(--forest);
+		background: var(--brand);
+		border-color: var(--brand);
 		color: #fff;
 	}
 	.ot {
@@ -563,8 +563,8 @@
 		cursor: pointer;
 	}
 	.tchip.on {
-		background: var(--forest);
-		border-color: var(--forest);
+		background: var(--brand);
+		border-color: var(--brand);
 		color: #fff;
 	}
 	.items-head {
@@ -594,7 +594,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
-		background: #fbfcfb;
+		background: #fafbfc;
 	}
 	.item-top {
 		display: flex;
@@ -605,8 +605,8 @@
 		width: 32px;
 		height: 32px;
 		border-radius: 50%;
-		background: var(--sage-tint);
-		color: var(--forest);
+		background: var(--tint);
+		color: var(--brand);
 		font-weight: 800;
 		display: flex;
 		align-items: center;
@@ -644,8 +644,8 @@
 		min-height: 40px;
 		padding: 0 4px 0 12px;
 		border-radius: 10px;
-		background: var(--sage-tint);
-		border: 1.5px solid #cfddd3;
+		background: var(--tint);
+		border: 1.5px solid var(--line);
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
@@ -680,7 +680,7 @@
 	}
 	.dashed {
 		border-style: dashed;
-		color: var(--forest);
+		color: var(--brand);
 	}
 	.note {
 		margin: 0;

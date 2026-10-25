@@ -48,7 +48,7 @@
 		opacity: 0.5;
 	}
 	a[aria-current='page'] {
-		color: var(--forest);
+		color: var(--brand);
 		font-weight: 800;
 	}
 	.badge {
@@ -59,7 +59,7 @@
 		height: 19px;
 		padding: 0 5px;
 		border-radius: 999px;
-		background: var(--accent);
+		background: var(--cta);
 		color: #fff;
 		font-size: 11px;
 		font-weight: 800;

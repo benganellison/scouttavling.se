@@ -125,12 +125,12 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-		background: var(--sage-tint);
+		background: var(--tint);
 		border-radius: var(--r-md);
 		padding: 12px 14px;
 	}
 	.side.new {
-		background: var(--accent-tint);
+		background: var(--warn-tint);
 	}
 	.v {
 		font-family: var(--font-display);

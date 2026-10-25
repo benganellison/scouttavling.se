@@ -128,7 +128,7 @@
 		text-decoration: none;
 	}
 	.tabs a[aria-current] {
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		font-weight: 800;
 	}
@@ -147,10 +147,10 @@
 		overflow-x: auto;
 	}
 	.list tr.on td {
-		background: var(--moss-tint);
+		background: var(--ok-tint);
 	}
 	.list tr.on td:first-child {
-		box-shadow: inset 4px 0 0 var(--forest);
+		box-shadow: inset 4px 0 0 var(--brand);
 	}
 	.list tr.sf td {
 		border-top: 2px solid var(--line);
@@ -171,7 +171,7 @@
 		height: 30px;
 		padding: 0 6px;
 		border-radius: 8px;
-		background: var(--sage-tint);
+		background: var(--tint);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -191,7 +191,7 @@
 	.panel {
 		flex: 1 1 340px;
 		min-width: 0;
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		border-radius: 20px;
 		padding: 24px;
@@ -206,7 +206,7 @@
 		font-weight: 800;
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		color: var(--flag-soft);
+		color: var(--on-brand-hi);
 	}
 	.panel h2 {
 		font-size: 26px;
@@ -227,13 +227,13 @@
 	.hint {
 		margin: 0;
 		font-size: 14px;
-		color: var(--on-forest);
+		color: var(--on-brand);
 		text-align: center;
 		line-height: 1.45;
 	}
 	.linkbox input {
-		background: var(--forest-dark);
-		border-color: #4e7d66;
+		background: var(--brand-dark);
+		border-color: var(--line-on-brand);
 		color: #fff;
 		font-size: 13px;
 	}
@@ -244,13 +244,13 @@
 		text-align: center;
 	}
 	.printlink:hover {
-		color: var(--flag-soft);
+		color: var(--on-brand-hi);
 	}
 	.rotate {
 		min-height: 44px;
 		border: 0;
 		background: transparent;
-		color: var(--flag-soft);
+		color: var(--on-brand-hi);
 		font-weight: 800;
 		font-size: 14px;
 		cursor: pointer;
@@ -259,15 +259,15 @@
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
-		background: var(--forest-dark);
+		background: var(--brand-dark);
 		border-radius: 14px;
 		padding: 14px;
 		font-size: 14px;
-		color: var(--on-forest);
+		color: var(--on-brand);
 	}
 	.btn-onforest {
 		background: transparent;
-		border-color: #4e7d66;
+		border-color: var(--line-on-brand);
 		color: #fff;
 	}
 	.btn-onforest:hover {
@@ -278,6 +278,6 @@
 		width: 100%;
 	}
 	.panel .error-text {
-		color: var(--flag-soft);
+		color: var(--on-brand-hi);
 	}
 </style>

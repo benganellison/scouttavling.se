@@ -1,3 +1,5 @@
+import { loadBranding } from '#lib/server/assets.ts';
+import { trackColors } from '#lib/brand/colors.ts';
 import { maxPoints, patrolCodeUrl } from '@scouttavling/domain';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { itemDef } from '#lib/server/scores.ts';
@@ -10,6 +12,7 @@ export async function load(event) {
 	const [{ days, stations }, tracks, all] = await Promise.all([loadStations(comp.id), loadTracks(comp.id), loadPatrols(comp.id)]);
 	const patrols = all.filter((p) => p.status !== 'resigned');
 	const trackName = new Map(tracks.map((t) => [t.id, t.name]));
+	const colors = trackColors(tracks);
 	const origin = publicOrigin(event.url);
 	const byId = new Map(stations.map((s) => [s.id, s]));
 
@@ -34,6 +37,7 @@ export async function load(event) {
 				id: p.id,
 				nr: p.number,
 				name: p.name,
+				color: p.trackId ? (colors[p.trackId] ?? null) : null,
 				sub: [p.trackId ? trackName.get(p.trackId) : '', p.troop].filter(Boolean).join(' · '),
 				start: start ? `${start.code} ${start.name}` : '',
 				qr: await qrSvg(await patrolCodeUrl(origin, comp.patrolCodeKey, comp.slug, p.number), { margin: 0 }),
@@ -53,6 +57,7 @@ export async function load(event) {
 	const cols = Math.min(8, Math.max(4, ...groups.map((g) => g.ids.length > 8 ? Math.ceil(g.ids.length / 2) : g.ids.length)));
 	return {
 		competition: { slug: comp.slug, name: comp.name, hqPhone: comp.hqPhone ?? '', styleEnabled: comp.styleEnabled },
+		branding: await loadBranding(comp),
 		showNames,
 		multi,
 		cols,

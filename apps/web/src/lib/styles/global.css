@@ -1,35 +1,65 @@
 /*
- * Design tokens from the design canvas ("orienteering control flag").
- * Use the variables — never hard-code colours in components.
- * White on --accent passes 5.18:1; --flag (#F26B2A) is decoration only.
+ * Design tokens: Scouterna's graphic profile (Oct 2023), see static/brand/scouterna/README.md.
+ * Use the variables, never hard-code colours in components.
+ * - Scoutblå (--brand) dominates: sidebars, headers, primary buttons (white on it: 12.4:1).
+ *   Scoutblå is never tinted or made transparent; light surfaces are neutral greys.
+ * - Complementary colours (--orange, class colours) are decoration only, never tinted,
+ *   never transparent, never text on white. Text on --orange is black (6.0:1).
+ * - --warn-ink / --danger are functional state colours, not brand colours.
  */
 :root {
-	--ink: #0f1f17;
-	--ink-2: #44524a;
-	--ink-3: #6b7a71;
-	--ground: #f3f5f1;
+	--ink: #0d1117;
+	--ink-2: #434c57;
+	--ink-3: #5c6570;
+	--ground: #f4f6f8;
 	--surface: #ffffff;
-	--line: #dce3dd;
-	--line-strong: #b9c6bd;
-	--forest: #17402f;
-	--forest-2: #1f5a3e;
-	--forest-dark: #0f2a1f;
-	--moss: #2f7a55;
-	--moss-tint: #e1eee5;
-	--sage-tint: #eef3ef;
-	--flag: #f26b2a;
-	--flag-soft: #ffb48a;
-	--accent: #c2410c;
-	--accent-ink: #9a3412;
-	--accent-tint: #fff1e8;
+	--line: #dde2e8;
+	--line-strong: #aab3be;
+	--tint: #edf0f4;
+
+	/* Scoutblå and interaction states (hover = slightly darker shade). */
+	--brand: #003660;
+	--brand-2: #00284a;
+	--brand-dark: #001f38;
+	--on-brand: #e8edf2;
+	--on-brand-2: #b9c6d3;
+	/* Hairlines and outlines on Scoutblå. */
+	--line-on-brand: #6d88a2;
+	/* Highlight text on Scoutblå (Rovergul, 9.3:1). Small doses only. */
+	--on-brand-hi: #e2e000;
+	/* The single main action. */
+	--cta: var(--brand);
+
+	/* Complementary colours (profile palette). Decoration only. */
+	--orange: #e95f13;
+	--green: #41a62a;
+	--sky: #00a8e1;
+	--pink: #da005e;
+	--yellow: #e2e000;
+	--yellow-dark: #837a02;
+
+	/* Done/ok: green marks (graphics, 3.1:1 with white), text stays Scoutblå. */
+	--ok: #41a62a;
+	--ok-tint: var(--tint);
+	--warn-ink: #9a3412;
+	--warn-tint: #f7f5f2; /* near-neutral: complementary colours are never tinted */
 	--danger: #b42318;
 	--danger-tint: #fff4f2;
-	--on-forest: #cfe3d6;
-	--on-forest-2: #9fc2ae;
 
-	/* Self-hosted (bundled + precached by the service worker): works offline, no third-party requests. */
-	--font-display: 'Bricolage Grotesque Variable', 'Figtree Variable', system-ui, sans-serif;
-	--font-ui: 'Figtree Variable', system-ui, sans-serif;
+	/* Patrol status pills, told apart by lightness: Anmäld white (outline) > I läger light grey
+	   > På banan Äventyrarorange (black text) > Återbud dark grey > I mål Scoutblå. */
+	--st-camp: #d3dbe4;
+	--st-resigned: #5c6570;
+
+	/* Per-event accent (set on public/event shells; falls back to Scoutblå). */
+	--event-accent: var(--brand);
+	--on-event-accent: #ffffff;
+
+	/* Self-hosted (bundled + precached by the service worker): works offline, no third-party requests.
+	   Libre Franklin ~ TeeFranklin (headings, UI); EB Garamond ~ Adobe Garamond Pro (long public body text). */
+	--font-display: 'Libre Franklin Variable', 'Franklin Gothic Medium', system-ui, sans-serif;
+	--font-ui: 'Libre Franklin Variable', 'Franklin Gothic Book', system-ui, sans-serif;
+	--font-body: 'EB Garamond Variable', Garamond, Georgia, serif;
 
 	--r-sm: 10px;
 	--r-md: 14px;
@@ -43,11 +73,13 @@
 
 /* "Sol" sunlight / high-contrast mode: <html data-contrast="high"> */
 :root[data-contrast='high'] {
-	--ink-2: #1d2a23;
-	--ink-3: #2e3b33;
-	--line: #8a978f;
-	--line-strong: #0f1f17;
+	--ink: #000000;
+	--ink-2: #1a1f26;
+	--ink-3: #2b323b;
+	--line: #7d8794;
+	--line-strong: #0d1117;
 	--ground: #ffffff;
+	--tint: #e3e8ee;
 }
 
 *,
@@ -78,14 +110,14 @@ h3 {
 }
 
 a {
-	color: var(--forest);
+	color: var(--brand);
 }
 a:hover {
 	color: var(--ink);
 }
 
 :focus-visible {
-	outline: 3px solid var(--flag);
+	outline: 3px solid var(--orange);
 	outline-offset: 2px;
 }
 
@@ -137,22 +169,23 @@ textarea {
 	border-color: var(--ink-3);
 }
 .btn-primary {
-	background: var(--forest);
-	border-color: var(--forest);
+	background: var(--brand);
+	border-color: var(--brand);
 	color: #fff;
 }
 .btn-primary:hover {
 	color: #fff;
-	background: var(--forest-2);
+	background: var(--brand-2);
 }
+/* Kept for the single main action; same Scoutblå as primary (the profile has one action colour). */
 .btn-accent {
-	background: var(--accent);
-	border-color: var(--accent);
+	background: var(--cta);
+	border-color: var(--cta);
 	color: #fff;
 }
 .btn-accent:hover {
 	color: #fff;
-	background: var(--accent-ink);
+	background: var(--brand-2);
 }
 .btn[disabled],
 .btn[aria-disabled='true'] {
@@ -179,16 +212,16 @@ textarea {
 	font-weight: 800;
 	padding: 4px 10px;
 	border-radius: 999px;
-	background: var(--sage-tint);
-	color: var(--forest);
+	background: var(--tint);
+	color: var(--brand);
 }
 .pill-ok {
-	background: var(--moss-tint);
-	color: var(--forest-2);
+	background: var(--tint);
+	color: var(--brand);
 }
 .pill-warn {
-	background: #ffe3d3;
-	color: var(--accent-ink);
+	background: var(--orange);
+	color: #000;
 }
 .pill-bad {
 	background: #fde2de;
@@ -230,4 +263,11 @@ textarea {
 	color: var(--danger);
 	font-weight: 700;
 	font-size: 14px;
+}
+
+/* Long body text on public pages (competition info): Garamond, per the profile. */
+.prose {
+	font-family: var(--font-body);
+	font-size: 1.15rem;
+	line-height: 1.55;
 }

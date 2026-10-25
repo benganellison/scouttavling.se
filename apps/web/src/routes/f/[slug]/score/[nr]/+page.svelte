@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { selectableValues, styleValues, evaluate } from '@scouttavling/domain';
 	import { useField, hhmm, shortTroop, UNDO_MS, type PackItem } from '#lib/field/app.svelte.ts';
+	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 	import Icon from '#lib/field/ui/Icon.svelte';
 
 	const app = useField();
@@ -130,7 +131,7 @@
 			<span class="pnr">{patrol.number}</span>
 			<div class="pwho">
 				<h1 class="pname">{patrol.name}</h1>
-				<span class="psub">{patrol.track} · {shortTroop(patrol.troop)} · {app.station?.code} {app.station?.name}</span>
+				<span class="psub"><TrackChip color={app.pack?.tracks.find((t) => t.id === patrol.trackId)?.color} size={11} /> {patrol.track} · {shortTroop(patrol.troop)} · {app.station?.code} {app.station?.name}</span>
 			</div>
 		</header>
 
@@ -270,6 +271,7 @@
 		align-items: center;
 		gap: 10px;
 		background: var(--surface);
+		border-top: 4px solid var(--event-stripe, var(--orange));
 		border-bottom: 1px solid var(--line);
 		flex: none;
 	}
@@ -287,7 +289,7 @@
 		height: 56px;
 		padding: 0 6px;
 		border-radius: 15px;
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		display: flex;
 		align-items: center;
@@ -331,12 +333,12 @@
 		font-weight: 700;
 		border-radius: 12px;
 		padding: 10px 12px;
-		background: var(--accent-tint);
-		color: var(--accent-ink);
+		background: var(--warn-tint);
+		color: var(--warn-ink);
 	}
 	.editing {
-		background: var(--sage-tint);
-		color: var(--forest);
+		background: var(--tint);
+		color: var(--brand);
 	}
 	.item {
 		display: flex;
@@ -372,7 +374,7 @@
 		font-weight: 800;
 		font-size: 30px;
 		line-height: 1;
-		color: var(--forest);
+		color: var(--brand);
 	}
 	.grid {
 		flex: 1;
@@ -396,8 +398,8 @@
 	}
 	.chip[aria-pressed='true'],
 	.opt[aria-pressed='true'] {
-		background: var(--forest);
-		border: 2px solid var(--forest);
+		background: var(--brand);
+		border: 2px solid var(--brand);
 		color: #fff;
 	}
 	.stacked {
@@ -438,7 +440,7 @@
 		justify-content: center;
 	}
 	.step:active {
-		background: var(--sage-tint);
+		background: var(--tint);
 	}
 	.count {
 		display: flex;
@@ -461,14 +463,14 @@
 	}
 	.cpts {
 		font-weight: 800;
-		color: var(--forest);
+		color: var(--brand);
 		font-size: 17px;
 	}
 	.auto {
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		background: var(--moss-tint);
+		background: var(--ok-tint);
 		border-radius: 14px;
 		padding: 12px 14px;
 		min-height: 56px;
@@ -477,7 +479,7 @@
 		width: 32px;
 		height: 32px;
 		border-radius: 50%;
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		display: flex;
 		align-items: center;
@@ -492,7 +494,7 @@
 	.auto-at {
 		font-size: 14px;
 		font-weight: 700;
-		color: var(--forest-2);
+		color: var(--brand-2);
 	}
 	.checkin {
 		background: var(--surface);
@@ -508,7 +510,7 @@
 		font-weight: 800;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
-		color: var(--accent-ink);
+		color: var(--warn-ink);
 	}
 	.ck-big {
 		font-family: var(--font-display);
@@ -532,7 +534,7 @@
 		min-height: 68px;
 		border-radius: 18px;
 		border: 0;
-		background: var(--accent);
+		background: var(--cta);
 		color: #fff;
 		font-weight: 800;
 		font-size: 21px;
@@ -552,7 +554,7 @@
 	.success {
 		position: absolute;
 		inset: 0;
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		display: flex;
 		flex-direction: column;
@@ -567,7 +569,7 @@
 		width: 120px;
 		height: 120px;
 		border-radius: 50%;
-		background: var(--moss);
+		background: var(--ok);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -581,7 +583,7 @@
 	.s-line {
 		font-size: 22px;
 		font-weight: 700;
-		color: var(--on-forest);
+		color: var(--on-brand);
 	}
 	.s-pill {
 		display: inline-flex;
@@ -589,8 +591,8 @@
 		gap: 8px;
 		font-size: 14px;
 		font-weight: 700;
-		color: var(--on-forest);
-		background: var(--forest-2);
+		color: var(--on-brand);
+		background: var(--brand-2);
 		padding: 8px 14px;
 		border-radius: 999px;
 	}
@@ -604,7 +606,7 @@
 	.s-next {
 		min-height: 68px;
 		border-radius: 18px;
-		background: var(--accent);
+		background: var(--cta);
 		color: #fff;
 		font-weight: 800;
 		font-size: 20px;
@@ -619,7 +621,7 @@
 	.s-undo {
 		min-height: 60px;
 		border-radius: 18px;
-		border: 1.5px solid #4e7d66;
+		border: 1.5px solid var(--line-on-brand);
 		background: transparent;
 		color: #fff;
 		font-weight: 800;

@@ -31,6 +31,7 @@ const sw = globalThis as unknown as SWScope;
 const BUILD = `st-build-${version}`;
 const PAGES = 'st-pages';
 const FONTS = 'st-fonts';
+const MEDIA = 'st-media';
 const SHELL = '/f/_shell';
 const devMode = immutable.length === 0; // nothing to precache in `vite dev`
 
@@ -104,6 +105,21 @@ sw.addEventListener('fetch', (event) => {
 	if (url.origin !== sw.location.origin) return;
 	if (url.pathname.startsWith('/api/')) return; // never cache API responses
 
+	// Event logos/covers: /media/<id> never changes (a replaced image gets a new id), so cache-first
+	// keeps the volunteer header branded offline.
+	if (url.pathname.startsWith('/media/')) {
+		event.respondWith(
+			(async () => {
+				const cache = await caches.open(MEDIA);
+				const hit = await cache.match(request);
+				if (hit) return hit;
+				const res = await fetch(request);
+				if (res.ok) void cache.put(request, res.clone());
+				return res;
+			})()
+		);
+		return;
+	}
 	if (precache.includes(url.pathname)) {
 		event.respondWith(caches.match(request).then((hit) => hit ?? fetch(request)));
 		return;

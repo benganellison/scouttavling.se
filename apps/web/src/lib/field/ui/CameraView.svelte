@@ -87,7 +87,7 @@
 		aspect-ratio: 1;
 		border-radius: 20px;
 		overflow: hidden;
-		background: #14211a;
+		background: #12161b;
 	}
 	.compact .finder {
 		width: 100%;
@@ -103,7 +103,7 @@
 		position: absolute;
 		width: 48px;
 		height: 48px;
-		border: 0 solid var(--flag);
+		border: 0 solid var(--orange);
 	}
 	.tl {
 		left: 0;
@@ -143,7 +143,7 @@
 		gap: 8px;
 		padding: 24px;
 		text-align: center;
-		color: var(--on-forest);
+		color: var(--on-brand);
 		font-weight: 700;
 	}
 	.problem p {
@@ -153,14 +153,14 @@
 		min-height: 48px;
 		padding: 0 18px;
 		border-radius: 12px;
-		border: 1.5px solid var(--on-forest-2);
+		border: 1.5px solid var(--on-brand-2);
 		background: transparent;
 		color: #fff;
 		font-weight: 800;
 	}
 	.hint {
 		margin: 0;
-		color: var(--on-forest);
+		color: var(--on-brand);
 		font-weight: 600;
 		font-size: 16px;
 		text-align: center;
@@ -173,14 +173,14 @@
 		height: 52px;
 		border-radius: 50%;
 		border: 0;
-		background: rgba(15, 31, 23, 0.7);
+		background: rgb(0 0 0 / 0.7);
 		color: #fff;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 	}
 	.torch[aria-pressed='true'] {
-		background: var(--flag);
+		background: var(--orange);
 		color: var(--ink);
 	}
 </style>

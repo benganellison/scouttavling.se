@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 	import '#lib/ui/patrols/prep.css';
 	import StatusPill from '#lib/ui/patrols/StatusPill.svelte';
 	import { STATUS_LABEL, STATUS_ORDER } from '#lib/ui/patrols/labels.ts';
@@ -88,7 +89,7 @@
 						<tr>
 							<td class="num nr">{p.number}</td>
 							<td><a class="name" href="{base}/patrols/{p.number}/edit">{p.name}</a></td>
-							<td>{#if p.track}{p.track}{:else}<span class="pill pill-warn">Ingen klass</span>{/if}</td>
+							<td>{#if p.track}<span class="trk"><TrackChip color={p.trackId ? data.trackColors[p.trackId] : null} />{p.track}</span>{:else}<span class="pill pill-warn">Ingen klass</span>{/if}</td>
 							<td>{p.troop}</td>
 							<td>
 								<span class="contact">{p.contactName}</span>
@@ -147,7 +148,7 @@
 	}
 	.code {
 		font-weight: 800;
-		background: var(--sage-tint);
+		background: var(--tint);
 		border-radius: 8px;
 		padding: 3px 8px;
 		margin-right: 4px;
@@ -162,8 +163,13 @@
 		cursor: pointer;
 	}
 	.paid.on {
-		background: var(--moss-tint);
-		border-color: var(--moss);
-		color: var(--forest-2);
+		background: var(--ok-tint);
+		border-color: var(--ok);
+		color: var(--brand-2);
+	}
+	.trk {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
 	}
 </style>

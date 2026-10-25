@@ -202,7 +202,7 @@
 		font-weight: 800;
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		color: var(--forest);
+		color: var(--brand);
 	}
 	.gc {
 		font-size: 12px;
@@ -223,11 +223,11 @@
 		gap: 2px;
 	}
 	li:hover {
-		background: var(--sage-tint);
+		background: var(--tint);
 	}
 	li.cur {
-		background: var(--moss-tint);
-		box-shadow: inset 0 0 0 2px var(--forest);
+		background: var(--ok-tint);
+		box-shadow: inset 0 0 0 2px var(--brand);
 	}
 	.pick {
 		flex: 1;
@@ -249,8 +249,8 @@
 		height: 32px;
 		padding: 0 4px;
 		border-radius: 9px;
-		background: var(--sage-tint);
-		color: var(--forest);
+		background: var(--tint);
+		color: var(--brand);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -262,8 +262,8 @@
 		background: #fff;
 	}
 	.code.cp {
-		background: #ffe3d3;
-		color: var(--accent-ink);
+		background: var(--warn-tint);
+		color: var(--warn-ink);
 	}
 	.txt {
 		display: flex;
@@ -286,7 +286,7 @@
 		width: 10px;
 		height: 10px;
 		border-radius: 50%;
-		background: var(--accent);
+		background: var(--cta);
 		flex: none;
 	}
 	.legend {
@@ -318,7 +318,7 @@
 	}
 	.mv button:hover:not(:disabled) {
 		background: #fff;
-		color: var(--forest);
+		color: var(--brand);
 	}
 	.mv button:disabled {
 		opacity: 0.25;
@@ -330,7 +330,7 @@
 	.linkish {
 		border: 0;
 		background: none;
-		color: var(--forest);
+		color: var(--brand);
 		font-weight: 800;
 		font-size: 13px;
 		cursor: pointer;

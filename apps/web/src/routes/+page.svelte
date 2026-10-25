@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaLogo from '#lib/ui/brand/ScouternaLogo.svelte';
 </script>
 
 <svelte:head><title>Scouttävling</title></svelte:head>
@@ -10,6 +11,7 @@
 	<div class="row">
 		<a class="btn btn-primary" href="/admin">Tävlingsledning</a>
 	</div>
+	<footer><ScouternaLogo tagline /></footer>
 </main>
 
 <style>
@@ -25,6 +27,9 @@
 		font-family: var(--font-display);
 		font-weight: 800;
 		font-size: 26px;
+	}
+	footer {
+		margin: 24px 0 0 -19px;
 	}
 	h1 {
 		font-size: clamp(36px, 6vw, 64px);

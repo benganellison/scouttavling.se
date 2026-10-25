@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { invalidate } from '$app/navigation';
 	import PublicShell from '#lib/ui/public/PublicShell.svelte';
+	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 	import StatusPill from '#lib/ui/patrols/StatusPill.svelte';
 
 	let { data } = $props();
@@ -26,14 +27,14 @@
 	<meta name="referrer" content="no-referrer" />
 </svelte:head>
 
-<PublicShell title={data.comp.name} eyebrow="Följ patrullen">
+<PublicShell title={data.comp.name} eyebrow="Följ patrullen" branding={data.branding}>
 	{#snippet hero()}
 		{#if data.enabled}
 			<div class="hero">
 				<span class="nr">{data.patrol.number}</span>
 				<div class="who">
 					<h1>{data.patrol.name}</h1>
-					<span>{data.patrol.troop}{data.patrol.track ? ` · ${data.patrol.track}` : ''}</span>
+					<span class="trk">{data.patrol.troop}{#if data.patrol.track}<span aria-hidden="true"> · </span><TrackChip color={data.trackColor} size={12} />{data.patrol.track}{/if}</span>
 				</div>
 			</div>
 		{/if}
@@ -124,8 +125,14 @@
 		overflow-wrap: anywhere;
 	}
 	.who span {
-		color: var(--on-forest);
+		color: var(--on-brand);
 		font-weight: 700;
+	}
+	.who .trk {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		flex-wrap: wrap;
 	}
 	.off h1 {
 		font-size: 24px;
@@ -167,13 +174,13 @@
 	.bar {
 		height: 12px;
 		border-radius: 999px;
-		background: var(--sage-tint);
+		background: var(--tint);
 		overflow: hidden;
 	}
 	.bar span {
 		display: block;
 		height: 100%;
-		background: var(--forest);
+		background: var(--brand);
 		border-radius: 999px;
 		transition: width 0.4s;
 	}
@@ -187,7 +194,7 @@
 		margin-top: 4px;
 	}
 	.place > div {
-		background: var(--moss-tint);
+		background: var(--ok-tint);
 		border-radius: var(--r-md);
 		padding: 10px 14px;
 		display: flex;
@@ -232,8 +239,8 @@
 		color: #fff;
 	}
 	.done .mark {
-		background: var(--moss);
-		border-color: var(--moss);
+		background: var(--ok);
+		border-color: var(--ok);
 	}
 	.code {
 		flex: none;

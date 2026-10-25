@@ -34,14 +34,15 @@ Read this first. Architecture: `docs/architecture/` (01-overview.md is binding).
 - `apps/web/src/lib/server/scores.ts`: **the only way to write scores**, `writeScore` / `voidScore`, including versioning, conflicts, audit and change feed. It is used by field sync, HQ edits and paper entry. `itemDef(itemRow, comp)` maps DB → domain.
 - `apps/web/src/lib/server/changes.ts`: `recordChange(tx, competitionId, kind, entityId)` appends to `change_log` + `pg_notify('changes')`. Call it for every write that live screens should see.
 - `apps/web/src/lib/server/auth.ts`: `requireUser(event)`, `requireCompetition(event, slug, roles?)`, session helpers, and `safeNext(path)`. Use `safeNext` for **every** redirect target that comes from user input (open-redirect guard). Hooks enforce CSRF (`x-csrf-token` = `locals.user.csrf`) on unsafe `/api/*` requests, except `/api/v1/join` and `/api/v1/field/*`. Prefer SvelteKit **form actions** for organiser pages; they are CSRF-protected by Kit's origin check.
-- Global CSS building blocks: `.btn .btn-primary .btn-accent .btn-ghost .card .pill(-ok/-warn/-bad) .field .label .muted .stack .row .sr-only .error-text`, plus CSS variables (`--forest`, `--accent`, `--ink-2`, `--line`, `--r-md` …). `#lib/ui/Flag.svelte` is the logo.
+- Global CSS building blocks: `.btn .btn-primary .btn-accent .btn-ghost .card .pill(-ok/-warn/-bad) .field .label .muted .stack .row .sr-only .error-text`, plus CSS variables (`--brand`, `--cta`, `--orange`, `--ink-2`, `--line`, `--r-md` …). `#lib/ui/Flag.svelte` is the app's own mark; Scouterna's logo is `#lib/ui/brand/ScouternaLogo.svelte`.
 
-## Visual language (from the canvas)
-- Forest-green (`--forest` #17402F) sidebars and headers, ground #F3F5F1, white cards with a 1px `--line` border and 18px radius.
-- Signal orange: `--accent` #C2410C is the button colour for the single main action; `--flag` #F26B2A is decoration only.
-- Display font Bricolage Grotesque (h1–h3, big numbers); UI font Figtree. Big bold numbers for scores and counts.
-- Statuses: Anmäld (white with dark outline), På banan (`--flag` orange with dark text), I mål (`--forest` with white text), Återbud (#5B6660 with white text).
-- Status flow (decided in `packages/domain/src/patrolStatus.ts`, applied in `scores.ts` for every accepted score): Anmäld → **På banan** at the first score; a check-in at a station with role `finish` (or an AUTO_ON_SCAN item) → **I läger** (`camp`, light forest tint) on a day that isn't the last, or **I mål** on the last day / single-day; I läger → På banan at the first score from a *later* day. Återbud is never touched; I mål is never downgraded. "Not seen for 45 min" alarms only look at På banan. Stations have an explicit `role` (`start`/`finish`/null).
+## Visual language (Scouterna's graphic profile; see `apps/web/static/brand/scouterna/README.md`)
+- Scoutblå (`--brand` #003660) dominates: sidebars, headers, primary buttons. Never tinted or transparent; light surfaces are neutral greys (`--ground` #F4F6F8, `--tint`). White cards, 1px `--line`, 18px radius.
+- Complementary colours (`--orange` Äventyrarorange etc.) are decoration only; text on them is black/white via `readableText()` in `#lib/brand/colors.ts`.
+- Fonts (fontsource, self-hosted): Libre Franklin (headings + UI), EB Garamond (`.prose`, long public body text only).
+- Scouterna's logo via `#lib/ui/brand/ScouternaLogo.svelte` (blue on light, white on dark, ≥250 px / 35 mm); event pages use `PublicShell` + `SenderFooter`. Event branding (`loadBranding`) and class colours (`trackColors`, layout data `trackColors`) are shared helpers.
+- Statuses: Anmäld (white, dark outline), På banan (`--orange`, black text), I läger (`--st-camp`, Scoutblå outline), I mål (Scoutblå, white text), Återbud (`--st-resigned`, white text).
+- Status flow (decided in `packages/domain/src/patrolStatus.ts`, applied in `scores.ts` for every accepted score): Anmäld → **På banan** at the first score; a check-in at a station with role `finish` (or an AUTO_ON_SCAN item) → **I läger** (`camp`, light grey) on a day that isn't the last, or **I mål** on the last day / single-day; I läger → På banan at the first score from a *later* day. Återbud is never touched; I mål is never downgraded. "Not seen for 45 min" alarms only look at På banan. Stations have an explicit `role` (`start`/`finish`/null).
 - No emoji. Icons are inline stroke SVGs with `aria-hidden="true"`.
 
 ## Ownership and routes

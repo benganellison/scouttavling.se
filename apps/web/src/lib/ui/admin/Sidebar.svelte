@@ -1,5 +1,8 @@
 <script lang="ts">
 	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaLogo from '#lib/ui/brand/ScouternaLogo.svelte';
+	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
+	import type { BrandImage } from '#lib/brand/branding.ts';
 	import { adminNav } from './format.ts';
 
 	let {
@@ -9,8 +12,18 @@
 		pathname,
 		search = '',
 		userName,
-		roleText
-	}: { slug: string; name: string; dateText: string; pathname: string; search?: string; userName: string; roleText: string } = $props();
+		roleText,
+		eventLogo = null
+	}: {
+		slug: string;
+		name: string;
+		dateText: string;
+		pathname: string;
+		search?: string;
+		userName: string;
+		roleText: string;
+		eventLogo?: BrandImage | null;
+	} = $props();
 
 	const nav = $derived(adminNav(slug));
 
@@ -40,7 +53,7 @@
 
 <aside class="sidebar">
 	<a class="brand" href="/admin/{slug}">
-		<Flag size={30} onDark />
+		{#if eventLogo}<EventLogo logo={eventLogo} height={36} onDark />{:else}<Flag size={30} onDark />{/if}
 		<span class="brand-text">
 			<span class="comp">{name}</span>
 			<span class="date">{dateText}</span>
@@ -77,14 +90,15 @@
 		<form method="POST" action="/auth/logout">
 			<button class="logout" type="submit">Logga ut</button>
 		</form>
+		<div class="sender"><ScouternaLogo onDark /></div>
 	</div>
 </aside>
 
 <style>
 	.sidebar {
-		flex: 1 1 232px;
+		flex: 1 1 288px;
 		max-width: 100%;
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		padding: 22px 14px;
 		display: flex;
@@ -93,7 +107,7 @@
 	}
 	@media (min-width: 821px) {
 		.sidebar {
-			flex: 0 0 232px;
+			flex: 0 0 288px;
 			position: sticky;
 			top: 0;
 			height: 100dvh;
@@ -121,7 +135,7 @@
 	}
 	.date {
 		font-size: 12px;
-		color: var(--on-forest-2);
+		color: var(--on-brand-2);
 	}
 	nav {
 		display: flex;
@@ -134,7 +148,7 @@
 		font-weight: 800;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		color: var(--on-forest-2);
+		color: var(--on-brand-2);
 		padding: 0 12px 6px;
 	}
 	ul {
@@ -154,15 +168,16 @@
 		text-decoration: none;
 		font-size: 15px;
 		font-weight: 600;
-		color: #dde9e1;
+		color: var(--on-brand);
 	}
 	ul a:hover {
-		background: var(--forest-2);
+		background: var(--brand-2);
 		color: #fff;
+		text-decoration: underline;
 	}
 	ul a.active {
 		background: var(--ground);
-		color: var(--forest);
+		color: var(--brand);
 		font-weight: 800;
 	}
 	.foot {
@@ -170,14 +185,14 @@
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
-		border-top: 1px solid #2e5a47;
+		border-top: 1px solid var(--line-on-brand);
 		padding-top: 12px;
 	}
 	.all {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
-		color: var(--on-forest);
+		color: var(--on-brand);
 		font-size: 14px;
 		font-weight: 700;
 		text-decoration: none;
@@ -187,7 +202,7 @@
 	}
 	.all:hover {
 		color: #fff;
-		background: var(--forest-2);
+		background: var(--brand-2);
 	}
 	.me {
 		display: flex;
@@ -199,8 +214,8 @@
 		width: 34px;
 		height: 34px;
 		border-radius: 50%;
-		background: var(--flag);
-		color: var(--ink);
+		background: #fff;
+		color: var(--brand);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -218,20 +233,25 @@
 	}
 	.who-role {
 		font-size: 12px;
-		color: var(--on-forest-2);
+		color: var(--on-brand-2);
 	}
 	.logout {
 		width: 100%;
 		min-height: 44px;
 		border-radius: var(--r-sm);
-		border: 1.5px solid #3c6b55;
+		border: 1.5px solid var(--line-on-brand);
 		background: transparent;
 		color: #fff;
 		font-weight: 800;
 		cursor: pointer;
 	}
 	.logout:hover {
-		background: var(--forest-2);
+		background: var(--brand-2);
+	}
+	.sender {
+		display: flex;
+		justify-content: center;
+		margin: 0 -14px -22px;
 	}
 	@media (max-width: 820px) {
 		nav {
@@ -250,7 +270,7 @@
 		ul a {
 			min-height: 40px;
 			font-size: 14px;
-			background: rgba(255, 255, 255, 0.06);
+			box-shadow: inset 0 0 0 1px var(--line-on-brand);
 		}
 		.foot {
 			flex-direction: row;

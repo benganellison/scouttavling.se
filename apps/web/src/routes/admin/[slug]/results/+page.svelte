@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 	import { enhance } from '$app/forms';
 	import Medal from '#lib/ui/live/Medal.svelte';
 	import LiveBadge from '#lib/ui/live/LiveBadge.svelte';
@@ -49,7 +50,7 @@
 	<nav class="tabs" aria-label="Klasser">
 		{#each data.tabs as t (t.id)}
 			<a href="?class={t.id}" class="tab" aria-current={data.current?.trackId === t.id ? 'page' : undefined} data-sveltekit-noscroll>
-				{t.name} <span class="n">{t.count}</span>
+				<TrackChip color={data.trackColors[t.id]} size={12} />{t.name} <span class="n">{t.count}</span>
 			</a>
 		{/each}
 	</nav>
@@ -136,8 +137,8 @@
 		text-decoration: none;
 	}
 	.tab[aria-current='page'] {
-		background: var(--forest);
-		border-color: var(--forest);
+		background: var(--brand);
+		border-color: var(--brand);
 		color: #fff;
 	}
 	.tab .n {
@@ -196,7 +197,7 @@
 		display: block;
 	}
 	.tie {
-		color: var(--accent-ink);
+		color: var(--warn-ink);
 		font-weight: 700;
 	}
 	.small {

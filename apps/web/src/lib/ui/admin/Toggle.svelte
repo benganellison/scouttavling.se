@@ -86,7 +86,7 @@
 		transition: transform 0.15s;
 	}
 	input:checked {
-		background: var(--forest);
+		background: var(--brand);
 	}
 	input:checked::after {
 		transform: translateX(24px);

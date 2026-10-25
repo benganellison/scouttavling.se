@@ -129,7 +129,7 @@
 		margin-top: auto;
 		min-height: 38px;
 		border-radius: 10px;
-		background: var(--accent);
+		background: var(--cta);
 		color: #fff;
 		font-weight: 800;
 		font-size: 12px;

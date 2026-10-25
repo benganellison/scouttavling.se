@@ -41,7 +41,7 @@
 		gap: 14px;
 	}
 	header {
-		border-bottom: 3px solid #0f1f17;
+		border-bottom: 3px solid #000000;
 		padding-bottom: 10px;
 		display: flex;
 		flex-direction: column;
@@ -57,7 +57,7 @@
 		font-size: 30pt;
 	}
 	.code {
-		background: #0f1f17;
+		background: #000000;
 		color: #fff;
 		border-radius: 10px;
 		padding: 0 10px;
@@ -69,11 +69,11 @@
 	}
 	th {
 		text-align: left;
-		border-bottom: 2px solid #0f1f17;
+		border-bottom: 2px solid #000000;
 		padding: 6px 4px;
 	}
 	td {
-		border-bottom: 1px solid #8a978f;
+		border-bottom: 1px solid #7d8794;
 		padding: 8px 4px;
 	}
 	.nr,
@@ -87,7 +87,7 @@
 		display: inline-block;
 		width: 18px;
 		height: 18px;
-		border: 1.5px solid #0f1f17;
+		border: 1.5px solid #000000;
 		border-radius: 4px;
 	}
 </style>

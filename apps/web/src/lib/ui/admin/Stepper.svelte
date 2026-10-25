@@ -33,10 +33,10 @@
 		white-space: nowrap;
 	}
 	li.past {
-		color: var(--forest-2);
+		color: var(--brand-2);
 	}
 	li.on {
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		font-weight: 800;
 	}

@@ -1,3 +1,4 @@
+import { loadBranding } from '#lib/server/assets.ts';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { db } from '#lib/server/db/index.ts';
 import { loadStations } from '../prep.server.ts';
@@ -15,7 +16,7 @@ export async function load(event) {
 			return { id: s.id, code: s.code, name: s.name, qr: secret ? await qrSvg(inviteUrl(origin, secret), { margin: 0 }) : null };
 		})
 	);
-	return { competition: { slug: comp.slug, name: comp.name }, signs, missing: signs.filter((s) => !s.qr).length };
+	return { competition: { slug: comp.slug, name: comp.name }, branding: await loadBranding(comp), signs, missing: signs.filter((s) => !s.qr).length };
 }
 
 export const actions = {

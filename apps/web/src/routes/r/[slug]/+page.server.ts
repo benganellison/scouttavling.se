@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
 import { getResults, publicTracks } from '#lib/server/live.ts';
+import { loadBranding, loadTrackColors } from '#lib/server/assets.ts';
 
 /** Public, phone-first results. Only when publicResults; no personal data (patrol name + kår). */
 export async function load({ params, setHeaders }) {
@@ -9,5 +10,6 @@ export async function load({ params, setHeaders }) {
 	if (!comp || !comp.publicResults) error(404, 'Resultaten är inte publicerade');
 	const res = await getResults(comp, 10_000);
 	setHeaders({ 'cache-control': 'public, max-age=5' });
-	return { comp: { slug: comp.slug, name: comp.name, location: comp.location }, seq: res.seq, tracks: publicTracks(res.tracks) };
+	const [branding, trackColors] = await Promise.all([loadBranding(comp), loadTrackColors(comp.id)]);
+	return { comp: { slug: comp.slug, name: comp.name, location: comp.location }, seq: res.seq, tracks: publicTracks(res.tracks), branding, trackColors };
 }

@@ -1,3 +1,4 @@
+import { loadBranding } from '#lib/server/assets.ts';
 import { error, fail } from '@sveltejs/kit';
 import {
 	competitionBySlug, isMember, publicOrigin, registerLimiter, registerPatrol, spotCount, tracksWithCounts, windowFor
@@ -13,12 +14,13 @@ async function loadComp(slug: string, userId: string | undefined) {
 
 export async function load({ params, locals, setHeaders }) {
 	const comp = await loadComp(params.slug, locals.user?.id);
-	const [tracks, count] = await Promise.all([tracksWithCounts(comp.id), spotCount(comp.id)]);
+	const [tracks, count, branding] = await Promise.all([tracksWithCounts(comp.id), spotCount(comp.id), loadBranding(comp)]);
 	const w = windowFor(comp, count);
 	setHeaders({ 'cache-control': 'private, no-store' });
 	return {
+		branding,
 		comp: { slug: comp.slug, name: comp.name, startDate: comp.startDate, endDate: comp.endDate, location: comp.location },
-		tracks: tracks.map((t) => ({ id: t.id, name: t.name, patrols: t.patrols })),
+		tracks: tracks.map((t) => ({ id: t.id, name: t.name, color: t.color, patrols: t.patrols })),
 		window: { state: w.state, spotsLeft: w.spotsLeft, text: windowText(w, w.today) }
 	};
 }

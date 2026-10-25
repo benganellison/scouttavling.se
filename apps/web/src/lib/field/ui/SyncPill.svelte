@@ -31,12 +31,12 @@
 		white-space: nowrap;
 	}
 	.ok {
-		background: var(--moss-tint);
-		color: var(--forest-2);
+		background: var(--ok-tint);
+		color: var(--brand-2);
 	}
 	.warn {
-		background: #ffe3d3;
-		color: var(--accent-ink);
+		background: var(--warn-tint);
+		color: var(--warn-ink);
 	}
 	.bad {
 		background: #fde2de;

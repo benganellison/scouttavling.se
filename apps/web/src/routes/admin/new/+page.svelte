@@ -388,8 +388,8 @@
 		color: var(--ink-2);
 	}
 	.dot.done {
-		background: var(--moss);
-		border-color: var(--moss);
+		background: var(--ok);
+		border-color: var(--ok);
 		color: #fff;
 	}
 	.err .dot {
@@ -432,7 +432,7 @@
 		font-weight: 800;
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		color: var(--moss);
+		color: var(--ok);
 		margin-bottom: -10px;
 	}
 	.sec h2 {
@@ -457,7 +457,7 @@
 		border: 0;
 		background: none;
 		padding: 0 4px;
-		color: var(--forest);
+		color: var(--brand);
 		text-decoration: underline;
 		font-weight: 700;
 		cursor: pointer;
@@ -522,13 +522,13 @@
 	}
 	.choice:has(input:focus-visible),
 	.chip:has(input:focus-visible) {
-		outline: 3px solid var(--flag);
+		outline: 3px solid var(--orange);
 		outline-offset: 2px;
 	}
 	.choice.on,
 	.chip.on {
-		background: var(--forest);
-		border-color: var(--forest);
+		background: var(--brand);
+		border-color: var(--brand);
 		color: #fff;
 	}
 	.ct {
@@ -585,7 +585,7 @@
 		text-align: center;
 		font-weight: 800;
 		font-size: 17px;
-		border-color: var(--forest);
+		border-color: var(--brand);
 		padding: 0 4px;
 	}
 	.custom {
@@ -598,7 +598,7 @@
 	}
 	.dashed {
 		border-style: dashed;
-		color: var(--forest);
+		color: var(--brand);
 	}
 	.counter-row {
 		display: flex;
@@ -613,7 +613,7 @@
 		display: flex;
 		align-items: center;
 		gap: 4px;
-		background: var(--sage-tint);
+		background: var(--tint);
 		border-radius: var(--r-md);
 		padding: 4px;
 	}
@@ -650,12 +650,12 @@
 		gap: 6px;
 	}
 	.info.strong {
-		border: 1.5px solid var(--forest);
+		border: 1.5px solid var(--brand);
 	}
 	.ik {
 		font-size: 12px;
 		font-weight: 800;
-		color: var(--forest);
+		color: var(--brand);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}

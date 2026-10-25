@@ -18,6 +18,7 @@
 		search={page.url.search}
 		userName={data.user.name}
 		{roleText}
+		eventLogo={data.branding.eventLogo}
 	/>
 	<main class="content">
 		{@render children()}
@@ -35,7 +36,7 @@
 	   page too so full-page captures and prints don't show a cut-off sidebar. */
 	@media (min-width: 821px) {
 		.shell {
-			background: linear-gradient(to right, var(--forest) 232px, var(--ground) 232px);
+			background: linear-gradient(to right, var(--brand) 288px, var(--ground) 288px);
 		}
 	}
 	.content {
@@ -48,7 +49,7 @@
 	}
 	@media (min-width: 821px) {
 		.shell {
-			background: linear-gradient(to right, var(--forest) 232px, var(--ground) 232px);
+			background: linear-gradient(to right, var(--brand) 288px, var(--ground) 288px);
 		}
 	}
 	@media (max-width: 600px) {

@@ -203,7 +203,7 @@
 		font-family: var(--font-display);
 		font-weight: 800;
 		font-size: 44px;
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		border-radius: var(--r-md);
 		padding: 8px 16px;
@@ -316,8 +316,8 @@
 	}
 	.cell.done,
 	.sw.done {
-		background: var(--forest);
-		border-color: var(--forest);
+		background: var(--brand);
+		border-color: var(--brand);
 		color: #fff;
 	}
 	.cell.todo,
@@ -331,9 +331,9 @@
 	}
 	.cell.cp,
 	.sw.cp {
-		background: var(--accent-tint);
-		border: 1.5px dashed var(--flag);
-		color: var(--accent-ink);
+		background: var(--warn-tint);
+		border: 1.5px dashed var(--orange);
+		color: var(--warn-ink);
 	}
 	.cell.na,
 	.sw.na {
@@ -343,7 +343,7 @@
 		cursor: not-allowed;
 	}
 	.cell.sel {
-		outline: 3px solid var(--flag);
+		outline: 3px solid var(--orange);
 		outline-offset: 2px;
 	}
 	.edit {
@@ -386,16 +386,16 @@
 		background: var(--surface);
 	}
 	.chip input:checked + span {
-		background: var(--forest);
-		border-color: var(--forest);
+		background: var(--brand);
+		border-color: var(--brand);
 		color: #fff;
 	}
 	.chip input:focus-visible + span {
-		outline: 3px solid var(--flag);
+		outline: 3px solid var(--orange);
 		outline-offset: 2px;
 	}
 	.ok-text {
-		color: var(--forest-2);
+		color: var(--brand-2);
 		font-weight: 700;
 		font-size: 14px;
 	}
@@ -414,13 +414,13 @@
 		font-size: 14px;
 	}
 	.timeline li.edit {
-		border-left-color: var(--flag);
+		border-left-color: var(--orange);
 	}
 	.timeline li.void {
 		border-left-color: var(--danger);
 	}
 	.timeline li.status {
-		border-left-color: var(--forest);
+		border-left-color: var(--brand);
 	}
 	.time {
 		color: var(--ink-2);

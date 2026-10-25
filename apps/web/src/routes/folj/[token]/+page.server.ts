@@ -1,3 +1,4 @@
+import { loadBranding, trackColorFor } from '#lib/server/assets.ts';
 import { error } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
@@ -21,7 +22,8 @@ export async function load({ params, setHeaders, getClientAddress, depends }) {
 	setHeaders(NO_STORE);
 	const { patrol, comp } = row;
 	const compInfo = { name: comp.name, slug: comp.slug, status: comp.status, publicResults: comp.publicResults };
-	if (!comp.followEnabled) return { enabled: false as const, comp: compInfo };
+	const branding = await loadBranding(comp);
+	if (!comp.followEnabled) return { enabled: false as const, comp: compInfo, branding };
 
 	const [stations, scores, events, track] = await Promise.all([
 		loadStations(comp.id),
@@ -65,6 +67,8 @@ export async function load({ params, setHeaders, getClientAddress, depends }) {
 	return {
 		enabled: true as const,
 		comp: compInfo,
+		branding,
+		trackColor: patrol.trackId ? await trackColorFor(comp.id, patrol.trackId) : null,
 		showScores,
 		patrol: { number: patrol.number, name: patrol.name, troop: patrol.troop, track, status: patrol.status },
 		started: started ? formatTime(started) : null,

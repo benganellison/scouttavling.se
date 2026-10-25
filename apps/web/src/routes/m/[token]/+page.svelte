@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import PublicShell from '#lib/ui/public/PublicShell.svelte';
+	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 	import MembersEditor from '#lib/ui/public/MembersEditor.svelte';
 	import CopyLink from '#lib/ui/public/CopyLink.svelte';
 	import StatusPill from '#lib/ui/patrols/StatusPill.svelte';
@@ -36,7 +37,7 @@
 	<meta name="referrer" content="no-referrer" />
 </svelte:head>
 
-<PublicShell title={data.comp.name} eyebrow="Patrullpass">
+<PublicShell title={data.comp.name} eyebrow="Patrullpass" branding={data.branding}>
 	{#if data.comp.status === 'closed'}
 		<p class="note" role="note">Tävlingen är avslutad. Tack för att ni var med!</p>
 	{/if}
@@ -54,7 +55,7 @@
 		</div>
 		<div class="pass-body">
 			<dl>
-				<div><dt>Klass</dt><dd>{p.track || '–'}</dd></div>
+				<div><dt>Klass</dt><dd class="trk">{#if p.track}<TrackChip color={data.trackColor} />{/if}{p.track || '–'}</dd></div>
 				<div><dt>Startkontroll</dt><dd>{p.start ?? 'Delas ut före start'}</dd></div>
 				<div><dt>Status</dt><dd><StatusPill status={p.status} /></dd></div>
 			</dl>
@@ -136,11 +137,11 @@
 <style>
 	.note {
 		margin: 0;
-		background: var(--moss-tint);
+		background: var(--ok-tint);
 		border-radius: var(--r-md);
 		padding: 12px 14px;
 		font-weight: 700;
-		color: var(--forest);
+		color: var(--brand);
 	}
 	.pass {
 		background: var(--surface);
@@ -150,18 +151,23 @@
 		box-shadow: 0 8px 28px rgb(15 31 23 / 10%);
 	}
 	.pass-top {
-		background: var(--forest-2);
+		background: var(--brand);
 		color: #fff;
 		padding: 16px 18px;
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
-		border-bottom: 6px solid var(--flag);
+		border-bottom: 6px solid var(--event-stripe, var(--orange));
+	}
+	.trk {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
 	}
 	.pass-comp {
 		font-size: 13px;
 		font-weight: 800;
-		color: var(--on-forest);
+		color: var(--on-brand);
 	}
 	.pass-head {
 		display: flex;
@@ -190,7 +196,7 @@
 		overflow-wrap: anywhere;
 	}
 	.pass-name span {
-		color: var(--on-forest);
+		color: var(--on-brand);
 		font-weight: 700;
 	}
 	.pass-body {
@@ -238,8 +244,8 @@
 		font-weight: 700;
 	}
 	.bookmark {
-		border: 2px solid var(--flag);
-		background: var(--accent-tint);
+		border: 2px solid var(--orange);
+		background: var(--warn-tint);
 	}
 	.bookmark p {
 		margin: 6px 0 0;

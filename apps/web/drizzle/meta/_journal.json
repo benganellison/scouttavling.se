@@ -29,6 +29,13 @@
       "when": 1792511340533,
       "tag": "0003_station_role_patrol_camp",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792554354333,
+      "tag": "0004_event_branding",
+      "breakpoints": true
     }
   ]
 }

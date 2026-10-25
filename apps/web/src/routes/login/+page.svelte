@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Flag from '#lib/ui/Flag.svelte';
+	import ScouternaLogo from '#lib/ui/brand/ScouternaLogo.svelte';
 
 	let { data } = $props();
 </script>
@@ -11,6 +12,7 @@
 		<div class="row"><Flag size={40} onDark /> <span class="brand">Scouttävling</span></div>
 		<h1>Planera, genomför och avsluta er patrulltävling.</h1>
 		<p>Logga in med samma konto som i Scoutnet. Ingen ny användare, inget nytt lösenord.</p>
+		<div class="sender"><ScouternaLogo onDark tagline /></div>
 	</section>
 	<main class="stack">
 		<h2>Logga in</h2>
@@ -48,12 +50,19 @@
 	}
 	.hero {
 		flex: 1 1 420px;
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		padding: 56px;
 		display: flex;
 		flex-direction: column;
 		gap: 22px;
+	}
+	.dev .pill {
+		align-self: flex-start;
+	}
+	.sender {
+		margin-top: auto;
+		margin-left: -19px;
 	}
 	.brand {
 		font-family: var(--font-display);
@@ -66,7 +75,7 @@
 		max-width: 560px;
 	}
 	.hero p {
-		color: var(--on-forest);
+		color: var(--on-brand);
 		font-size: 18px;
 		max-width: 480px;
 	}

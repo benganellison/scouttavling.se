@@ -3,6 +3,10 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { recordChange } from '#lib/server/changes.ts';
+import { ASSET_KINDS, removeAsset, saveAsset } from '#lib/server/assets.ts';
+import { MAX_BYTES } from '#lib/server/imageValidate.ts';
+import { parseHex } from '#lib/brand/colors.ts';
+import type { AssetKind } from '#lib/brand/branding.ts';
 
 const EDIT = ['owner', 'organiser'] as const;
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -187,10 +191,17 @@ export const actions = {
 		const f = await event.request.formData();
 		const tracks = await db.select().from(schema.track).where(eq(schema.track.competitionId, comp.id)).orderBy(asc(schema.track.sort));
 		const errors: Errors = {};
-		const renamed = tracks.map((t) => ({ id: t.id, name: String(f.get(`track_${t.id}`) ?? t.name).trim() }));
+		const renamed = tracks.map((t) => {
+			const raw = f.get(`color_${t.id}`);
+			const colorText = raw === null ? (t.color ?? '') : String(raw).trim();
+			const color = parseHex(colorText);
+			if (colorText && !color) errors[`track_${t.id}`] = 'Färgen ska vara en hexkod, t.ex. #003660.';
+			return { id: t.id, name: String(f.get(`track_${t.id}`) ?? t.name).trim(), color };
+		});
 		const added = String(f.get('newTrack') ?? '').trim();
 		const names = new Set<string>();
 		for (const t of renamed) {
+			if (errors[`track_${t.id}`]) continue;
 			if (!t.name || t.name.length > 40) errors[`track_${t.id}`] = 'Namn: 1–40 tecken.';
 			else if (names.has(t.name.toLowerCase())) errors[`track_${t.id}`] = 'Två klasser har samma namn.';
 			names.add(t.name.toLowerCase());
@@ -198,7 +209,7 @@ export const actions = {
 		if (added && (added.length > 40 || names.has(added.toLowerCase()))) errors.newTrack = added.length > 40 ? 'Högst 40 tecken.' : 'Klassen finns redan.';
 		if (Object.keys(errors).length) return fail(400, { section: 'tracks', errors });
 		await db.transaction(async (tx) => {
-			for (const t of renamed) await tx.update(schema.track).set({ name: t.name }).where(eq(schema.track.id, t.id));
+			for (const t of renamed) await tx.update(schema.track).set({ name: t.name, color: t.color }).where(eq(schema.track.id, t.id));
 			if (added) await tx.insert(schema.track).values({ competitionId: comp.id, name: added, sort: tracks.length + 1 });
 			await recordChange(tx, comp.id, 'competition', comp.id);
 		});
@@ -218,6 +229,45 @@ export const actions = {
 			await recordChange(tx, comp.id, 'competition', comp.id);
 		});
 		return { section: 'tracks', ok: true };
+	},
+
+	/** Utseende: the event's accent colour ("" = Scouterna base). */
+	appearance: async (event) => {
+		const { comp } = await requireCompetition(event, event.params.slug, [...EDIT]);
+		const f = await event.request.formData();
+		const text = String(f.get('accentColor') ?? '').trim();
+		const accent = parseHex(text);
+		const fitRaw = String(f.get('coverFit') ?? '');
+		const coverFit = fitRaw === 'contain' || fitRaw === 'cover' ? fitRaw : null;
+		if (text && !accent) return fail(400, { section: 'appearance', errors: { accentColor: 'Skriv en hexkod, t.ex. #003660, eller välj en färg.' } as Errors });
+		await db.transaction(async (tx) => {
+			await tx.update(schema.competition).set({ accentColor: accent, coverFit }).where(eq(schema.competition.id, comp.id));
+			await recordChange(tx, comp.id, 'competition', comp.id);
+		});
+		return { section: 'appearance', ok: true };
+	},
+
+	/** Upload or replace an event logo, organiser logo or cover (PNG/JPEG/WebP ≤ 2 MB, checked by content). */
+	upload: async (event) => {
+		const { comp, user } = await requireCompetition(event, event.params.slug, [...EDIT]);
+		const f = await event.request.formData();
+		const kind = String(f.get('kind') ?? '') as AssetKind;
+		if (!ASSET_KINDS.includes(kind)) return fail(400, { section: 'appearance', errors: { upload: 'Okänd bildtyp.' } as Errors });
+		const file = f.get('file');
+		if (!(file instanceof File) || file.size === 0) return fail(400, { section: 'appearance', errors: { [kind]: 'Välj en bild först.' } as Errors });
+		if (file.size > MAX_BYTES) return fail(400, { section: 'appearance', errors: { [kind]: 'Bilden är större än 2 MB. Förminska den och försök igen.' } as Errors });
+		const r = await saveAsset(comp.id, kind, new Uint8Array(await file.arrayBuffer()), user.id);
+		if (!r.ok) return fail(400, { section: 'appearance', errors: { [kind]: r.reason } as Errors });
+		return { section: 'appearance', ok: true, uploaded: kind };
+	},
+
+	removeImage: async (event) => {
+		const { comp } = await requireCompetition(event, event.params.slug, [...EDIT]);
+		const f = await event.request.formData();
+		const kind = String(f.get('kind') ?? '') as AssetKind;
+		if (!ASSET_KINDS.includes(kind)) return fail(400, { section: 'appearance', errors: { upload: 'Okänd bildtyp.' } as Errors });
+		await removeAsset(comp.id, kind);
+		return { section: 'appearance', ok: true };
 	},
 
 	invite: async (event) => {

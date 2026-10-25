@@ -25,7 +25,7 @@
 
 	{#if data.competitions.length === 0}
 		<section class="empty card">
-			<svg width="56" height="56" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="6" fill="#fff" stroke="#B9C6BD" stroke-width="2" stroke-dasharray="4 3"></rect><polygon points="5,27 27,5 27,27" fill="#FFB48A"></polygon></svg>
+			<svg width="56" height="56" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="6" fill="#fff" stroke="#aab3be" stroke-width="2" stroke-dasharray="4 3"></rect><polygon points="5,27 27,5 27,27" fill="#dde2e8"></polygon></svg>
 			<h2>Inga tävlingar än</h2>
 			<p class="muted">Skapa din första tävling på tre minuter: namn, datum, klasser och kontroller. Detaljerna fixar du sen.</p>
 			<a class="btn btn-accent" href="/admin/new">Skapa en tävling</a>
@@ -99,8 +99,8 @@
 		transition: border-color 0.15s, box-shadow 0.15s;
 	}
 	.comp:hover {
-		border-color: var(--forest);
-		box-shadow: 0 6px 20px rgba(15, 31, 23, 0.08);
+		border-color: var(--brand);
+		box-shadow: 0 6px 20px rgb(0 0 0 / 0.08);
 		color: var(--ink);
 	}
 	.top {

@@ -88,7 +88,7 @@
 		font-size: 26px;
 	}
 	.warn {
-		color: var(--accent-ink);
+		color: var(--warn-ink);
 		font-weight: 700;
 	}
 	.tag {
@@ -98,10 +98,10 @@
 		letter-spacing: 0.04em;
 	}
 	.tag.new {
-		color: var(--forest-2);
+		color: var(--brand-2);
 	}
 	.tag.rec {
-		color: var(--accent-ink);
+		color: var(--warn-ink);
 	}
 	.opt {
 		display: flex;
@@ -114,6 +114,6 @@
 	.opt input {
 		width: 20px;
 		height: 20px;
-		accent-color: var(--forest);
+		accent-color: var(--brand);
 	}
 </style>

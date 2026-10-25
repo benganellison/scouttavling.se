@@ -15,6 +15,7 @@ import { recordChange } from './changes.ts';
 import { RateLimiter } from './rateLimit.ts';
 import { registrationWindow, type ManageData, type RegistrationData } from '#lib/registration/rules.ts';
 import { todayIso } from '#lib/ui/admin/format.ts';
+import { trackColors } from '#lib/brand/colors.ts';
 
 type CompRow = typeof schema.competition.$inferSelect;
 export type PatrolRow = typeof schema.patrol.$inferSelect;
@@ -32,7 +33,7 @@ export function publicOrigin(url: URL): string {
 }
 
 export async function qrSvg(text: string): Promise<string> {
-	return QRCode.toString(text, { type: 'svg', errorCorrectionLevel: 'M', margin: 1, color: { dark: '#0f1f17', light: '#ffffff' } });
+	return QRCode.toString(text, { type: 'svg', errorCorrectionLevel: 'M', margin: 1, color: { dark: '#000000', light: '#ffffff' } });
 }
 
 // ---------- crypto ----------
@@ -103,7 +104,7 @@ export function windowFor(comp: CompRow, patrolCount: number, now = new Date()) 
 
 export async function tracksWithCounts(competitionId: string) {
 	const [tracks, counts] = await Promise.all([
-		db.select({ id: schema.track.id, name: schema.track.name }).from(schema.track).where(eq(schema.track.competitionId, competitionId)).orderBy(asc(schema.track.sort)),
+		db.select({ id: schema.track.id, name: schema.track.name, color: schema.track.color }).from(schema.track).where(eq(schema.track.competitionId, competitionId)).orderBy(asc(schema.track.sort)),
 		db
 			.select({ trackId: schema.patrol.trackId, n: sql<number>`count(*)::int` })
 			.from(schema.patrol)
@@ -111,7 +112,8 @@ export async function tracksWithCounts(competitionId: string) {
 			.groupBy(schema.patrol.trackId)
 	]);
 	const by = new Map(counts.map((c) => [c.trackId, c.n]));
-	return tracks.map((t) => ({ ...t, patrols: by.get(t.id) ?? 0 }));
+	const colors = trackColors(tracks);
+	return tracks.map((t) => ({ ...t, color: colors[t.id], patrols: by.get(t.id) ?? 0 }));
 }
 
 // ---------- registration ----------

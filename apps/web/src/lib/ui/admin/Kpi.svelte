@@ -49,9 +49,9 @@
 		color: var(--ink-2);
 	}
 	.ok {
-		color: var(--forest-2);
+		color: var(--brand-2);
 	}
 	.warn {
-		color: var(--accent-ink);
+		color: var(--warn-ink);
 	}
 </style>

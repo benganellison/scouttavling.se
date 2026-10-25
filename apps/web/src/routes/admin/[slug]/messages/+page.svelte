@@ -179,12 +179,12 @@
 		height: 1px;
 	}
 	.chip input:checked + span {
-		background: var(--forest);
-		border-color: var(--forest);
+		background: var(--brand);
+		border-color: var(--brand);
 		color: #fff;
 	}
 	.chip input:focus-visible + span {
-		outline: 3px solid var(--flag);
+		outline: 3px solid var(--orange);
 		outline-offset: 2px;
 	}
 	.switch-row {
@@ -218,17 +218,17 @@
 		transition: left 0.15s;
 	}
 	.switch-row input:checked + .sw {
-		background: var(--accent);
+		background: var(--cta);
 	}
 	.switch-row input:checked + .sw::after {
 		left: 21px;
 	}
 	.switch-row input:focus-visible + .sw {
-		outline: 3px solid var(--flag);
+		outline: 3px solid var(--orange);
 		outline-offset: 2px;
 	}
 	.ok-text {
-		color: var(--forest-2);
+		color: var(--brand-2);
 		font-weight: 700;
 	}
 	.sent {
@@ -253,13 +253,13 @@
 	}
 	.bar {
 		height: 6px;
-		background: var(--sage-tint);
+		background: var(--tint);
 		border-radius: 999px;
 		overflow: hidden;
 	}
 	.bar span {
 		display: block;
 		height: 100%;
-		background: var(--moss);
+		background: var(--ok);
 	}
 </style>

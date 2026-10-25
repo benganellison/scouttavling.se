@@ -1,6 +1,8 @@
 <script lang="ts">
 	import '#lib/ui/patrols/print.css';
 	import PrintBar from '#lib/ui/patrols/PrintBar.svelte';
+	import PrintEventLogo from '#lib/ui/brand/PrintEventLogo.svelte';
+	import ScouternaLogo from '#lib/ui/brand/ScouternaLogo.svelte';
 
 	let { data } = $props();
 
@@ -15,7 +17,7 @@
 		{#each data.pages as p (p.key)}
 			<section class="sheet proto" aria-label="Reservprotokoll {p.code} {p.station}">
 				<header>
-					<svg width="56" height="56" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="2" fill="#fff" stroke="#0F1F17" stroke-width="1.5"></rect><polygon points="3,29 29,3 29,29" fill="#F26B2A"></polygon></svg>
+					<PrintEventLogo logo={data.branding.eventLogo} mm={15} />
 					<div>
 						<span class="eyebrow">Reservprotokoll · {data.competition.name}</span>
 						<h1>{p.code} {p.station}{#if p.item}<span class="item"> · {p.item}</span>{/if}</h1>
@@ -76,6 +78,7 @@
 				<footer>
 					<span>Funktionär: ______________________{#if data.competition.hqPhone} · Tävlingsledningen: {data.competition.hqPhone}{/if}</span>
 					<span>Sida {p.page} av {p.pages} · utskriven {data.printedAt}</span>
+					<ScouternaLogo print />
 				</footer>
 			</section>
 		{/each}
@@ -91,7 +94,7 @@
 		display: flex;
 		gap: 14px;
 		align-items: center;
-		border-bottom: 3px solid #0f1f17;
+		border-bottom: 3px solid #000000;
 		padding-bottom: 10px;
 	}
 	.eyebrow {
@@ -118,7 +121,7 @@
 		line-height: 1.35;
 	}
 	.steps div {
-		border: 1.5px solid #0f1f17;
+		border: 1.5px solid #000000;
 		border-radius: 8px;
 		padding: 6px 8px;
 	}
@@ -132,13 +135,13 @@
 		text-align: left;
 		font-weight: 800;
 		padding: 5px 4px;
-		border-top: 2px solid #0f1f17;
-		border-bottom: 2px solid #0f1f17;
+		border-top: 2px solid #000000;
+		border-bottom: 2px solid #000000;
 		font-size: 11pt;
 	}
 	td {
 		padding: 4px 4px;
-		border-bottom: 1px solid #8a978f;
+		border-bottom: 1px solid #7d8794;
 		vertical-align: middle;
 	}
 	.c-nr {
@@ -171,7 +174,7 @@
 	}
 	.line {
 		display: block;
-		border-bottom: 1px solid #0f1f17;
+		border-bottom: 1px solid #000000;
 		height: 18px;
 		width: 13mm;
 	}
@@ -207,16 +210,17 @@
 		gap: 20px;
 	}
 	.blank span {
-		border-bottom: 1px solid #0f1f17;
+		border-bottom: 1px solid #000000;
 		height: 26px;
 	}
 	footer {
 		margin-top: auto;
 		display: flex;
 		justify-content: space-between;
+		align-items: center;
 		gap: 12px;
 		font-size: 10pt;
-		border-top: 1px solid #0f1f17;
+		border-top: 1px solid #000000;
 		padding-top: 6px;
 	}
 </style>

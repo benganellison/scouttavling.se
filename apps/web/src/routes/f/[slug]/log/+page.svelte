@@ -160,7 +160,7 @@
 		padding: 12px 14px;
 	}
 	.offline :global(svg) {
-		color: var(--flag-soft);
+		color: var(--on-brand-hi);
 		flex: none;
 	}
 	.offline div {
@@ -169,7 +169,7 @@
 		font-size: 15px;
 	}
 	.offline span {
-		color: var(--on-forest);
+		color: var(--on-brand);
 	}
 	.search {
 		margin: 0 16px;
@@ -208,7 +208,7 @@
 		border-radius: var(--r-lg);
 	}
 	.list li + li {
-		border-top: 1px solid #eef1ee;
+		border-top: 1px solid var(--tint);
 	}
 	.row {
 		width: 100%;
@@ -266,12 +266,12 @@
 		flex: none;
 	}
 	.sync.synced {
-		background: var(--moss-tint);
-		color: var(--forest-2);
+		background: var(--ok-tint);
+		color: var(--brand-2);
 	}
 	.sync.pending {
-		background: #ffe3d3;
-		color: var(--accent-ink);
+		background: var(--warn-tint);
+		color: var(--warn-ink);
 	}
 	.sync.conflict,
 	.sync.problem,
@@ -313,8 +313,8 @@
 		color: var(--ink);
 	}
 	.act.primary {
-		background: var(--forest);
-		border-color: var(--forest);
+		background: var(--brand);
+		border-color: var(--brand);
 		color: #fff;
 	}
 	.act.danger {

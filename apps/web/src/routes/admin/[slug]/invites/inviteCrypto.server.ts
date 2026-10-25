@@ -53,7 +53,7 @@ export function inviteUrl(origin: string, secret: string): string {
 }
 
 export async function qrSvg(text: string, opts: { dark?: string; margin?: number } = {}): Promise<string> {
-	return QRCode.toString(text, { type: 'svg', errorCorrectionLevel: 'M', margin: opts.margin ?? 1, color: { dark: opts.dark ?? '#0f1f17', light: '#ffffff' } });
+	return QRCode.toString(text, { type: 'svg', errorCorrectionLevel: 'M', margin: opts.margin ?? 1, color: { dark: opts.dark ?? '#000000', light: '#ffffff' } });
 }
 
 export type InviteRow = typeof schema.invite.$inferSelect;

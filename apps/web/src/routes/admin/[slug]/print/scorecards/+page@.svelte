@@ -2,6 +2,8 @@
 	import '#lib/ui/patrols/print.css';
 	import { page } from '$app/state';
 	import PrintBar from '#lib/ui/patrols/PrintBar.svelte';
+	import PrintEventLogo from '#lib/ui/brand/PrintEventLogo.svelte';
+	import ScouternaLogo from '#lib/ui/brand/ScouternaLogo.svelte';
 
 	let { data } = $props();
 	const toggleHref = $derived(data.showNames ? page.url.pathname : `${page.url.pathname}?names=1`);
@@ -20,9 +22,10 @@
 		{#each data.sheets as sheet, si (si)}
 			<div class="sheet cards">
 				{#each sheet as k (k.id)}
-					<section class="scard" aria-label="Poängkort {k.nr} {k.name}">
+					<section class="scard" aria-label="Poängkort {k.nr} {k.name}" style="--track:{k.color ?? '#ffffff'}" data-track-color={k.color}>
 						<header>
 							<div class="who">
+								{#if data.branding.eventLogo}<PrintEventLogo logo={data.branding.eventLogo} mm={14} />{/if}
 								<span class="nr">{k.nr}</span>
 								<div>
 									<span class="eyebrow">Poängkort · {data.competition.name}</span>
@@ -63,6 +66,7 @@
 						<footer>
 							<span>{#if k.start}{`Start: ${k.start} · `}{/if}Tappat kortet? Gå till närmaste kontroll{#if data.competition.hqPhone} eller ring {data.competition.hqPhone}{/if}.</span>
 							<strong>Summa: ________</strong>
+							<ScouternaLogo print />
 						</footer>
 					</section>
 				{/each}
@@ -83,8 +87,11 @@
 		flex-direction: column;
 		gap: 8px;
 		padding: 5mm 0;
-		border-bottom: 2px dashed #8a978f;
+		border-bottom: 2px dashed #7d8794;
 		overflow: hidden;
+		/* Class colour as an edge (decoration only). */
+		border-left: 3mm solid var(--track);
+		padding-left: 4mm;
 	}
 	.scard:last-child {
 		border-bottom: 0;
@@ -105,7 +112,7 @@
 		height: 18mm;
 		padding: 0 6px;
 		border-radius: 12px;
-		background: #0f1f17;
+		background: #000000;
 		color: #fff;
 		display: flex;
 		align-items: center;
@@ -169,7 +176,7 @@
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
 		text-align: center;
-		border-left: 2px solid #0f1f17;
+		border-left: 2px solid #000000;
 		padding-right: 3px;
 	}
 	.grid {
@@ -179,7 +186,7 @@
 		grid-auto-rows: 1fr;
 	}
 	.cell {
-		border: 1.5px solid #0f1f17;
+		border: 1.5px solid #000000;
 		border-radius: 7px;
 		padding: 4px 6px;
 		display: flex;
@@ -189,9 +196,9 @@
 		font-size: 9pt;
 	}
 	.cell.na {
-		background: #e4e9e5;
-		border-color: #e4e9e5;
-		color: #44524a;
+		background: #e3e7ec;
+		border-color: #e3e7ec;
+		color: var(--ink-2);
 	}
 	.ctop {
 		display: flex;
@@ -223,7 +230,7 @@
 	.fill {
 		display: flex;
 		justify-content: space-between;
-		border-bottom: 1px solid #0f1f17;
+		border-bottom: 1px solid #000000;
 		padding-bottom: 1px;
 	}
 	.fill .max {
@@ -234,12 +241,13 @@
 	.sign {
 		margin-top: auto;
 		font-size: 8pt;
-		border-top: 1px solid #8a978f;
+		border-top: 1px solid #7d8794;
 		padding-top: 1px;
 	}
 	footer {
 		display: flex;
 		justify-content: space-between;
+		align-items: center;
 		gap: 12px;
 		font-size: 10pt;
 	}

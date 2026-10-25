@@ -1,5 +1,8 @@
 <script lang="ts">
 	import Flag from '#lib/ui/Flag.svelte';
+	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
+	import ScouternaLogo from '#lib/ui/brand/ScouternaLogo.svelte';
+	import type { BrandImage } from '#lib/brand/branding.ts';
 	import { placeWord } from './format.ts';
 
 	interface Row {
@@ -20,8 +23,23 @@
 		rows,
 		takenAt,
 		refreshHref,
-		backHref
-	}: { compName: string; className: string; rows: Row[]; takenAt: string; refreshHref: string; backHref: string } = $props();
+		backHref,
+		eventLogo = null,
+		classColor = null,
+		stripe = 'var(--orange)'
+	}: {
+		compName: string;
+		className: string;
+		rows: Row[];
+		takenAt: string;
+		refreshHref: string;
+		backHref: string;
+		eventLogo?: BrandImage | null;
+		/** The class colour (decoration: a bar beside the class name). */
+		classColor?: string | null;
+		/** The event accent (or Äventyrarorange) for the highlight ring. */
+		stripe?: string;
+	} = $props();
 
 	/** Reveal from the lowest shown place up to the winner. */
 	const order = $derived([...rows].reverse());
@@ -60,22 +78,17 @@
 <svelte:window {onkeydown} />
 
 <div class="viewport" bind:clientWidth={w} bind:clientHeight={h} role="region" aria-label="Prisutdelning {className}" aria-roledescription="presentation">
-	<div class="stage" style="transform: translate(-50%, -50%) scale({scale})">
-		<svg class="trees" viewBox="0 0 1920 1080" aria-hidden="true" preserveAspectRatio="none">
-			{#each Array.from({ length: 16 }, (_, i) => i) as i (i)}
-				<polygon points="{i * 130 - 40},1080 {i * 130 + 60},{740 - (i % 3) * 90} {i * 130 + 160},1080" fill="#0f2a1f" opacity="0.55" />
-			{/each}
-		</svg>
+	<div class="stage" style="transform: translate(-50%, -50%) scale({scale}); --stripe: {stripe}">
 
 		<header class="top">
-			<div class="brand"><Flag size={44} onDark /> <span>{compName}</span></div>
+			<div class="brand">{#if eventLogo}<EventLogo logo={eventLogo} height={64} onDark />{:else}<Flag size={44} onDark />{/if} <span>{compName}</span></div>
 			<span class="snap">Resultat fryst {takenAt} · <a href={refreshHref}>Uppdatera</a> · <a href={backHref}>Byt klass</a></span>
 		</header>
 
 		<div class="body">
 			<section class="main">
 				<p class="eyebrow">Prisutdelning</p>
-				<h1 class="cls">{className}</h1>
+				<h1 class="cls">{#if classColor}<span class="cbar" style="background:{classColor}" aria-hidden="true"></span>{/if}{className}</h1>
 
 				<div class="card" aria-live="polite" data-testid="reveal-card">
 					{#if current}
@@ -110,6 +123,7 @@
 						</li>
 					{/each}
 				</ol>
+				<div class="sender"><ScouternaLogo onDark width={300} /></div>
 				<div class="controls">
 					<button class="cbtn" onclick={back} disabled={step === 0}>Tillbaka</button>
 					<button class="cbtn primary" onclick={forward} disabled={!next}>
@@ -126,7 +140,7 @@
 		position: fixed;
 		inset: 0;
 		overflow: hidden;
-		background: #0b2219;
+		background: var(--brand-dark);
 		outline: none;
 	}
 	.stage {
@@ -136,15 +150,9 @@
 		width: 1920px;
 		height: 1080px;
 		transform-origin: center;
-		background: radial-gradient(ellipse at 30% 20%, #23604a 0%, var(--forest) 45%, var(--forest-dark) 100%);
+		background: var(--brand);
 		color: #fff;
 		overflow: hidden;
-	}
-	.trees {
-		position: absolute;
-		inset: 0;
-		width: 100%;
-		height: 100%;
 	}
 	.top {
 		position: relative;
@@ -162,11 +170,11 @@
 		font-size: 34px;
 	}
 	.snap {
-		color: var(--on-forest-2);
+		color: var(--on-brand-2);
 		font-size: 20px;
 	}
 	.snap a {
-		color: var(--on-forest);
+		color: var(--on-brand);
 	}
 	.body {
 		position: relative;
@@ -178,7 +186,7 @@
 	}
 	.eyebrow {
 		margin: 0;
-		color: var(--flag-soft);
+		color: var(--on-brand-hi);
 		font-weight: 800;
 		font-size: 28px;
 		text-transform: uppercase;
@@ -188,6 +196,20 @@
 		font-size: 150px;
 		line-height: 1;
 		margin: 6px 0 40px;
+		display: flex;
+		align-items: center;
+		gap: 32px;
+	}
+	.cbar {
+		width: 22px;
+		align-self: stretch;
+		border-radius: 8px;
+		flex: none;
+	}
+	.sender {
+		display: flex;
+		justify-content: flex-end;
+		margin-right: -20px;
 	}
 	.card {
 		background: #fff;
@@ -204,7 +226,7 @@
 		font-family: var(--font-display);
 		font-weight: 800;
 		font-size: 40px;
-		color: var(--accent);
+		color: var(--cta);
 	}
 	.pname {
 		font-family: var(--font-display);
@@ -246,8 +268,8 @@
 		margin-top: 18px !important;
 		font-size: 26px;
 		font-weight: 700;
-		color: var(--accent-ink);
-		background: var(--accent-tint);
+		color: var(--warn-ink);
+		background: var(--warn-tint);
 		border-radius: 14px;
 		padding: 10px 18px;
 		display: inline-block;
@@ -271,7 +293,8 @@
 		display: flex;
 		align-items: center;
 		gap: 18px;
-		background: rgb(255 255 255 / 0.08);
+		background: transparent;
+		box-shadow: inset 0 0 0 2px var(--line-on-brand);
 		border-radius: 18px;
 		padding: 10px 18px;
 		font-size: 28px;
@@ -279,8 +302,9 @@
 		min-height: 66px;
 	}
 	.places li.now {
-		background: rgb(255 255 255 / 0.2);
-		box-shadow: inset 0 0 0 3px var(--flag);
+		background: #fff;
+		color: var(--ink);
+		box-shadow: inset 0 0 0 4px var(--stripe);
 	}
 	.medal {
 		width: 46px;
@@ -291,7 +315,8 @@
 		font-family: var(--font-display);
 		font-weight: 800;
 		font-size: 22px;
-		background: rgb(255 255 255 / 0.16);
+		background: transparent;
+		box-shadow: inset 0 0 0 2px var(--line-on-brand);
 		color: #fff;
 		flex: none;
 	}
@@ -314,7 +339,7 @@
 		text-overflow: ellipsis;
 	}
 	.lname.hidden {
-		color: var(--on-forest-2);
+		color: var(--on-brand-2);
 		letter-spacing: 0.2em;
 	}
 	.ltotal {
@@ -329,7 +354,7 @@
 		flex: 1;
 		min-height: 84px;
 		border-radius: 20px;
-		border: 2px solid rgb(255 255 255 / 0.4);
+		border: 2px solid var(--line-on-brand);
 		background: transparent;
 		color: #fff;
 		font-weight: 800;
@@ -338,11 +363,14 @@
 	}
 	.cbtn.primary {
 		flex: 1.6;
-		background: var(--accent);
-		border-color: var(--accent);
+		background: #fff;
+		border-color: #fff;
+		color: var(--brand);
 	}
 	.cbtn:disabled {
-		opacity: 0.4;
+		background: transparent;
+		border-color: var(--line-on-brand);
+		color: var(--on-brand-2);
 		cursor: not-allowed;
 	}
 </style>

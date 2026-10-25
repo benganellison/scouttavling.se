@@ -4,6 +4,7 @@
 	import Icon from '#lib/field/ui/Icon.svelte';
 	import SyncPill from '#lib/field/ui/SyncPill.svelte';
 	import TabBar from '#lib/field/ui/TabBar.svelte';
+	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
 
 	const app = useField();
 	const base = `/f/${app.slug}`;
@@ -42,8 +43,9 @@
 </script>
 
 <div class="screen">
-	<header>
+	<header class="fhead">
 		<div class="top">
+			{#if app.pack?.competition.branding?.eventLogo}<EventLogo logo={app.pack.competition.branding.eventLogo} height={32} />{/if}
 			<span class="hello">Hej {firstName} · {app.pack?.competition.name}</span>
 			<SyncPill />
 		</div>
@@ -125,6 +127,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
+		border-top: 5px solid var(--event-stripe, var(--orange));
 	}
 	.top {
 		display: flex;
@@ -133,6 +136,8 @@
 		gap: 8px;
 	}
 	.hello {
+		flex: 1;
+		min-width: 0;
 		font-size: 14px;
 		font-weight: 700;
 		color: var(--ink-2);
@@ -158,8 +163,8 @@
 		display: flex;
 		gap: 10px;
 		align-items: center;
-		background: var(--accent-tint);
-		border: 1.5px solid #f7b48f;
+		background: var(--warn-tint);
+		border: 1.5px solid var(--orange);
 		border-radius: var(--r-md);
 		padding: 12px 14px;
 		color: var(--ink);
@@ -169,7 +174,7 @@
 	}
 	.msg :global(svg),
 	.backup :global(svg) {
-		color: var(--accent);
+		color: var(--cta);
 		flex: none;
 	}
 	.msg span:nth-child(2) {
@@ -177,7 +182,7 @@
 	}
 	.read {
 		font-weight: 800;
-		color: var(--accent-ink);
+		color: var(--warn-ink);
 	}
 	.kpis {
 		display: grid;
@@ -208,7 +213,7 @@
 		flex: none;
 		height: 112px;
 		border-radius: var(--r-xl);
-		background: var(--accent);
+		background: var(--cta);
 		color: #fff;
 		display: flex;
 		align-items: center;
@@ -218,7 +223,7 @@
 	}
 	.scan:hover {
 		color: #fff;
-		background: var(--accent-ink);
+		background: var(--warn-ink);
 	}
 	.scan-text {
 		display: flex;
@@ -232,7 +237,7 @@
 	}
 	.small {
 		font-size: 15px;
-		color: #ffe3d3;
+		color: var(--warn-tint);
 		font-weight: 600;
 	}
 	.sec-head {
@@ -256,7 +261,7 @@
 		border-radius: var(--r-lg);
 	}
 	.list li + li {
-		border-top: 1px solid #eef1ee;
+		border-top: 1px solid var(--tint);
 	}
 	.list a {
 		display: flex;
@@ -270,7 +275,7 @@
 		min-width: 52px;
 		height: 42px;
 		border-radius: 11px;
-		background: var(--sage-tint);
+		background: var(--tint);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -302,8 +307,8 @@
 	}
 	.all-done {
 		margin: 0;
-		background: var(--moss-tint);
-		color: var(--forest-2);
+		background: var(--ok-tint);
+		color: var(--brand-2);
 		font-weight: 700;
 		border-radius: var(--r-md);
 		padding: 14px;

@@ -26,11 +26,11 @@
 		box-shadow: inset 0 0 0 1.5px var(--ink-3);
 	}
 	.live {
-		background: var(--flag);
+		background: var(--orange);
 		color: var(--ink);
 	}
 	.closed {
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 	}
 	.dot {

@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { FieldApp, provideField } from '#lib/field/app.svelte.ts';
 	import Flag from '#lib/ui/Flag.svelte';
+	import { accentStyle } from '#lib/brand/branding.ts';
 
 	let { children } = $props();
 	const app = new FieldApp(page.params.slug ?? '');
@@ -38,7 +39,10 @@
 	{#if app.closed}
 		<div class="closed" role="alert" data-testid="closed-banner">Tävlingen är avslutad — rapporter tas inte emot</div>
 	{/if}
-	{@render children()}
+	<!-- Event accent variables for every field screen (older cached packs have no branding). -->
+	<div class="brandvars" style={app.pack.competition.branding ? accentStyle(app.pack.competition.branding) : '--event-stripe: var(--orange)'}>
+		{@render children()}
+	</div>
 {/if}
 
 <style>
@@ -64,8 +68,11 @@
 		color: var(--ink-2);
 		max-width: 32ch;
 	}
+	.brandvars {
+		display: contents;
+	}
 	.closed {
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		font-weight: 800;
 		padding: 12px 16px;

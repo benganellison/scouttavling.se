@@ -6,6 +6,10 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq, inArray } from 'drizzle-orm';
 import postgres from 'postgres';
 import * as s from '../src/lib/server/db/schema.ts';
+import { createHash } from 'node:crypto';
+import { encodePng } from '../src/lib/server/pngEncode.ts';
+import { validateImage } from '../src/lib/server/imageValidate.ts';
+import { namedTrackColor } from '../src/lib/brand/colors.ts';
 
 const client = postgres(process.env.DATABASE_URL!, { max: 1 });
 const db = drizzle(client, { schema: s });
@@ -31,14 +35,17 @@ async function main() {
 			registrationOpensOn: '2026-09-01', registrationClosesOn: '2027-05-01', maxPatrols: 40,
 			infoText: 'Välkomna till GökOpen! Banan är cirka 6 km genom Gökskogen. Samling vid lägerplatsens flaggstång kl. 08.30, första start 09.00.\n\nTa med matsäck, vattenflaska, kläder efter väder och en penna.',
 			confirmationText: 'Startavgiften är 150 kr per patrull och betalas till kårens konto senast 1 maj.',
-			followEnabled: true, followShowScores: true
+			followEnabled: true, followShowScores: true,
+			// Event branding: Upptäckarblå accent (black text on it, 7.7:1).
+			accentColor: '#00a8e1'
 		})
 		.returning();
 	await db.insert(s.competitionMember).values({ competitionId: open.id, userId: erik.id, role: 'owner' });
 
 	const tracks = await db
 		.insert(s.track)
-		.values(['Spårare', 'Upptäckare', 'Äventyrare', 'Utmanare'].map((name, i) => ({ competitionId: open.id, name, sort: i + 1 })))
+		// Class colours stored explicitly (age-group colours; Ledare = Scoutblå). Ledare has no patrols yet.
+		.values(['Spårare', 'Upptäckare', 'Äventyrare', 'Utmanare', 'Ledare'].map((name, i) => ({ competitionId: open.id, name, sort: i + 1, color: namedTrackColor(name) })))
 		.returning();
 	const T = Object.fromEntries(tracks.map((t) => [t.name, t.id]));
 
@@ -117,6 +124,24 @@ async function main() {
 				.returning();
 			await db.insert(s.scoreRevision).values({ scoreId: sc.id, version: 1, points, stylePoints: style, state: 'active', origin: 'admin', userId: erik.id, reason: 'seed' });
 		}
+	}
+
+	// A tiny generated event logo (no real images in the repo): a Scoutblå disc with an Upptäckarblå ring.
+	{
+		const N = 96;
+		const png = encodePng(N, N, (x, y) => {
+			const d = Math.hypot(x - N / 2 + 0.5, y - N / 2 + 0.5);
+			if (d > N / 2) return [0, 0, 0, 0];
+			if (d > N / 2 - 9) return [0, 168, 225, 255];
+			const star = Math.abs(x - N / 2) + Math.abs(y - N / 2) < 18;
+			return star ? [255, 255, 255, 255] : [0, 54, 96, 255];
+		});
+		const v = validateImage(png);
+		if (!v.ok) throw new Error(v.reason);
+		await db.insert(s.asset).values({
+			competitionId: open.id, kind: 'event_logo', mime: v.mime, size: v.bytes.length, width: v.width, height: v.height,
+			sha256: createHash('sha256').update(v.bytes).digest('hex'), data: v.bytes, uploadedBy: erik.id
+		});
 	}
 
 	// ---------- GökHajk 2027: three days ----------

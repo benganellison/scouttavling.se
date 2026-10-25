@@ -202,8 +202,8 @@
 		width: 32px;
 		height: 32px;
 		border-radius: 9px;
-		background: var(--moss-tint);
-		color: var(--forest-2);
+		background: var(--ok-tint);
+		color: var(--brand-2);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -219,7 +219,7 @@
 		min-height: 64px;
 		border-radius: 18px;
 		border: 0;
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		font-weight: 800;
 		font-size: 19px;

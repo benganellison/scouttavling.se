@@ -1,6 +1,6 @@
 <script lang="ts">
-	import '@fontsource-variable/figtree';
-	import '@fontsource-variable/bricolage-grotesque/opsz.css';
+	import '@fontsource-variable/libre-franklin';
+	import '@fontsource-variable/eb-garamond';
 	import '#lib/styles/global.css';
 	import favicon from '#lib/assets/favicon.svg';
 

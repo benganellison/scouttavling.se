@@ -283,7 +283,7 @@
 		align-items: center;
 		gap: 14px;
 		padding: 12px 0;
-		border-top: 1px solid #eef1ee;
+		border-top: 1px solid var(--tint);
 		flex-wrap: wrap;
 	}
 	.mark {
@@ -301,12 +301,12 @@
 		font-size: 14px;
 	}
 	.done .mark {
-		background: var(--moss);
-		border-color: var(--moss);
+		background: var(--ok);
+		border-color: var(--ok);
 	}
 	.warn .mark {
-		background: var(--accent);
-		border-color: var(--accent);
+		background: var(--cta);
+		border-color: var(--cta);
 	}
 	.txt {
 		display: flex;
@@ -329,7 +329,7 @@
 		color: var(--ink-2);
 	}
 	.warn .d {
-		color: var(--accent-ink);
+		color: var(--warn-ink);
 	}
 	.ctas {
 		display: flex;
@@ -347,21 +347,21 @@
 		display: inline-flex;
 		align-items: center;
 		white-space: nowrap;
-		background: var(--sage-tint);
-		color: var(--forest);
+		background: var(--tint);
+		color: var(--brand);
 		border: 0;
 		cursor: pointer;
 	}
 	.cta:hover {
-		background: var(--moss-tint);
-		color: var(--forest);
+		background: var(--ok-tint);
+		color: var(--brand);
 	}
 	.cta.hot {
-		background: var(--accent);
+		background: var(--cta);
 		color: #fff;
 	}
 	.cta.hot:hover {
-		background: var(--accent-ink);
+		background: var(--warn-ink);
 	}
 	.btn.sm {
 		min-height: 40px;

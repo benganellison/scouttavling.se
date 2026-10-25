@@ -530,28 +530,28 @@
 		width: 28px;
 		height: 28px;
 		border-radius: 999px;
-		background: var(--sage-tint);
+		background: var(--tint);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		font-weight: 800;
 	}
 	.steps .cur {
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		font-weight: 800;
 	}
 	.steps .cur .sn {
-		background: var(--flag);
+		background: var(--orange);
 		color: var(--ink);
 	}
 	.steps .past .sn {
-		background: var(--moss-tint);
-		color: var(--forest-2);
+		background: var(--ok-tint);
+		color: var(--brand-2);
 	}
 	.drop {
 		background: var(--surface);
-		border: 2px dashed #8a978f;
+		border: 2px dashed #7d8794;
 		border-radius: var(--r-xl);
 		padding: 48px 24px;
 		display: flex;
@@ -559,11 +559,11 @@
 		align-items: center;
 		gap: 12px;
 		text-align: center;
-		color: var(--forest);
+		color: var(--brand);
 	}
 	.drop.dragging {
-		border-color: var(--forest);
-		background: var(--moss-tint);
+		border-color: var(--brand);
+		background: var(--ok-tint);
 	}
 	.drop h2 {
 		font-size: 26px;
@@ -583,7 +583,7 @@
 		cursor: pointer;
 	}
 	.file:focus-within {
-		outline: 3px solid var(--flag);
+		outline: 3px solid var(--orange);
 		outline-offset: 2px;
 	}
 	.small {
@@ -634,7 +634,7 @@
 	.never {
 		flex: 1 1 300px;
 		min-width: 0;
-		background: var(--forest-dark);
+		background: var(--brand-dark);
 		color: #fff;
 		border-radius: 20px;
 		padding: 18px 20px;
@@ -650,11 +650,11 @@
 		margin: 0;
 	}
 	.never h2 svg {
-		color: var(--flag-soft);
+		color: var(--on-brand-hi);
 	}
 	.never p {
 		margin: 0;
-		color: var(--on-forest);
+		color: var(--on-brand);
 		font-size: 14px;
 	}
 	.chips {
@@ -670,11 +670,11 @@
 		font-weight: 700;
 		padding: 6px 10px;
 		border-radius: 999px;
-		background: #1e3a2d;
-		color: #dde9e1;
+		background: var(--brand-dark);
+		color: var(--on-brand);
 	}
 	.chips s {
-		text-decoration-color: var(--flag-soft);
+		text-decoration-color: var(--on-brand-hi);
 		text-decoration-thickness: 2px;
 	}
 	.end {
@@ -695,7 +695,7 @@
 		min-width: 0;
 	}
 	.open {
-		color: var(--accent-ink);
+		color: var(--warn-ink);
 	}
 	.issue {
 		display: flex;
@@ -703,24 +703,24 @@
 		gap: 8px;
 		padding: 12px;
 		border-radius: 14px;
-		background: var(--accent-tint);
+		background: var(--warn-tint);
 		font-size: 14px;
 	}
 	.issue.resolved,
 	.issue.info {
-		background: var(--sage-tint);
+		background: var(--tint);
 	}
 	.issue.warn {
-		background: var(--accent-tint);
+		background: var(--warn-tint);
 	}
 	.ok {
 		font-weight: 800;
-		color: var(--forest-2);
+		color: var(--brand-2);
 		font-size: 13px;
 	}
 	.ok-inline {
 		font-size: 12px;
-		color: var(--forest-2);
+		color: var(--brand-2);
 		margin-left: 6px;
 	}
 	.link {
@@ -728,7 +728,7 @@
 		border: 0;
 		padding: 0 4px;
 		font: inherit;
-		color: var(--forest);
+		color: var(--brand);
 		text-decoration: underline;
 		cursor: pointer;
 		min-height: 32px;
@@ -749,7 +749,7 @@
 		font-weight: 800;
 	}
 	.donebox {
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		border-radius: var(--r-xl);
 		padding: 36px;
@@ -762,7 +762,7 @@
 	}
 	.donebox p {
 		margin: 0;
-		color: var(--on-forest);
+		color: var(--on-brand);
 		font-size: 16px;
 	}
 	.donebox .small {
@@ -770,7 +770,7 @@
 	}
 	.btn-onforest {
 		background: transparent;
-		border-color: #4e7d66;
+		border-color: var(--line-on-brand);
 		color: #fff;
 	}
 	.btn-onforest:hover {

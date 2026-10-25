@@ -5,6 +5,8 @@
 	import SyncPill from '#lib/field/ui/SyncPill.svelte';
 	import CameraView from '#lib/field/ui/CameraView.svelte';
 	import Flag from '#lib/ui/Flag.svelte';
+	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
+	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 
 	const app = useField();
 	const LABEL: Record<PatrolStatus, string> = { registered: 'Anmäld', active: 'På banan', camp: 'I läger', finished: 'I mål', resigned: 'Återbud' };
@@ -148,13 +150,14 @@
 		{ k: 'finished', l: 'I mål' },
 		{ k: 'resigned', l: 'Återbud' }
 	];
+	const trackColor = (id: string | null) => (id ? app.pack?.tracks.find((t) => t.id === id)?.color : null);
 	const tel = (s: string | null | undefined) => (s ?? '').replace(/[^\d+]/g, '');
 </script>
 
 <div class="desk">
 	<aside>
 		<div class="brand">
-			<span class="b"><Flag size={30} onDark /> Start &amp; mål</span>
+			<span class="b">{#if app.pack?.competition.branding?.eventLogo}<EventLogo logo={app.pack.competition.branding.eventLogo} height={34} onDark />{:else}<Flag size={30} onDark />{/if} Start &amp; mål</span>
 			<SyncPill />
 		</div>
 
@@ -223,7 +226,7 @@
 					<div class="tr" class:late={seen.late} role="row" data-testid="row-{p.number}">
 						<span class="pcell" role="cell">
 							<span class="pnr">{p.number}</span>
-							<span class="pwho"><span class="pname">{p.name}</span><span class="psub">{p.track} · {shortTroop(p.troop)}</span></span>
+							<span class="pwho"><span class="pname">{p.name}</span><span class="psub"><TrackChip color={trackColor(p.trackId)} size={10} /> {p.track} · {shortTroop(p.troop)}</span></span>
 						</span>
 						<span role="cell">
 							<span class="seg" role="radiogroup" aria-label="Status för {p.name}">
@@ -254,7 +257,7 @@
 		overflow: hidden;
 	}
 	aside {
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		padding: 18px;
 		display: flex;
@@ -276,7 +279,7 @@
 		font-size: 20px;
 	}
 	.scanner {
-		background: var(--forest-dark);
+		background: var(--brand-dark);
 		border-radius: 20px;
 		padding: 12px;
 		display: flex;
@@ -299,14 +302,15 @@
 		padding: 0 18px;
 		border-radius: 14px;
 		border: 0;
-		background: var(--accent);
-		color: #fff;
+		background: #fff;
+		color: var(--brand);
 		font-weight: 800;
 		font-size: 17px;
 	}
 	.ok:disabled {
-		background: #2c4a3c;
-		color: var(--on-forest-2);
+		background: transparent;
+		box-shadow: inset 0 0 0 1.5px var(--line-on-brand);
+		color: var(--on-brand-2);
 	}
 	.scan-error {
 		margin: 0;
@@ -366,7 +370,7 @@
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 8px;
-		border-top: 1px solid #eef1ee;
+		border-top: 1px solid var(--tint);
 		padding-top: 10px;
 		margin-top: 4px;
 	}
@@ -391,7 +395,7 @@
 		margin-top: auto;
 	}
 	.counts div {
-		background: var(--forest-dark);
+		background: var(--brand-dark);
 		border-radius: 14px;
 		padding: 10px 6px;
 		display: flex;
@@ -405,7 +409,7 @@
 	}
 	.cl {
 		font-size: 12px;
-		color: var(--on-forest);
+		color: var(--on-brand);
 		font-weight: 700;
 	}
 	main {
@@ -484,7 +488,7 @@
 		gap: 8px;
 		padding: 8px 12px;
 		align-items: center;
-		border-bottom: 1px solid #eef1ee;
+		border-bottom: 1px solid var(--tint);
 	}
 	.th {
 		font-size: 12px;
@@ -508,7 +512,7 @@
 		min-width: 46px;
 		height: 38px;
 		border-radius: 10px;
-		background: var(--sage-tint);
+		background: var(--tint);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -534,7 +538,7 @@
 	.seg {
 		display: grid;
 		grid-template-columns: repeat(5, minmax(0, 1fr));
-		background: #eef1ee;
+		background: var(--tint);
 		border-radius: 12px;
 		padding: 3px;
 		gap: 3px;
@@ -559,24 +563,24 @@
 	}
 	.s-active.on,
 	.status-pill.s-active {
-		background: var(--flag);
+		background: var(--orange);
 		color: var(--ink);
 	}
-	/* I läger: calm light forest tint, lighter than På banan (orange) and I mål (forest). */
+	/* I läger: light grey with a Scoutblå outline, lighter than På banan (orange) and I mål (Scoutblå). */
 	.s-camp.on,
 	.status-pill.s-camp {
-		background: var(--moss-tint);
-		color: var(--forest);
-		box-shadow: 0 0 0 1.5px var(--moss) inset;
+		background: var(--st-camp);
+		color: var(--brand);
+		box-shadow: 0 0 0 1.5px var(--brand) inset;
 	}
 	.s-finished.on,
 	.status-pill.s-finished {
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 	}
 	.s-resigned.on,
 	.status-pill.s-resigned {
-		background: #5b6660;
+		background: var(--st-resigned);
 		color: #fff;
 	}
 	.done {
@@ -598,8 +602,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: var(--sage-tint);
-		color: var(--forest);
+		background: var(--tint);
+		color: var(--brand);
 	}
 	@media (max-width: 900px) {
 		.desk {

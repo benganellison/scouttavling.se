@@ -1,5 +1,5 @@
 import {
-	pgTable, uuid, text, integer, boolean, timestamp, date, jsonb, bigint, primaryKey, unique, index, pgEnum
+	pgTable, uuid, text, integer, boolean, timestamp, date, jsonb, bigint, primaryKey, unique, index, pgEnum, customType
 } from 'drizzle-orm/pg-core';
 import type { DistinctValue, ItemMode } from '@scouttavling/domain';
 
@@ -7,6 +7,12 @@ import type { DistinctValue, ItemMode } from '@scouttavling/domain';
  * Data model v0.1 — see docs/architecture/02-backend-and-domain.md.
  * Privacy: no birth data, personnummer or addresses are ever stored.
  */
+
+const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
+	dataType: () => 'bytea',
+	toDriver: (v) => Buffer.from(v.buffer, v.byteOffset, v.byteLength),
+	fromDriver: (v) => new Uint8Array(v)
+});
 
 const id = () => uuid('id').primaryKey().defaultRandom();
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
@@ -73,6 +79,10 @@ export const competition = pgTable('competition', {
 	status: text('status', { enum: ['draft', 'live', 'closed'] }).notNull().default('draft'),
 	/** Backup mode ("Reservläge") broadcast flag. */
 	backupMode: boolean('backup_mode').notNull().default(false),
+	/** Event branding: accent colour as #rrggbb (null = Scouterna base, Scoutblå). Images live in `asset`. */
+	accentColor: text('accent_color'),
+	/** Cover display: 'contain' = whole image (never crop baked-in text), 'cover' = fill and crop, null = auto (whole image when wider than 2.5:1). */
+	coverFit: text('cover_fit', { enum: ['contain', 'cover'] }),
 	/** HMAC key for patrol QR check digits (not a secret from volunteers). */
 	patrolCodeKey: text('patrol_code_key').notNull(),
 	createdBy: uuid('created_by').references(() => appUser.id),
@@ -102,7 +112,9 @@ export const track = pgTable('track', {
 	id: id(),
 	competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
 	name: text('name').notNull(),
-	sort: integer('sort').notNull()
+	sort: integer('sort').notNull(),
+	/** Class colour #rrggbb (decoration only). null = default from the name (see #lib/brand/colors.ts). */
+	color: text('color')
 });
 
 export const station = pgTable(
@@ -351,4 +363,30 @@ export const messageRead = pgTable(
 		at: timestamp('at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [primaryKey({ columns: [t.messageId, t.deviceId] })]
+);
+
+// ---------- uploads ----------
+
+/**
+ * Uploaded event images (v0.1: stored in Postgres). One row per (competition, kind); replacing
+ * inserts a new row (new id = new immutable URL /media/<id>) and deletes the old one.
+ * Bytes are validated by magic bytes and stripped of metadata (#lib/server/imageValidate.ts).
+ */
+export const asset = pgTable(
+	'asset',
+	{
+		id: id(),
+		competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
+		kind: text('kind', { enum: ['event_logo', 'organiser_logo', 'cover'] }).notNull(),
+		mime: text('mime', { enum: ['image/png', 'image/jpeg', 'image/webp'] }).notNull(),
+		size: integer('size').notNull(),
+		width: integer('width').notNull(),
+		height: integer('height').notNull(),
+		/** Hex SHA-256 of `data`: the ETag. */
+		sha256: text('sha256').notNull(),
+		data: bytea('data').notNull(),
+		uploadedBy: uuid('uploaded_by').references(() => appUser.id, { onDelete: 'set null' }),
+		createdAt: createdAt()
+	},
+	(t) => [unique('asset_comp_kind').on(t.competitionId, t.kind)]
 );

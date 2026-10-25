@@ -98,8 +98,8 @@
 		cursor: pointer;
 	}
 	.important .row {
-		border: 1.5px solid #f7b48f;
-		background: var(--accent-tint);
+		border: 1.5px solid var(--orange);
+		background: var(--warn-tint);
 	}
 	.dot {
 		width: 10px;
@@ -109,7 +109,7 @@
 		flex: none;
 	}
 	.unread .dot {
-		background: var(--accent);
+		background: var(--cta);
 	}
 	.body {
 		flex: 1;

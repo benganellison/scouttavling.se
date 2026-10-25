@@ -22,9 +22,9 @@
 		"db:restore": "scripts/db-restore.sh"
 	},
 	"devDependencies": {
-		"@fontsource-variable/bricolage-grotesque": "5.3.0",
-		"@fontsource-variable/figtree": "5.3.0",
-		"@fontsource/figtree": "^5.3.0",
+		"@fontsource-variable/eb-garamond": "5.3.0",
+		"@fontsource-variable/libre-franklin": "5.3.0",
+		"@fontsource/libre-franklin": "5.3.0",
 		"@playwright/test": "1.64.1",
 		"@sveltejs/adapter-node": "6.0.0",
 		"@sveltejs/kit": "3.1.0",

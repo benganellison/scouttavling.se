@@ -17,6 +17,8 @@ import { db, schema } from '#lib/server/db/index.ts';
 import { sha256 } from '#lib/server/auth.ts';
 import { itemDef, writeScore, voidScore } from '#lib/server/scores.ts';
 import { recordChange } from '#lib/server/changes.ts';
+import { loadBranding } from '#lib/server/assets.ts';
+import { trackColors } from '#lib/brand/colors.ts';
 import { GRANT_TYP, uuidv7, type CommandBody, type CommandResult, type GrantClaims, type PatrolStatus } from '#lib/field/protocol.ts';
 import { processBatch, type BatchDeps } from '#lib/field/verify.ts';
 
@@ -265,6 +267,7 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 	const myItems = isDesk ? [] : allItems.filter((i) => myStationIds.includes(i.stationId));
 	const patrols = await db.select().from(schema.patrol).where(eq(schema.patrol.competitionId, comp.id)).orderBy(schema.patrol.number);
 	const trackName = new Map(tracks.map((t) => [t.id, t.name]));
+	const colors = trackColors(tracks);
 
 	const scores = myItems.length
 		? await db
@@ -350,7 +353,8 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 		device: { id: device.id, displayName: device.displayName, role: device.role, revoked: ctx.revoked, superseded: ctx.superseded },
 		competition: {
 			id: comp.id, slug: comp.slug, name: comp.name, styleEnabled: comp.styleEnabled, backupMode: comp.backupMode, hqPhone: comp.hqPhone,
-			patrolCodeKey: comp.patrolCodeKey, status: comp.status, startDate: comp.startDate, endDate: comp.endDate
+			patrolCodeKey: comp.patrolCodeKey, status: comp.status, startDate: comp.startDate, endDate: comp.endDate,
+			branding: await loadBranding(comp)
 		},
 		myStationIds,
 		stations: stations.map((s) => ({
@@ -359,7 +363,7 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 			items: allItems.filter((i) => i.stationId === s.id).length
 		})),
 		items: myItems.map((i) => ({ ...itemDef(i, comp), stationId: i.stationId })),
-		tracks: tracks.map((t) => ({ id: t.id, name: t.name })),
+		tracks: tracks.map((t) => ({ id: t.id, name: t.name, color: colors[t.id] ?? null })),
 		patrols: patrols.map((p) => ({
 			id: p.id, number: p.number, name: p.name, trackId: p.trackId, track: p.trackId ? trackName.get(p.trackId) ?? '' : '', troop: p.troop,
 			status: p.status as PatrolStatus, startStationId: p.startStationId, ...(isDesk ? { phone: p.contactPhone } : {})

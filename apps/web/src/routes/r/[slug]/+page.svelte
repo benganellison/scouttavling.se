@@ -1,5 +1,9 @@
 <script lang="ts">
 	import Flag from '#lib/ui/Flag.svelte';
+	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
+	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
+	import SenderFooter from '#lib/ui/brand/SenderFooter.svelte';
+	import { accentStyle } from '#lib/brand/branding.ts';
 	import Medal from '#lib/ui/live/Medal.svelte';
 	import { LiveStream } from '#lib/ui/live/liveStore.svelte.ts';
 	import { RULE_TEXT } from '#lib/ui/live/format.ts';
@@ -27,22 +31,22 @@
 	<meta name="robots" content="noindex" />
 </svelte:head>
 
-<div class="wrap">
+<div class="wrap" style={accentStyle(data.branding)}>
 	<header class="top">
-		<div class="brand"><Flag size={28} onDark /> <span>{data.comp.name}</span></div>
+		<div class="brand">{#if data.branding.eventLogo}<EventLogo logo={data.branding.eventLogo} height={40} onDark />{:else}<Flag size={28} onDark />{/if} <span>{data.comp.name}</span></div>
 		<p class="state" data-status={live.status}><span class="dot" aria-hidden="true"></span> Preliminärt · live</p>
 	</header>
 
 	<nav class="tabs" aria-label="Klasser">
 		{#each tracks as t (t.trackId)}
-			<button class="tab" aria-pressed={current?.trackId === t.trackId} onclick={() => (tab = t.trackId)}>{t.name}</button>
+			<button class="tab" aria-pressed={current?.trackId === t.trackId} onclick={() => (tab = t.trackId)}><TrackChip color={data.trackColors[t.trackId]} size={12} />{t.name}</button>
 		{/each}
 	</nav>
 
 	<main>
 		{#if current}
 			<h1 class="sr-only">Resultat {current.name}</h1>
-			<ol class="list" data-testid="public-list">
+			<ol class="list" data-testid="public-list" style="--track:{data.trackColors[current.trackId] ?? 'var(--line)'}">
 				{#each current.rows as r (r.number)}
 					<li class="row-item" class:top3={r.place <= 3} data-number={r.number} data-place={r.place}>
 						<Medal place={r.place} size={40} />
@@ -64,6 +68,7 @@
 			<p>{RULE_TEXT}</p>
 			<p>Resultaten är preliminära tills tävlingsledningen har gått igenom alla rapporter.</p>
 		</footer>
+		<SenderFooter organiserName={data.branding.organiserName} organiserLogo={data.branding.organiserLogo} />
 	</main>
 </div>
 
@@ -73,9 +78,10 @@
 		background: var(--ground);
 	}
 	.top {
-		background: var(--forest);
+		background: var(--brand);
 		color: #fff;
 		padding: 18px 16px 16px;
+		border-top: 6px solid var(--event-stripe);
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
@@ -95,13 +101,13 @@
 		gap: 8px;
 		font-weight: 800;
 		font-size: 14px;
-		color: var(--on-forest);
+		color: var(--on-brand);
 	}
 	.dot {
 		width: 9px;
 		height: 9px;
 		border-radius: 50%;
-		background: var(--flag);
+		background: var(--orange);
 	}
 	.state[data-status='open'] .dot {
 		animation: pulse 2s infinite;
@@ -121,7 +127,7 @@
 		gap: 8px;
 		overflow-x: auto;
 		padding: 12px 16px;
-		background: var(--forest);
+		background: var(--brand);
 		scrollbar-width: none;
 	}
 	.tab {
@@ -129,16 +135,19 @@
 		min-height: var(--tap);
 		padding: 0 18px;
 		border-radius: 999px;
-		border: 1.5px solid var(--forest-2);
-		background: var(--forest-2);
+		border: 1.5px solid var(--line-on-brand);
+		background: var(--brand);
 		color: #fff;
 		font-weight: 800;
 		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
 	}
 	.tab[aria-pressed='true'] {
 		background: #fff;
 		border-color: #fff;
-		color: var(--forest);
+		color: var(--brand);
 	}
 	main {
 		padding: 16px;
@@ -151,6 +160,7 @@
 		padding: 0;
 		background: var(--surface);
 		border: 1px solid var(--line);
+		border-top: 6px solid var(--track);
 		border-radius: var(--r-lg);
 		overflow: hidden;
 	}
@@ -183,7 +193,7 @@
 		font-size: 13px;
 	}
 	.tie {
-		color: var(--accent-ink);
+		color: var(--warn-ink);
 		font-size: 12px;
 		font-weight: 800;
 	}
