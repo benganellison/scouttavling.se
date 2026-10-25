@@ -93,6 +93,7 @@
 					<li>Kontaktpersoner och telefonnummer</li>
 				</ul>
 			</div>
+			<p class="muted small roles" data-testid="roles-note">Ägare och arrangörer följer med till det nya året; roller för ledningscentral och start &amp; mål gör det inte.</p>
 			<div class="act">
 				<button class="btn btn-accent">Skapa {p.name}</button>
 				<a class="btn btn-ghost" href="/admin/{c.slug}">Avbryt</a>
@@ -102,6 +103,9 @@
 {/if}
 
 <style>
+	.roles {
+		margin: 0;
+	}
 	.head {
 		display: flex;
 		flex-direction: column;

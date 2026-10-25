@@ -154,7 +154,13 @@
 		<h2 id="pd-h">{a.personalLeft ? `Personuppgifter finns kvar för ${a.personalLeft} ${a.personalLeft === 1 ? 'patrull' : 'patruller'}` : 'Tävlingen är inte arkiverad än'} – ta bort när resultaten är klara</h2>
 		<p class="d">Scouternas namn, kontaktuppgifter, patrullernas länkar, funktionärer och meddelanden behövs inte längre. Poäng, patrullnamn, kårer och resultat sparas.</p>
 	</div>
-	<a class="btn btn-primary" href="{base}/anonymise">Ta bort personuppgifter</a>
+	{#if a.isOwner}
+		<a class="btn btn-primary" href="{base}/anonymise">Ta bort personuppgifter</a>
+	{:else}
+		<p class="ask" data-testid="ask-owner">
+			{a.ownerNames.length ? `Be ägaren (${a.ownerNames.join(', ')})` : 'Be ägaren'} ta bort personuppgifterna. Bara tävlingens ägare kan göra det.
+		</p>
+	{/if}
 </section>
 {/if}
 <section class="card closed" aria-labelledby="closed-h" data-testid="closed-summary">
@@ -338,6 +344,15 @@
 		margin: 0;
 		font-size: 15px;
 		color: var(--ink-2);
+	}
+	.ask {
+		margin: 0;
+		flex: 0 1 280px;
+		padding: 12px 16px;
+		border-radius: var(--r-md, 12px);
+		background: var(--tint);
+		font-size: 15px;
+		font-weight: 600;
 	}
 	.archived {
 		background: var(--tint);

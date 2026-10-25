@@ -26,7 +26,8 @@ async function login(page: Page) {
 }
 
 async function cleanup() {
-	await sql`delete from competition where slug = ${NEW}`;
+	await sql`delete from competition where slug = ${NEW} or slug like 'e2e-varcup%'`;
+	await sql`delete from series where slug like 'e2e-varcup%'`;
 	await sql`update competition set archive_public = true where slug = 'gokopen-2026'`;
 }
 
@@ -84,6 +85,7 @@ test('2. create GökOpen 2028 from 2027: stations and classes copied, no patrols
 	// Saturday 15 May 2027 → Saturday 13 May 2028.
 	await expect(page.locator('#date_0')).toHaveValue('2028-05-13');
 	await expect(page.getByText('lördag · förra året lör 15 maj')).toBeVisible();
+	await expect(page.getByTestId('roles-note')).toHaveText(/Ägare och arrangörer följer med.*ledningscentral och start & mål gör det inte/);
 	await shot(page, 'new-year-form');
 	await page.getByRole('button', { name: 'Skapa GökOpen 2028' }).click();
 	await page.waitForURL(`/admin/${NEW}?ny=1`);
@@ -171,9 +173,31 @@ test('3. close 2028, remove personal data: links archived, results unchanged, no
 	await shot(page, 'closed-overview');
 	const before = await resultsText(browser);
 
+	// Only owners may remove personal data: an organiser sees who to ask, and gets 403 on the page and the action.
+	const actx = await browser.newContext({ baseURL: new URL(page.url()).origin });
+	const anna = await actx.newPage();
+	await anna.goto('/login');
+	await anna.getByRole('button', { name: /Logga in som Anna/ }).click();
+	await anna.waitForURL(/\/admin/);
+	await sql`insert into competition_member (competition_id, user_id, role) select ${cid}, id, 'organiser' from app_user where member_no = '3000002' on conflict do nothing`;
+	await anna.goto(`/admin/${NEW}`);
+	const annaCard = anna.getByTestId('personal-data-reminder');
+	await expect(annaCard.getByTestId('ask-owner')).toHaveText(/Be ägaren \(Erik Rydberg\) ta bort personuppgifterna/);
+	await expect(annaCard.getByRole('link', { name: 'Ta bort personuppgifter' })).toHaveCount(0);
+	await shot(anna, 'organiser-reminder');
+	await anna.setViewportSize(PHONE);
+	await shot(anna, 'organiser-reminder-phone');
+	expect((await anna.goto(`/admin/${NEW}/anonymise`))?.status()).toBe(403);
+	const denied = await anna.request.post(`/admin/${NEW}/anonymise`, { form: { confirm: 'GökOpen 2028' }, headers: { origin: new URL(page.url()).origin } });
+	expect(denied.status()).toBe(403);
+	const [{ n: stillThere }] = await sql`select count(*)::int n from member m join patrol p on p.id = m.patrol_id where p.competition_id = ${cid}`;
+	expect(stillThere).toBeGreaterThan(0);
+	await actx.close();
+
 	await reminder.getByRole('link', { name: 'Ta bort personuppgifter' }).click();
 	await page.waitForURL(`/admin/${NEW}/anonymise`);
 	await expect(page.getByText('Det går inte att ångra.')).toBeVisible();
+	await expect(page.getByTestId('backup-note')).toContainText('rör inte serverns schemalagda säkerhetskopior');
 	const go = page.getByRole('button', { name: 'Ta bort personuppgifter permanent' });
 	await expect(go).toBeDisabled();
 	await page.getByLabel(/Skriv tävlingens namn/).fill('GökOpen 2028');
@@ -212,6 +236,19 @@ test('3. close 2028, remove personal data: links archived, results unchanged, no
 	expect(left[0]).toEqual({ members: 0, contacts: 0, devices: 0, messages: 0, notes: 0, station_contacts: 0 });
 });
 
+test('3b. archived edition: the next-year form shows validation errors instead of the read-only 409', async ({ page }) => {
+	await login(page);
+	await page.goto(`/admin/${NEW}/next-edition`);
+	await page.locator('#name').fill('');
+	const [res] = await Promise.all([
+		page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/next-edition')),
+		page.getByRole('button', { name: /Skapa/ }).last().click()
+	]);
+	expect(res.status()).not.toBe(409);
+	await expect(page.locator('#name')).toHaveAttribute('aria-invalid', 'true');
+	await expect(page.getByText('Tävlingen är arkiverad och kan inte ändras')).toHaveCount(0);
+});
+
 test('4. hide a year from the public archive', async ({ page }) => {
 	await login(page);
 	await page.goto('/admin/series/gokopen');
@@ -225,4 +262,65 @@ test('4. hide a year from the public archive', async ({ page }) => {
 	await expect(page.getByTestId('hidden-2026')).toHaveCount(0);
 	await page.goto('/t/gokopen');
 	await expect(page.getByTestId('archive-2026')).toBeVisible();
+});
+
+test('5. "Ny tävling": standalone, new series or a new year in an existing series', async ({ page, browser }) => {
+	// The newest GökOpen year depends on whether tests 2–4 ran (2028) or not (2027).
+	const [latest] = await sql`select slug, name, edition_year y from competition where series_id = (select id from series where slug = 'gokopen') order by edition_year desc limit 1`;
+	const nextName = `GökOpen ${latest.y + 1}`;
+	await login(page);
+	await page.goto('/admin/new');
+	await expect(page.getByRole('radio', { name: /Fristående tävling/ })).toBeChecked();
+
+	// New year in an existing series → summary with inherited branding → the next-year flow.
+	await page.getByRole('radio', { name: /Nytt år i en befintlig serie/ }).check();
+	await page.getByRole('radio', { name: /^GökOpen/ }).check();
+	const sum = page.getByTestId('series-summary');
+	await expect(sum).toContainText(nextName);
+	await expect(sum).toContainText(`från ${latest.name}`);
+	await expect(sum.getByTestId('inherited-branding')).toContainText('Färg #00a8e1, logga och omslagsbild');
+	await expect(page.locator('#grund')).toHaveCount(0);
+	await shot(page, 'wizard-existing-desktop');
+	await expect(sum.getByTestId('series-continue')).toHaveAttribute('href', `/admin/${latest.slug}/next-edition`);
+	await sum.getByTestId('series-continue').click();
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Skapa ${nextName}`);
+
+	const phone = await browser.newContext({ viewport: PHONE, baseURL: new URL(page.url()).origin });
+	const pp = await phone.newPage();
+	await login(pp);
+	await pp.goto('/admin/new');
+	await pp.getByRole('radio', { name: /Nytt år i en befintlig serie/ }).check();
+	await pp.getByRole('radio', { name: /^GökOpen/ }).check();
+	await expect(pp.getByTestId('series-summary')).toContainText(nextName);
+	expect(await pp.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+	await shot(pp, 'wizard-existing-phone');
+	await pp.goto('/admin/new');
+	await pp.getByRole('radio', { name: /Ny tävlingsserie/ }).check();
+	await pp.getByLabel('Namn', { exact: true }).fill('E2E Vårcup 2027');
+	await expect(pp.getByLabel('Seriens namn')).toHaveValue('E2E Vårcup');
+	expect(await pp.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+	await shot(pp, 'wizard-new-series-phone');
+	await phone.close();
+
+	// New series: name and slug suggested, year from the date; a clash with an existing series is refused.
+	await page.goto('/admin/new');
+	await page.getByRole('radio', { name: /Ny tävlingsserie/ }).check();
+	await page.getByLabel('Namn', { exact: true }).fill('E2E Vårcup 2027');
+	await expect(page.getByLabel('Seriens namn')).toHaveValue('E2E Vårcup');
+	await expect(page.locator('#series-help')).toContainText('scouttavling.se/t/e2e-varcup');
+	await page.getByLabel('Datum').fill('2027-04-17');
+	await expect(page.getByTestId('wizard-summary')).toContainText('upplaga 2027');
+	await shot(page, 'wizard-new-series-desktop');
+	await page.getByRole('button', { name: 'Ändra adress' }).first().click();
+	await page.getByLabel('Seriens adress').fill('gokopen');
+	await page.getByRole('button', { name: /^Skapa E2E Vårcup/ }).click();
+	await expect(page.getByText('Adressen scouttavling.se/t/gokopen är upptagen')).toBeVisible();
+	await page.getByLabel('Seriens adress').fill('gokopen-2027');
+	await page.getByRole('button', { name: /^Skapa E2E Vårcup/ }).click();
+	await expect(page.getByText('Adressen scouttavling.se/t/gokopen-2027 är upptagen')).toBeVisible();
+	await page.getByLabel('Seriens adress').fill('e2e-varcup');
+	await page.getByRole('button', { name: /^Skapa E2E Vårcup/ }).click();
+	await page.waitForURL('/admin/e2e-varcup-2027');
+	const [row] = await sql`select c.edition_year, s.slug, s.name from competition c join series s on s.id = c.series_id where c.slug = 'e2e-varcup-2027'`;
+	expect(row).toEqual({ edition_year: 2027, slug: 'e2e-varcup', name: 'E2E Vårcup' });
 });

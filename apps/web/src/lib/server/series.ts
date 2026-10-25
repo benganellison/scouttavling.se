@@ -75,6 +75,47 @@ export async function requireSeries(event: RequestEvent, slug: string, roles: Co
 	return { user, series: s };
 }
 
+/**
+ * The source edition for "Skapa <serie> <år+1>": the user must be owner/organiser of it. The source
+ * is only read, so an archived (read-only) edition is a valid source; requireCompetition would
+ * refuse its POST with 409.
+ */
+export async function requireNextEditionSource(event: RequestEvent, slug: string) {
+	const user = requireUser(event);
+	const [comp] = await db.select().from(schema.competition).where(eq(schema.competition.slug, slug)).limit(1);
+	if (!comp) error(404, 'Tävlingen finns inte');
+	if (!(await organisesEdition(user.id, comp.id))) error(403, 'Du har inte behörighet till den här tävlingen');
+	return { user, comp };
+}
+
+/** The user is owner or organiser of this edition. */
+export async function organisesEdition(userId: string, competitionId: string): Promise<boolean> {
+	const [m] = await db
+		.select({ role: schema.competitionMember.role })
+		.from(schema.competitionMember)
+		.where(and(eq(schema.competitionMember.competitionId, competitionId), eq(schema.competitionMember.userId, userId), inArray(schema.competitionMember.role, ['owner', 'organiser'])))
+		.limit(1);
+	return !!m;
+}
+
+/** Series the user organises (owner/organiser of any edition), by name. */
+export async function organisedSeries(userId: string): Promise<SeriesRow[]> {
+	const ids = db
+		.selectDistinct({ id: schema.competition.seriesId })
+		.from(schema.competition)
+		.innerJoin(schema.competitionMember, eq(schema.competitionMember.competitionId, schema.competition.id))
+		.where(and(eq(schema.competitionMember.userId, userId), inArray(schema.competitionMember.role, ['owner', 'organiser'])));
+	return db.select().from(schema.series).where(inArray(schema.series.id, ids)).orderBy(asc(schema.series.name));
+}
+
+/** True when a series or a competition already uses `slug` (both live under /t/<slug>). */
+export async function slugTaken(slug: string): Promise<boolean> {
+	const [a] = await db.select({ id: schema.series.id }).from(schema.series).where(eq(schema.series.slug, slug)).limit(1);
+	if (a) return true;
+	const [b] = await db.select({ id: schema.competition.id }).from(schema.competition).where(eq(schema.competition.slug, slug)).limit(1);
+	return !!b;
+}
+
 /** Patrol counts per competition id. */
 export async function patrolCounts(ids: string[]): Promise<Map<string, number>> {
 	if (!ids.length) return new Map();

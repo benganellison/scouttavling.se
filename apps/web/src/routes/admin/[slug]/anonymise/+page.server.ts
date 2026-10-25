@@ -6,9 +6,15 @@ import { anonymiseCompetition, personalDataLeft } from '#lib/server/anonymise.ts
 
 const count = (rows: { n: number }[]) => rows[0]?.n ?? 0;
 
-/** "Ta bort personuppgifter": confirm page for a closed edition (manual only). */
+/**
+ * "Ta bort personuppgifter": confirm page for a closed edition (manual only).
+ * OWNERS ONLY (product decision): organisers get 403 here and in the action; the overview shows
+ * them who to ask instead. Every path into anonymiseCompetition() must keep this check.
+ */
+const REMOVERS = ['owner'] as const;
+
 export async function load(event) {
-	const { comp } = await requireCompetition(event, event.params.slug, ['owner', 'organiser']);
+	const { comp } = await requireCompetition(event, event.params.slug, [...REMOVERS]);
 	if (comp.anonymisedAt || comp.status !== 'closed') redirect(303, `/admin/${comp.slug}`);
 	const cid = comp.id;
 	const n = sql<number>`count(*)::int`;
@@ -30,7 +36,7 @@ export async function load(event) {
 
 export const actions = {
 	default: async (event) => {
-		const { comp } = await requireCompetition(event, event.params.slug, ['owner', 'organiser']);
+		const { comp } = await requireCompetition(event, event.params.slug, [...REMOVERS]);
 		if (comp.status !== 'closed') return fail(409, { error: 'Avsluta tävlingen först.' });
 		const typed = String((await event.request.formData()).get('confirm') ?? '').trim();
 		if (typed.toLocaleLowerCase('sv-SE') !== comp.name.trim().toLocaleLowerCase('sv-SE')) {

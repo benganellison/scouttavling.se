@@ -30,25 +30,47 @@
 	let publicResults = $state(v?.publicResults ?? false);
 	let registrationOpen = $state(v?.registrationOpen ?? false);
 	let prefixes = $state<Record<string, string>>({});
+	// Part of a series (step 1).
+	let seriesMode = $state<'single' | 'new' | 'existing'>((v?.seriesMode as 'single' | 'new' | 'existing') ?? 'single');
+	let seriesName = $state(v?.seriesName ?? '');
+	let seriesNameTouched = $state(Boolean(v?.seriesName));
+	let seriesSlugTyped = $state(v?.seriesSlug ?? '');
+	let editSeriesSlug = $state(Boolean(v?.seriesSlug));
+	// svelte-ignore state_referenced_locally
+	let seriesId = $state(data.series.length === 1 ? data.series[0].id : '');
 	let submitting = $state(false);
 
 	const errors = $derived<Record<string, string>>(form?.errors ?? {});
-	const slug = $derived(editSlug ? slugify(slugTyped) : slugify(name));
+	/** "GökOpen 2027" → "GökOpen" (same rule as the server's stripYear). */
+	const stripYear = (n: string) => n.replace(/\b(19|20)\d{2}\b/g, '').replace(/\s+/g, ' ').trim();
+	const seriesNameEff = $derived(seriesNameTouched ? seriesName : stripYear(name));
+	const seriesSlug = $derived(editSeriesSlug ? slugify(seriesSlugTyped) : slugify(seriesNameEff));
+	const editionYear = $derived((length === 'one' ? date : startDate).slice(0, 4) || null);
+	const picked = $derived(data.series.find((o) => o.id === seriesId) ?? null);
+	const nameSlug = $derived(editSlug ? slugify(slugTyped) : slugify(name));
+	// Mirrors the server: a generated address equal to the new series' address gets the year.
+	const slug = $derived(!editSlug && seriesMode === 'new' && nameSlug && nameSlug === seriesSlug && editionYear ? `${nameSlug}-${editionYear}` : nameSlug);
 	const days = $derived(length === 'multi' && startDate && endDate && endDate > startDate ? daysBetween(startDate, endDate) : []);
 	const perDay = $derived(days.length ? Math.ceil(stations / days.length) : 0);
-	const sections = [
-		{ id: 'grund', n: 1, t: 'Grundinfo', d: 'Namn, datum, plats' },
-		{ id: 'klasser', n: 2, t: 'Klasser', d: 'Vilka tävlar?' },
-		{ id: 'bana', n: 3, t: 'Banan', d: 'Kontroller & stilpoäng' },
-		{ id: 'anmalan', n: 4, t: 'Anmälan & resultat', d: 'Vem ser vad?' }
+	const ALL_SECTIONS = [
+		{ id: 'serie', t: 'Serie', d: 'Fristående eller del av en serie' },
+		{ id: 'grund', t: 'Grundinfo', d: 'Namn, datum, plats' },
+		{ id: 'klasser', t: 'Klasser', d: 'Vilka tävlar?' },
+		{ id: 'bana', t: 'Banan', d: 'Kontroller & stilpoäng' },
+		{ id: 'anmalan', t: 'Anmälan & resultat', d: 'Vem ser vad?' }
 	];
+	// A new year in an existing series is created by the next-year flow, so only step 1 is shown.
+	const sections = $derived((seriesMode === 'existing' ? ALL_SECTIONS.slice(0, 1) : ALL_SECTIONS).map((x, i) => ({ ...x, n: i + 1 })));
+	const stepNo = (id: string) => ALL_SECTIONS.findIndex((x) => x.id === id) + 1;
 	const doneSection = $derived<Record<string, boolean>>({
+		serie: seriesMode === 'single' || (seriesMode === 'new' ? seriesNameEff.length >= 2 && Boolean(seriesSlug) : Boolean(picked)),
 		grund: name.trim().length >= 2 && (length === 'one' ? Boolean(date) : days.length > 0),
 		klasser: tracks.length + customTracks.filter((t) => t.trim()).length > 0,
 		bana: true,
 		anmalan: true
 	});
 	const sectionOf: Record<string, string> = {
+		seriesName: 'serie', seriesSlug: 'serie', seriesId: 'serie',
 		name: 'grund', slug: 'grund', date: 'grund', startDate: 'grund', endDate: 'grund', owner: 'grund', hqPhone: 'grund',
 		tracks: 'klasser', stations: 'bana'
 	};
@@ -64,6 +86,22 @@
 		return `${p}S, ${p}1 … ${p}M`;
 	}
 </script>
+
+{#snippet brandingSummary(b: (typeof data.series)[number]['branding'], seriesName: string)}
+	<div class="inherit" data-testid="inherited-branding">
+		<span class="label">Ärvs från serien {seriesName}</span>
+		<div class="inherit-row">
+			{#if b.eventLogo}<img class="logo" src={b.eventLogo.url} alt={b.eventLogo.alt} />{/if}
+			<span class="swatch" style:background={b.accent ?? 'var(--brand)'} aria-hidden="true"></span>
+			<span>{b.accent ? `Färg ${b.accent}` : 'Scoutblå (standard)'}, {b.eventLogo ? 'logga' : 'ingen logga'} och {b.cover ? 'omslagsbild' : 'ingen omslagsbild'}</span>
+		</div>
+		{#if b.classColors.length}
+			<ul class="classes" aria-label="Klassfärger">
+				{#each b.classColors as c (c.name)}<li><span class="dot-c" style:background={c.color} aria-hidden="true"></span>{c.name}</li>{/each}
+			</ul>
+		{/if}
+	</div>
+{/snippet}
 
 <svelte:head><title>Ny tävling · Scouttävling</title></svelte:head>
 
@@ -106,8 +144,97 @@
 		>
 			{#if errors.form}<p class="form-error card" role="alert">{errors.form}</p>{/if}
 
-			<section id="grund" class="card sec" aria-labelledby="h-grund">
+			<section id="serie" class="card sec" aria-labelledby="h-serie">
 				<span class="num">Steg 1</span>
+				<h2 id="h-serie">Är tävlingen en del av en serie?</h2>
+				<p class="muted lead">En serie är samma tävling år efter år, t.ex. GökOpen 2026, 2027 … Alla år delar logga, färger och ett publikt arkiv.</p>
+				<fieldset class="fs">
+					<legend class="sr-only">Serie</legend>
+					<div class="choice3">
+						<label class="choice" class:on={seriesMode === 'single'}>
+							<input type="radio" name="seriesMode" value="single" bind:group={seriesMode} />
+							<span class="ct">Fristående tävling</span>
+							<span class="cd">En enstaka tävling. Kan bli en serie senare.</span>
+						</label>
+						<label class="choice" class:on={seriesMode === 'new'}>
+							<input type="radio" name="seriesMode" value="new" bind:group={seriesMode} />
+							<span class="ct">Ny tävlingsserie</span>
+							<span class="cd">Första året i en serie som återkommer.</span>
+						</label>
+						<label class="choice" class:on={seriesMode === 'existing'} class:off={!data.series.length}>
+							<input type="radio" name="seriesMode" value="existing" bind:group={seriesMode} disabled={!data.series.length} />
+							<span class="ct">Nytt år i en befintlig serie</span>
+							<span class="cd">{data.series.length ? 'Bygger på seriens senaste år.' : 'Du arrangerar ingen serie än.'}</span>
+						</label>
+					</div>
+				</fieldset>
+
+				{#if seriesMode === 'new'}
+					<div class="field">
+						<label for="seriesName">Seriens namn</label>
+						<input
+							id="seriesName"
+							name="seriesName"
+							value={seriesNameEff}
+							oninput={(e) => { seriesName = e.currentTarget.value; seriesNameTouched = true; }}
+							autocomplete="off"
+							placeholder="t.ex. GökOpen"
+							aria-invalid={errors.seriesName ? 'true' : undefined}
+							aria-describedby="series-help"
+						/>
+						{#if errors.seriesName}<span class="error-text">{errors.seriesName}</span>{/if}
+						<span id="series-help" class="help">
+							Seriens sida blir <strong class="url">scouttavling.se/t/{seriesSlug || '…'}</strong>
+							{#if !editSeriesSlug}<button type="button" class="linkish" onclick={() => { editSeriesSlug = true; seriesSlugTyped = seriesSlug; }}>Ändra adress</button>{/if}
+							· Året ({editionYear ?? 'från datumet'}) läggs till per upplaga.
+						</span>
+					</div>
+					{#if editSeriesSlug}
+						<div class="field">
+							<label for="seriesSlug">Seriens adress</label>
+							<div class="prefixed"><span aria-hidden="true">scouttavling.se/t/</span><input id="seriesSlug" name="seriesSlug" bind:value={seriesSlugTyped} aria-invalid={errors.seriesSlug ? 'true' : undefined} /></div>
+						</div>
+					{/if}
+					{#if errors.seriesSlug}<span class="error-text">{errors.seriesSlug}</span>{/if}
+				{:else if seriesMode === 'existing'}
+					<fieldset class="fs">
+						<legend class="label">Vilken serie?</legend>
+						<div class="series-list">
+							{#each data.series as o (o.id)}
+								<label class="choice srs" class:on={seriesId === o.id}>
+									<input type="radio" name="seriesId" value={o.id} bind:group={seriesId} />
+									<span class="ct">{o.name}</span>
+									<span class="cd">{o.latest ? `Senast: ${o.latest.name}` : 'Inga år än'}</span>
+								</label>
+							{/each}
+						</div>
+					</fieldset>
+					{#if errors.seriesId}<span class="error-text">{errors.seriesId}</span>{/if}
+					{#if picked}
+						<div class="summary" data-testid="series-summary" aria-live="polite">
+							<span class="ik">Sammanfattning</span>
+							{#if picked.nextExists}
+								<p class="iv">{picked.nextName} finns redan.</p>
+								<div><a class="btn" href="/admin/{picked.nextExists}">Öppna {picked.nextName}</a></div>
+							{:else if picked.latest}
+								<p class="iv">{picked.nextName}</p>
+								<p class="muted small">Kopierar dagar, klasser, kontroller, poängregler och inställningar från {picked.latest.name}. Datumen flyttas ett år fram; du kontrollerar dem i nästa steg. Patruller, poäng och funktionärer följer inte med.</p>
+								{@render brandingSummary(picked.branding, picked.name)}
+								{#if picked.canCopy}
+									<div><a class="btn btn-accent big" href="/admin/{picked.latest.slug}/next-edition" data-testid="series-continue">Fortsätt: Skapa {picked.nextName}</a></div>
+								{:else}
+									<p class="note">Du är inte arrangör för {picked.latest.name}. Be dess ägare skapa {picked.nextName} eller lägga till dig.</p>
+								{/if}
+							{/if}
+						</div>
+					{/if}
+					<noscript><button class="btn btn-accent" type="submit">Fortsätt</button></noscript>
+				{/if}
+			</section>
+
+			{#if seriesMode !== 'existing'}
+			<section id="grund" class="card sec" aria-labelledby="h-grund">
+				<span class="num">Steg {stepNo('grund')}</span>
 				<h2 id="h-grund">Berätta om tävlingen</h2>
 
 				<div class="field">
@@ -214,7 +341,7 @@
 			</section>
 
 			<section id="klasser" class="card sec" aria-labelledby="h-klasser">
-				<span class="num">Steg 2</span>
+				<span class="num">Steg {stepNo('klasser')}</span>
 				<h2 id="h-klasser">Vilka klasser tävlar?</h2>
 				<p class="muted lead">Varje patrull tävlar i en klass och får en egen resultatlista.</p>
 				<fieldset class="fs">
@@ -243,7 +370,7 @@
 			</section>
 
 			<section id="bana" class="card sec" aria-labelledby="h-bana">
-				<span class="num">Steg 3</span>
+				<span class="num">Steg {stepNo('bana')}</span>
 				<h2 id="h-bana">Hur ser banan ut?</h2>
 				<div class="counter-row">
 					<label for="stations" class="label lg">Antal kontroller</label>
@@ -282,12 +409,25 @@
 			</section>
 
 			<section id="anmalan" class="card sec" aria-labelledby="h-anmalan">
-				<span class="num">Steg 4</span>
+				<span class="num">Steg {stepNo('anmalan')}</span>
 				<h2 id="h-anmalan">Anmälan och resultat</h2>
 				<div class="toggles">
 					<Toggle name="registrationOpen" bind:checked={registrationOpen} label="Öppna självanmälan" description="Patrulledare anmäler via tävlingssidan. Du kan också importera en fil." />
 					<Toggle name="publicResults" bind:checked={publicResults} label="Publika resultat" description="Resultatlistan syns för alla under dagen. Av = spara spänningen till prisutdelningen." />
 				</div>
+			</section>
+
+			<section class="card sec summary-card" aria-labelledby="h-sum" data-testid="wizard-summary">
+				<h2 id="h-sum">Sammanfattning</h2>
+				<dl class="sum">
+					<dt>Tävling</dt><dd>{name.trim() || '–'} · <span class="url">scouttavling.se/{slug || '…'}</span></dd>
+					<dt>Serie</dt>
+					<dd>
+						{#if seriesMode === 'new'}Ny serie <strong>{seriesNameEff || '…'}</strong> · <span class="url">scouttavling.se/t/{seriesSlug || '…'}</span>{#if editionYear} · upplaga {editionYear}{/if}{:else}Fristående{/if}
+					</dd>
+					<dt>Utseende</dt>
+					<dd>Scouternas grundutseende. {seriesMode === 'new' ? 'Logga, färg och omslagsbild för serien lägger du till under Serien; alla år ärver dem.' : 'Logga, färg och omslagsbild lägger du till under Inställningar.'}</dd>
+				</dl>
 			</section>
 
 			<div class="submit-row">
@@ -296,6 +436,7 @@
 					{submitting ? 'Skapar …' : `Skapa ${name.trim() || 'tävlingen'}`}
 				</button>
 			</div>
+			{/if}
 		</form>
 	</div>
 </div>
@@ -531,6 +672,11 @@
 		border-color: var(--brand);
 		color: #fff;
 	}
+	/* Text sits above the full-size invisible input; let taps fall through to it. */
+	.choice > span,
+	.chip > span {
+		pointer-events: none;
+	}
 	.ct {
 		font-weight: 800;
 		font-size: 16px;
@@ -538,6 +684,100 @@
 	.cd {
 		font-size: 13px;
 		opacity: 0.85;
+	}
+	.choice3 {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+		gap: 12px;
+	}
+	.choice.off {
+		opacity: 0.55;
+		cursor: not-allowed;
+	}
+	.series-list {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+		gap: 10px;
+	}
+	.summary {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		border: 1.5px solid var(--brand);
+		border-radius: var(--r-md);
+		padding: 16px;
+	}
+	.summary p {
+		margin: 0;
+	}
+	.summary .btn {
+		text-align: center;
+	}
+	.note {
+		background: var(--tint);
+		border-radius: var(--r-md);
+		padding: 12px 14px;
+		font-weight: 600;
+	}
+	.inherit {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		background: var(--ground);
+		border-radius: var(--r-md);
+		padding: 12px 14px;
+	}
+	.inherit-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+	.logo {
+		height: 40px;
+		width: auto;
+		max-width: 120px;
+		object-fit: contain;
+	}
+	.swatch {
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		border: 1px solid var(--line);
+		flex: none;
+	}
+	.classes {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px 14px;
+		font-size: 14px;
+	}
+	.classes li {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+	}
+	.dot-c {
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+	}
+	.sum {
+		display: grid;
+		grid-template-columns: max-content 1fr;
+		gap: 8px 16px;
+		margin: 0;
+	}
+	.sum dt {
+		font-weight: 800;
+	}
+	.sum dd {
+		margin: 0;
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 	.chips {
 		display: flex;
@@ -715,6 +955,13 @@
 		.steps a {
 			padding: 6px 8px;
 			gap: 8px;
+		}
+		.sum {
+			grid-template-columns: 1fr;
+			gap: 2px;
+		}
+		.sum dd {
+			margin-bottom: 8px;
 		}
 	}
 </style>

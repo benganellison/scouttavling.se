@@ -104,7 +104,10 @@ export async function requireCompetition(event: RequestEvent, slug: string, role
 	const mine = memberships.map((m) => m.role);
 	if (!mine.some((r) => roles.includes(r))) error(403, 'Du har inte behörighet till den här tävlingen');
 	// An archived (anonymised) edition is read-only: no write of any kind goes through.
-	if (comp.anonymisedAt && event.request.method !== 'GET' && event.request.method !== 'HEAD') {
+	// Exception: the next-edition form only *reads* this edition to create a new one, and its
+	// POST re-runs the [slug] layout load (e.g. after a validation error).
+	const createsNextEdition = event.route.id === '/admin/[slug]/next-edition';
+	if (comp.anonymisedAt && !createsNextEdition && event.request.method !== 'GET' && event.request.method !== 'HEAD') {
 		error(409, 'Tävlingen är arkiverad och kan inte ändras');
 	}
 	return { user, comp, roles: mine };

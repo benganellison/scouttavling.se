@@ -1,8 +1,8 @@
 /**
  * UAT: real user journeys on the PRODUCTION build, recorded as videos.
  *
- *   cd apps/web && npm run db:reset && npx vite build
- *   PORT=5210 ORIGIN=http://localhost:5210 DEV_LOGIN=1 node --env-file=.env build/index.js > .uat-server.log 2>&1 & echo $! > .uat-server.pid
+ *   cd apps/web && npm run db:reset && ORIGIN=http://localhost:5210 npx vite build
+ *   PORT=5210 ORIGIN=http://localhost:5210 DEV_LOGIN=1 BODY_SIZE_LIMIT=3M GRANT_SIGNING_KEY="$(cat .dev-grant-key.pem)" node --env-file=.env build/index.js > .uat-server.log 2>&1 & echo $! > .uat-server.pid
  *   npx playwright test -c e2e/uat.config.ts
  *   kill $(cat .uat-server.pid)
  *
@@ -113,7 +113,7 @@ test.describe('1 organiser prepares', () => {
 		// Wizard
 		await page.getByRole('link', { name: 'Ny tävling' }).click();
 		await page.getByLabel('Namn', { exact: true }).pressSequentially('UAT Vårhajk', { delay: 50 });
-		await expect(page.getByText('scouttavling.se/uat-varhajk')).toBeVisible();
+		await expect(page.locator('#name-help')).toContainText('scouttavling.se/uat-varhajk');
 		await page.getByRole('radio', { name: /Flera dagar/ }).check();
 		await page.getByLabel('Första dagen').fill('2027-05-15');
 		await page.getByLabel('Sista dagen').fill('2027-05-16');

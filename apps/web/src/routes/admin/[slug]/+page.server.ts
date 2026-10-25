@@ -8,7 +8,7 @@ import { personalDataLeft } from '#lib/server/anonymise.ts';
 import { editionYearOf, stripYear } from '#lib/server/series.ts';
 
 export async function load(event) {
-	const { comp, user } = await requireCompetition(event, event.params.slug);
+	const { comp, user, roles } = await requireCompetition(event, event.params.slug);
 	const cid = comp.id;
 	const [patrols, [{ members }], stations, items, invited, days, tracks] = await Promise.all([
 		db.select({ id: schema.patrol.id, start: schema.patrol.startStationId, status: schema.patrol.status }).from(schema.patrol).where(eq(schema.patrol.competitionId, cid)),
@@ -41,7 +41,8 @@ export async function load(event) {
 	const checkpoints = new Set(items.filter((i) => i.mode === 'CHECKIN').map((i) => i.stationId)).size;
 
 	// After the competition: the personal-data reminder and "Skapa <serie> <år+1>".
-	let after: { personalLeft: number; nextName: string; nextExists: string | null } | null = null;
+	// Only owners may remove personal data; organisers see who to ask instead.
+	let after: { personalLeft: number; nextName: string; nextExists: string | null; isOwner: boolean; ownerNames: string[] } | null = null;
 	if (comp.status === 'closed') {
 		const year = editionYearOf(comp) + 1;
 		const series = comp.seriesId ? (await db.select().from(schema.series).where(eq(schema.series.id, comp.seriesId)).limit(1))[0] : null;
@@ -52,7 +53,21 @@ export async function load(event) {
 					.where(and(eq(schema.competition.seriesId, comp.seriesId), eq(schema.competition.editionYear, year)))
 					.limit(1)
 			: [];
-		after = { personalLeft: comp.anonymisedAt ? 0 : await personalDataLeft(cid), nextName: `${series?.name ?? stripYear(comp.name)} ${year}`, nextExists: next?.slug ?? null };
+		const isOwner = roles.includes('owner');
+		const ownerNames = isOwner
+			? []
+			: (
+					await db
+						.select({ name: schema.appUser.name })
+						.from(schema.competitionMember)
+						.innerJoin(schema.appUser, eq(schema.appUser.id, schema.competitionMember.userId))
+						.where(and(eq(schema.competitionMember.competitionId, cid), eq(schema.competitionMember.role, 'owner')))
+						.orderBy(asc(schema.appUser.name))
+				).map((o) => o.name);
+		after = {
+			personalLeft: comp.anonymisedAt ? 0 : await personalDataLeft(cid), nextName: `${series?.name ?? stripYear(comp.name)} ${year}`, nextExists: next?.slug ?? null,
+			isOwner, ownerNames
+		};
 	}
 
 	return {

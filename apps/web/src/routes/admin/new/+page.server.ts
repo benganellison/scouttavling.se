@@ -5,15 +5,56 @@ import { db, schema } from '#lib/server/db/index.ts';
 import { randomToken, requireUser } from '#lib/server/auth.ts';
 import { recordChange } from '#lib/server/changes.ts';
 import { slugify } from '#lib/ui/admin/format.ts';
+import { loadSeriesBranding } from '#lib/server/assets.ts';
+import { editionYearOf, editionsOf, organisedSeries, organisesEdition, slugTaken } from '#lib/server/series.ts';
 
 const PRESET_TRACKS = ['Spårare', 'Upptäckare', 'Äventyrare', 'Utmanare', 'Rover'];
 const RESERVED = new Set(['new', 'admin', 'api', 'login', 'auth', 'r', 'j', 'f', 'p', 'ny', 'series']);
 const MAX_PER_DAY = 5;
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export function load(event) {
+/** A series the user may add a year to (owner/organiser of any edition), with what the new year inherits. */
+export interface SeriesOption {
+	id: string;
+	slug: string;
+	name: string;
+	/** The newest edition: the copy source for "Skapa <serie> <år+1>". */
+	latest: { slug: string; name: string; year: number } | null;
+	nextName: string | null;
+	/** Slug of an already existing edition for that year. */
+	nextExists: string | null;
+	/** The user may open the newest edition's next-year form (owner/organiser of it). */
+	canCopy: boolean;
+	branding: { accent: string | null; eventLogo: { url: string; alt: string } | null; cover: boolean; classColors: { name: string; color: string }[] };
+}
+
+async function seriesOptions(userId: string): Promise<SeriesOption[]> {
+	return Promise.all(
+		(await organisedSeries(userId)).map(async (s) => {
+			const [editions, b] = await Promise.all([editionsOf(s.id), loadSeriesBranding(s)]);
+			const latest = editions[0] ?? null;
+			const year = latest ? editionYearOf(latest) : null;
+			const next = year ? editions.find((e) => editionYearOf(e) === year + 1) : undefined;
+			return {
+				id: s.id, slug: s.slug, name: s.name,
+				latest: latest && year ? { slug: latest.slug, name: latest.name, year } : null,
+				nextName: year ? `${s.name} ${year + 1}` : null,
+				nextExists: next?.slug ?? null,
+				canCopy: latest ? await organisesEdition(userId, latest.id) : false,
+				branding: {
+					accent: b.customAccent ? b.accent : null,
+					eventLogo: b.eventLogo ? { url: b.eventLogo.url, alt: b.eventLogo.alt } : null,
+					cover: !!b.cover,
+					classColors: Object.entries(s.classColors).map(([name, color]) => ({ name, color }))
+				}
+			};
+		})
+	);
+}
+
+export async function load(event) {
 	const user = requireUser(event);
-	return { groups: user.groups, presets: PRESET_TRACKS };
+	return { groups: user.groups, presets: PRESET_TRACKS, series: await seriesOptions(user.id) };
 }
 
 type Errors = Record<string, string>;
@@ -41,16 +82,41 @@ export const actions = {
 		const customTracks = f.getAll('customTrack').map((t) => String(t).trim()).filter(Boolean);
 		const tracks = [...new Set([...presetTracks, ...customTracks])];
 
+		// Part of a series? 'single' (one-off), 'new' (create a series with this as its first year) or
+		// 'existing' (handled by the next-year flow, so the copy logic lives in one place).
+		const seriesMode = (['single', 'new', 'existing'] as const).find((m) => m === str('seriesMode')) ?? 'single';
+		const seriesName = seriesMode === 'new' ? str('seriesName') : '';
+		const seriesSlugInput = seriesMode === 'new' ? slugify(str('seriesSlug')) : '';
+		const seriesSlug = seriesSlugInput || slugify(seriesName);
+
 		const values = {
+			seriesMode, seriesName, seriesSlug: str('seriesSlug'),
 			name, slug: str('slug'), length: multiDay ? 'multi' : 'one', date: multiDay ? '' : startDate, startDate, endDate, location, hqPhone,
 			owner: ownerNo, styleEnabled, publicResults, registrationOpen, stations: stationCount, tracks: presetTracks, customTracks
 		};
+
+		if (seriesMode === 'existing') {
+			const pick = (await seriesOptions(user.id)).find((o) => o.id === str('seriesId'));
+			if (!pick) return fail(400, { errors: { seriesId: 'Välj en serie.' } as Errors, values });
+			if (pick.nextExists) redirect(303, `/admin/${pick.nextExists}`);
+			if (!pick.latest || !pick.canCopy) return fail(403, { errors: { seriesId: `Du är inte arrangör för ${pick.latest?.name ?? 'seriens senaste år'}.` } as Errors, values });
+			redirect(303, `/admin/${pick.latest.slug}/next-edition`);
+		}
 
 		if (name.length < 2) errors.name = 'Skriv ett namn på minst två tecken.';
 		else if (name.length > 80) errors.name = 'Namnet får vara högst 80 tecken.';
 		const slug = slugInput || slugify(name);
 		if (name && !slug) errors.slug = 'Adressen måste innehålla bokstäver eller siffror.';
 		else if (RESERVED.has(slug)) errors.slug = 'Den adressen är reserverad. Välj en annan.';
+
+		if (seriesMode === 'new') {
+			if (seriesName.length < 2) errors.seriesName = 'Skriv seriens namn, minst två tecken.';
+			else if (seriesName.length > 80) errors.seriesName = 'Seriens namn får vara högst 80 tecken.';
+			else if (!seriesSlug) errors.seriesSlug = 'Adressen måste innehålla bokstäver eller siffror.';
+			else if (RESERVED.has(seriesSlug)) errors.seriesSlug = 'Den adressen är reserverad. Välj en annan.';
+			else if (await slugTaken(seriesSlug)) errors.seriesSlug = `Adressen scouttavling.se/t/${seriesSlug} är upptagen av en annan serie eller tävling.`;
+			else if (slugInput && slugInput === seriesSlug) errors.slug = 'Tävlingen och serien kan inte ha samma adress.';
+		}
 
 		if (!ISO.test(startDate)) errors[multiDay ? 'startDate' : 'date'] = 'Välj ett datum.';
 		if (multiDay) {
@@ -91,25 +157,33 @@ export const actions = {
 		}
 
 		// Unique slug: a typed one must be free; a generated one gets -2, -3 …
-		let finalSlug = slug;
+		// A generated slug equal to the new series' slug becomes "<serie>-<år>" (GökOpen → gokopen-2027).
+		const editionYear = Number(startDate.slice(0, 4));
+		const base = !slugInput && seriesMode === 'new' && slug === seriesSlug ? `${seriesSlug}-${editionYear}` : slug;
+		let finalSlug = base;
 		for (let i = 2; ; i++) {
-			const [taken] = await db.select({ id: schema.competition.id }).from(schema.competition).where(eq(schema.competition.slug, finalSlug)).limit(1);
 			// Series pages share /t/<slug>, so a series slug is taken too.
-			const [seriesTaken] = taken ? [] : await db.select({ id: schema.series.id }).from(schema.series).where(eq(schema.series.slug, finalSlug)).limit(1);
-			if (!taken && !seriesTaken) break;
+			if (!(await slugTaken(finalSlug)) && !(seriesMode === 'new' && finalSlug === seriesSlug)) break;
 			if (slugInput) return fail(400, { errors: { slug: `Adressen scouttavling.se/${slugInput} är upptagen.` }, values });
-			finalSlug = `${slug}-${i}`;
+			finalSlug = `${base}-${i}`;
 			if (i > 99) return fail(400, { errors: { slug: 'Välj en annan adress.' }, values });
 		}
 
 		const created = await db.transaction(async (tx) => {
+			const [series] =
+				seriesMode === 'new'
+					? await tx
+							.insert(schema.series)
+							.values({ slug: seriesSlug, name: seriesName, ownerGroupNo: group!.groupNo, ownerGroupName: group!.name, createdBy: user.id })
+							.returning({ id: schema.series.id })
+					: [];
 			const [comp] = await tx
 				.insert(schema.competition)
 				.values({
 					slug: finalSlug, name, ownerGroupNo: group!.groupNo, ownerGroupName: group!.name, multiDay, startDate, endDate,
 					location: location || null, hqPhone: hqPhone || null, styleEnabled, publicResults, registrationOpen,
 					status: 'draft', patrolCodeKey: randomToken(24), createdBy: user.id,
-					editionYear: Number(startDate.slice(0, 4))
+					editionYear, seriesId: series?.id ?? null
 				})
 				.returning();
 			await tx.insert(schema.competitionMember).values({ competitionId: comp.id, userId: user.id, role: 'owner' });
