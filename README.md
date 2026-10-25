@@ -12,19 +12,23 @@ Recorded at a calm pace, with captions explaining each step. All data is invente
 
 **Funktionären på kontrollen, även utan täckning.** Join via QR, score, undo, two patrols scored offline, then everything syncs.
 
-https://github.com/user-attachments/assets/61997c49-e4c2-494d-bcdc-3333560b70bc
+https://github.com/user-attachments/assets/89ca7d01-d8db-4cb2-b250-fb58bfb20e8b
 
 **Ledningscentralen live.** The volunteer saves a score and HQ sees it without reloading. HQ then corrects a score with a reason and sends a message that pops up on the phone.
 
-https://github.com/user-attachments/assets/33b2d14f-93bf-4916-a2fa-cebc9c8e9c15
+https://github.com/user-attachments/assets/065de6ca-8c73-4534-b62d-46c78408905e
 
 **Mål med flera delar.** One scan, all parts on one screen: finish registration, nödbrev, händighet and orientering.
 
-https://github.com/user-attachments/assets/a5dddd97-2ca1-439c-bc28-03bba0b970b8
+https://github.com/user-attachments/assets/c4a91470-1195-4bdb-a3f8-d9e129f62630
 
 **Prisutdelning på storbild.** Places are revealed one at a time; tied patrols share a place.
 
-https://github.com/user-attachments/assets/8d49a781-cc92-4a35-95a5-1dd4e7f36ea4
+https://github.com/user-attachments/assets/38ba31ae-73b2-45c8-879d-b6a718eba2c4
+
+**Tävlingens eget utseende.** Each competition gets its own logo, accent colour and cover image, with the organiser's logo and Scouterna as sender: settings, the public page, registration, the patrol pass, the follow page, live results and the printed scorecards.
+
+https://github.com/user-attachments/assets/fd56cf3e-1a51-4cd2-bfe5-c5c10080c795
 
 <!--
 The videos are GitHub user-attachments (not stored in git). To refresh them after UI changes,
