@@ -12,19 +12,19 @@ Recorded at a calm pace, with captions explaining each step. All data is invente
 
 **Funktionären på kontrollen, även utan täckning.** Join via QR, score, undo, two patrols scored offline, then everything syncs.
 
-https://github.com/user-attachments/assets/11ee2305-7298-44aa-83a7-8e9b77ba16d7
+https://github.com/user-attachments/assets/61997c49-e4c2-494d-bcdc-3333560b70bc
 
 **Ledningscentralen live.** The volunteer saves a score and HQ sees it without reloading. HQ then corrects a score with a reason and sends a message that pops up on the phone.
 
-https://github.com/user-attachments/assets/b69afc28-108f-4732-a509-b2fb63ef79b8
+https://github.com/user-attachments/assets/33b2d14f-93bf-4916-a2fa-cebc9c8e9c15
 
 **Mål med flera delar.** One scan, all parts on one screen: finish registration, nödbrev, händighet and orientering.
 
-https://github.com/user-attachments/assets/28d053a1-cfda-4d18-ac75-9337ac2af1c7
+https://github.com/user-attachments/assets/a5dddd97-2ca1-439c-bc28-03bba0b970b8
 
 **Prisutdelning på storbild.** Places are revealed one at a time; tied patrols share a place.
 
-https://github.com/user-attachments/assets/d5ef39a2-dc63-46d5-ac7a-4fde5c8b7f56
+https://github.com/user-attachments/assets/8d49a781-cc92-4a35-95a5-1dd4e7f36ea4
 
 <!--
 The videos are GitHub user-attachments (not stored in git). To refresh them after UI changes,

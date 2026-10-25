@@ -36,7 +36,10 @@ mkdirSync(join(DIR, 'final'), { recursive: true });
 copyFileSync(FONT, join(WORK, 'font.woff'));
 
 const rawVideo = (name: string) => {
-	const f = readdirSync(join(DIR, name)).find((x) => x.endsWith('.webm'));
+	// Newest recording wins: Playwright adds a new page@<hash>.webm per run without removing old ones.
+	const f = readdirSync(join(DIR, name))
+		.filter((x) => x.endsWith('.webm'))
+		.sort((x, y) => statSync(join(DIR, name, y)).mtimeMs - statSync(join(DIR, name, x)).mtimeMs)[0];
 	if (!f) throw new Error(`no recording for ${name}`);
 	return `/v/${name}/${f}`;
 };

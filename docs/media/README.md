@@ -3,7 +3,7 @@
 | File | What | Where it lives |
 |---|---|---|
 | `poang-pa-kontroll.gif` | Score entry on a phone (~5 s loop, 300 px wide) | Committed here |
-| `01-funktionar-offline.mp4` … `04-prisutdelning.mp4` | Captioned demo clips (27–82 s, ≤ 522 KB each) | **Not in git.** Uploaded as GitHub user-attachments (2026-10-19) and linked from the root README |
+| `01-funktionar-offline.mp4` … `04-prisutdelning.mp4` | Captioned demo clips (27–82 s, ≤ 497 KB each) | **Not in git.** Uploaded as GitHub user-attachments (2026-10-25, Scouterna profile) and linked from the root README |
 
 All data shown is invented (seed data and UAT fixtures).
 
@@ -28,10 +28,14 @@ The README clips come from a dedicated **demo** spec, not the UAT. It runs at hu
 
    To change what is shown or said, edit the `say(…)` captions and steps in `e2e/demo.e2e.ts`. Each caption stays up for ≈ 1.2 s + 55 ms per character.
 
-3. The GIF (still cut from the UAT recording, run from the repo root):
+3. The GIF (still cut from the UAT recording, run from the repo root). The UAT leaves its videos in `apps/web/e2e/uat-results/<test>/page@<hash>.webm`; copy the fresh ones first, or you will cut an old recording:
+```sh
+cd apps/web && for d in e2e/uat-results/*/; do f=$(ls -t "$d"*.webm 2>/dev/null | head -1); [ -n "$f" ] && cp "$f" "e2e/uat/videos/$(basename $d).webm"; done; cd ../..
+```
+Then:
 
 ```sh
-docker run --rm -v $PWD:/r -w /r linuxserver/ffmpeg:9.0.2 -v error -y -ss 14.4 -t 4.0 \
+docker run --rm -v $PWD:/r -w /r linuxserver/ffmpeg:9.0.2 -v error -y -ss 13.6 -t 4.8 \
   -i apps/web/e2e/uat/videos/02-volunteer-offline.webm -filter_complex \
   "fps=12,scale=300:-1:flags=lanczos,tpad=stop_mode=clone:stop_duration=1.2,split[a][b];[a]palettegen=max_colors=96:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" \
   -loop 0 docs/media/poang-pa-kontroll.gif
