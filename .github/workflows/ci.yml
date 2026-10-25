@@ -80,6 +80,9 @@ jobs:
           # CI's database is a throwaway service container: migrate directly, no backup step.
           node --env-file=.env scripts/migrate.ts
           npm run db:seed
+      - name: Database integration tests (personal-data removal)
+        working-directory: .
+        run: npx vitest run apps/web/src/lib/server/anonymise.db.test.ts
       - name: Build (production, ORIGIN baked in)
         run: ORIGIN=http://localhost:5210 npx vite build
       - name: Start production server

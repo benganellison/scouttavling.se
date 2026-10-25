@@ -1,6 +1,7 @@
 import {
-	pgTable, uuid, text, integer, boolean, timestamp, date, jsonb, bigint, primaryKey, unique, index, pgEnum, customType
+	pgTable, uuid, text, integer, boolean, timestamp, date, jsonb, bigint, primaryKey, unique, index, pgEnum, customType, check, type AnyPgColumn
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import type { DistinctValue, ItemMode } from '@scouttavling/domain';
 
 /*
@@ -48,6 +49,27 @@ export const session = pgTable('session', {
 
 // ---------- competition ----------
 
+/**
+ * A competition series (e.g. "GökOpen"): one competition row per yearly edition.
+ * Owns the shared branding; an edition's own values override it (see #lib/brand/branding.ts resolveBranding).
+ * Organisers of a series = the owners/organisers of any of its editions (docs/architecture/05-series-and-archive.md).
+ */
+export const series = pgTable('series', {
+	id: id(),
+	/** Public archive address /t/<slug>. Never equal to a competition slug. */
+	slug: text('slug').notNull().unique(),
+	name: text('name').notNull(),
+	ownerGroupNo: text('owner_group_no'),
+	ownerGroupName: text('owner_group_name'),
+	/** Series branding (same meaning as the competition columns). */
+	accentColor: text('accent_color'),
+	coverFit: text('cover_fit', { enum: ['contain', 'cover'] }),
+	/** Class colour template: class name → #rrggbb. Used when an edition's class has no own colour. */
+	classColors: jsonb('class_colors').$type<Record<string, string>>().notNull().default({}),
+	createdBy: uuid('created_by').references(() => appUser.id, { onDelete: 'set null' }),
+	createdAt: createdAt()
+});
+
 export const competition = pgTable('competition', {
 	id: id(),
 	slug: text('slug').notNull().unique(),
@@ -85,6 +107,14 @@ export const competition = pgTable('competition', {
 	coverFit: text('cover_fit', { enum: ['contain', 'cover'] }),
 	/** HMAC key for patrol QR check digits (not a secret from volunteers). */
 	patrolCodeKey: text('patrol_code_key').notNull(),
+	/** The series this edition belongs to (null = one-off competition). */
+	seriesId: uuid('series_id').references((): AnyPgColumn => series.id, { onDelete: 'set null' }),
+	/** Edition year, e.g. 2027 for "GökOpen 2027". */
+	editionYear: integer('edition_year'),
+	/** Listed under "Tidigare år" on the public series page. */
+	archivePublic: boolean('archive_public').notNull().default(true),
+	/** Set when "Ta bort personuppgifter" ran; the edition is read-only from then on. */
+	anonymisedAt: timestamp('anonymised_at', { withTimezone: true }),
 	createdBy: uuid('created_by').references(() => appUser.id),
 	createdAt: createdAt()
 });
@@ -368,7 +398,7 @@ export const messageRead = pgTable(
 // ---------- uploads ----------
 
 /**
- * Uploaded event images (v0.1: stored in Postgres). One row per (competition, kind); replacing
+ * Uploaded event images, stored in Postgres behind #lib/server/assetStore.ts. One row per (edition or series, kind); replacing
  * inserts a new row (new id = new immutable URL /media/<id>) and deletes the old one.
  * Bytes are validated by magic bytes and stripped of metadata (#lib/server/imageValidate.ts).
  */
@@ -376,7 +406,9 @@ export const asset = pgTable(
 	'asset',
 	{
 		id: id(),
-		competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
+		/** Exactly one of competition_id (edition override) and series_id (series branding) is set. */
+		competitionId: uuid('competition_id').references(() => competition.id, { onDelete: 'cascade' }),
+		seriesId: uuid('series_id').references(() => series.id, { onDelete: 'cascade' }),
 		kind: text('kind', { enum: ['event_logo', 'organiser_logo', 'cover'] }).notNull(),
 		mime: text('mime', { enum: ['image/png', 'image/jpeg', 'image/webp'] }).notNull(),
 		size: integer('size').notNull(),
@@ -388,5 +420,20 @@ export const asset = pgTable(
 		uploadedBy: uuid('uploaded_by').references(() => appUser.id, { onDelete: 'set null' }),
 		createdAt: createdAt()
 	},
-	(t) => [unique('asset_comp_kind').on(t.competitionId, t.kind)]
+	(t) => [
+		unique('asset_comp_kind').on(t.competitionId, t.kind),
+		unique('asset_series_kind').on(t.seriesId, t.kind),
+		check('asset_one_owner', sql`(${t.competitionId} is null) <> (${t.seriesId} is null)`)
+	]
 );
+
+/**
+ * Patrol links (/m, /folj) retired by "Ta bort personuppgifter": only the token hash and the
+ * edition, so an old link can say "Tävlingen är avslutad och arkiverad" without keeping any patrol link.
+ */
+export const retiredLink = pgTable('retired_link', {
+	tokenHash: text('token_hash').primaryKey(),
+	competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
+	kind: text('kind', { enum: ['manage', 'follow'] }).notNull(),
+	createdAt: createdAt()
+});

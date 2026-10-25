@@ -1,4 +1,5 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
+import { archivedLinkTarget } from '#lib/server/anonymise.ts';
 import { asc, eq } from 'drizzle-orm';
 import { patrolCodeUrl, stationCodes } from '@scouttavling/domain';
 import { db, schema } from '#lib/server/db/index.ts';
@@ -13,6 +14,8 @@ async function lookup(token: string, ip: string) {
 	if (missLimiter.blocked(ip)) error(429, 'För många försök. Vänta en stund.');
 	const row = await patrolByManageToken(token);
 	if (!row) {
+		const archived = await archivedLinkTarget(token);
+		if (archived) redirect(303, archived);
 		missLimiter.hit(ip);
 		error(404, 'Länken finns inte eller har slutat gälla');
 	}

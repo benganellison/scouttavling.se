@@ -305,7 +305,7 @@ Bulk entry of reserve protocols or patrol scorecards in the admin UI creates the
 - Paper where digital is missing → applied.
 - Paper different from digital → conflict for side-by-side review with the photo.
 
-Photo upload goes straight to object storage with a presigned PUT, so only a link is stored. Automatic recognition (OCR) is out of scope for v1.
+Photo upload (not built yet) is the case that may justify object storage: photos are large and many. Until then every upload is stored in Postgres through `assetStore.ts`, and a bucket with presigned PUTs is added only if uploads grow a lot (05 §6). Automatic recognition (OCR) is out of scope for v1.
 
 ### Backup mode (Reservläge)
 A `BACKUP_MODE` message tells devices to switch to paper. Nothing changes server side. The point is that every later paper entry flows through the same pipeline, so going back to digital needs no special merge.

@@ -9,11 +9,14 @@
 
 	const c = $derived(data.competition);
 	const s = $derived(data.stats);
+	const a = $derived(data.after);
 	const base = $derived(`/admin/${c.slug}`);
 	const phase = $derived(phaseOf(c));
 	const left = $derived(daysUntil(c.startDate));
 	const leftText = $derived(
-		c.status === 'closed'
+		c.anonymisedAt
+			? 'Tävlingen är arkiverad'
+			: c.status === 'closed'
 			? 'Tävlingen är avslutad'
 			: left > 1
 				? `${left} dagar kvar`
@@ -124,7 +127,11 @@
 
 <div class="kpis">
 	<Kpi label="Patruller" value={s.patrols} note={s.patrols ? `${s.startAssigned} med startkontroll` : 'Inga än'} />
+	{#if c.anonymisedAt}
+		<Kpi label="Scouter" value="–" note="namnen togs bort vid arkivering" />
+	{:else}
 	<Kpi label="Scouter" value={s.members} note={s.patrols ? `snitt ${(s.members / s.patrols).toLocaleString('sv-SE', { maximumFractionDigits: 1 })} per patrull` : ''} />
+	{/if}
 	<Kpi label="Kontroller" value={s.stations} note={s.checkpoints ? `varav ${s.checkpoints} checkpoints` : ''} />
 	{#if c.status === 'closed'}
 		<Kpi label="I mål" value={s.finished} of={s.patrols ? ` / ${s.patrols}` : ''} note="patruller" />
@@ -140,21 +147,58 @@
 </div>
 
 {#if c.status === 'closed'}
+{#if a && !c.anonymisedAt}
+<section class="card remind" aria-labelledby="pd-h" data-testid="personal-data-reminder">
+	<span class="remind-mark" aria-hidden="true">!</span>
+	<div class="remind-txt">
+		<h2 id="pd-h">{a.personalLeft ? `Personuppgifter finns kvar för ${a.personalLeft} ${a.personalLeft === 1 ? 'patrull' : 'patruller'}` : 'Tävlingen är inte arkiverad än'} – ta bort när resultaten är klara</h2>
+		<p class="d">Scouternas namn, kontaktuppgifter, patrullernas länkar, funktionärer och meddelanden behövs inte längre. Poäng, patrullnamn, kårer och resultat sparas.</p>
+	</div>
+	<a class="btn btn-primary" href="{base}/anonymise">Ta bort personuppgifter</a>
+</section>
+{/if}
 <section class="card closed" aria-labelledby="closed-h" data-testid="closed-summary">
 	<div class="cl-head">
-		<h2 id="closed-h">Tävlingen är avslutad</h2>
-		<StatusPill status={c.status} />
+		<h2 id="closed-h">{c.anonymisedAt ? 'Tävlingen är arkiverad' : 'Tävlingen är avslutad'}</h2>
+		{#if c.anonymisedAt}<span class="pill archived">Arkiverad</span>{:else}<StatusPill status={c.status} />{/if}
 	</div>
-	<p class="d">Resultaten är låsta för funktionärer. {s.finished} av {s.patrols} patruller gick i mål.</p>
+	{#if c.anonymisedAt}
+		<p class="d" data-testid="archived-note">
+			Personuppgifterna togs bort {new Date(c.anonymisedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })}. Tävlingen är skrivskyddad; resultaten finns kvar oförändrade. {s.finished} av {s.patrols} patruller gick i mål.
+		</p>
+	{:else}
+		<p class="d">Resultaten är låsta för funktionärer. {s.finished} av {s.patrols} patruller gick i mål.</p>
+	{/if}
 	<div class="closed-links">
 		<a class="btn btn-primary" href="{base}/results">Resultat</a>
 		<a class="btn" href="{base}/results.csv" download>Exportera (CSV)</a>
-		<a class="btn" href="/r/{c.slug}/ceremony">Prisutdelning</a>
+		{#if c.publicResults}<a class="btn" href="/r/{c.slug}">Publika resultat</a>{/if}
+		{#if !c.anonymisedAt}<a class="btn" href="/r/{c.slug}/ceremony">Prisutdelning</a>{/if}
+		{#if data.series}<a class="btn" href="/admin/series/{data.series.slug}">Serien {data.series.name}</a>{/if}
 	</div>
-	<form method="POST" action="?/status" use:enhance class="reopen">
-		<button class="cta" name="to" value="live">Öppna tävlingen igen</button>
-	</form>
+	{#if !c.anonymisedAt}
+		<form method="POST" action="?/status" use:enhance class="reopen">
+			<button class="cta" name="to" value="live">Öppna tävlingen igen</button>
+		</form>
+	{/if}
 </section>
+{#if a}
+<section class="card next" aria-labelledby="next-h" data-testid="next-edition">
+	<div class="next-txt">
+		<h2 id="next-h">Nästa år</h2>
+		{#if a.nextExists}
+			<p class="d">{a.nextName} finns redan.</p>
+		{:else}
+			<p class="d">Börja planera {a.nextName} med samma dagar, klasser, kontroller och poängregler. Patruller, poäng och funktionärer följer inte med.</p>
+		{/if}
+	</div>
+	{#if a.nextExists}
+		<a class="btn" href="/admin/{a.nextExists}">Öppna {a.nextName}</a>
+	{:else}
+		<a class="btn btn-accent" href="{base}/next-edition">Skapa {a.nextName}</a>
+	{/if}
+</section>
+{/if}
 {:else}
 <section class="card checklist" aria-labelledby="cl">
 	<div class="cl-head">
@@ -251,6 +295,54 @@
 	}
 	.reopen {
 		margin: 0;
+	}
+	.remind,
+	.next {
+		border-radius: 20px;
+		padding: 20px 24px;
+		display: flex;
+		gap: 16px;
+		align-items: center;
+		flex-wrap: wrap;
+	}
+	.remind {
+		border: 2px solid var(--orange);
+		background: var(--surface, #fff);
+	}
+	.remind-mark {
+		flex: none;
+		width: 34px;
+		height: 34px;
+		border-radius: 50%;
+		background: var(--orange);
+		color: #000;
+		font-weight: 900;
+		display: grid;
+		place-items: center;
+	}
+	.remind-txt,
+	.next-txt {
+		flex: 1 1 320px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		min-width: 0;
+	}
+	.remind h2,
+	.next h2 {
+		font-size: 18px;
+		margin: 0;
+	}
+	.remind .d,
+	.next .d {
+		margin: 0;
+		font-size: 15px;
+		color: var(--ink-2);
+	}
+	.archived {
+		background: var(--tint);
+		color: var(--ink);
+		border: 1px solid var(--line);
 	}
 	.checklist {
 		border-radius: 20px;

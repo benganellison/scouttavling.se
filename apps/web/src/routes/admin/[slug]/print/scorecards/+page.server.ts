@@ -1,4 +1,4 @@
-import { loadBranding } from '#lib/server/assets.ts';
+import { classColorTemplate, loadBranding } from '#lib/server/assets.ts';
 import { trackColors } from '#lib/brand/colors.ts';
 import { maxPoints, patrolCodeUrl } from '@scouttavling/domain';
 import { requireCompetition } from '#lib/server/auth.ts';
@@ -12,7 +12,7 @@ export async function load(event) {
 	const [{ days, stations }, tracks, all] = await Promise.all([loadStations(comp.id), loadTracks(comp.id), loadPatrols(comp.id)]);
 	const patrols = all.filter((p) => p.status !== 'resigned');
 	const trackName = new Map(tracks.map((t) => [t.id, t.name]));
-	const colors = trackColors(tracks);
+	const colors = trackColors(tracks, await classColorTemplate(comp.id));
 	const origin = publicOrigin(event.url);
 	const byId = new Map(stations.map((s) => [s.id, s]));
 

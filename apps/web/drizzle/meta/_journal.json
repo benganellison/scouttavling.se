@@ -36,6 +36,20 @@
       "when": 1792554354333,
       "tag": "0004_event_branding",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792929022781,
+      "tag": "0005_competition_series",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792929041355,
+      "tag": "0006_series_backfill",
+      "breakpoints": true
     }
   ]
 }

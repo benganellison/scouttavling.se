@@ -45,23 +45,29 @@ function crc32(b: Uint8Array) {
 
 let origAccent: string | null = null;
 let origFit: string | null = null;
+let origSeriesFit: string | null = null;
 
 async function upload(page: Page, kind: string, file: { name: string; mimeType: string; buffer: Buffer }) {
 	const box = page.getByTestId(`img-${kind}`);
 	await box.locator('input[type=file]').setInputFiles(file);
-	await box.getByRole('button', { name: /Ladda upp|Byt bild/ }).click();
+	await box.getByRole('button', { name: /Ladda upp|Byt bild|Egen bild i år/ }).click();
 }
 
 test.beforeAll(async () => {
 	const cid = await compId();
 	[{ accent_color: origAccent, cover_fit: origFit }] = await sql`select accent_color, cover_fit from competition where id = ${cid}`;
 	await sql`update competition set follow_enabled = true, cover_fit = null where id = ${cid}`;
+	// Automatic cover fit is tested, so the series (which the edition inherits from) must not force one either.
+	[{ cover_fit: origSeriesFit }] = await sql`select s.cover_fit from series s join competition c on c.series_id = s.id where c.id = ${cid}`;
+	await sql`update series set cover_fit = null where id = (select series_id from competition where id = ${cid})`;
 	await sql`update patrol set manage_token_hash = ${sha(TOKEN_M)}, follow_token_hash = ${sha(TOKEN_F)} where competition_id = ${cid} and number = 112`;
 });
 
 test.afterAll(async () => {
 	const cid = await compId();
-	// The uploads were the seed images themselves, so only the settings need restoring.
+	// The uploads became this edition's own images (the seed keeps them on the series): drop them and restore the settings.
+	await sql`delete from asset where competition_id = ${cid}`;
+	await sql`update series set cover_fit = ${origSeriesFit} where id = (select series_id from competition where id = ${cid})`;
 	await sql`update competition set accent_color = ${origAccent}, cover_fit = ${origFit} where id = ${cid}`;
 	await sql.end();
 });

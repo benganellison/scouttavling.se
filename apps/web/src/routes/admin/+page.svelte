@@ -32,12 +32,21 @@
 			<a class="btn btn-accent" href="/admin/new">Skapa en tävling</a>
 		</section>
 	{:else}
-		<ul class="grid" aria-label="Tävlingar">
-			{#each data.competitions as c (c.slug)}
+		{#each data.groups as g (g.series?.slug ?? '')}
+		<section class="group" aria-labelledby="g-{g.series?.slug ?? 'single'}" data-testid="group-{g.series?.slug ?? 'single'}">
+			<div class="g-head">
+				<h2 id="g-{g.series?.slug ?? 'single'}">{g.series ? g.series.name : 'Enskilda tävlingar'}</h2>
+				{#if g.series}
+					<span class="muted g-count">{g.competitions.length} år</span>
+					<a class="g-link" href="/admin/series/{g.series.slug}">Hantera serien</a>
+				{/if}
+			</div>
+		<ul class="grid" aria-label={g.series ? `${g.series.name}, alla år` : 'Enskilda tävlingar'}>
+			{#each g.competitions as c (c.slug)}
 				<li>
 					<a class="comp card" href="/admin/{c.slug}">
 						<div class="top">
-							<StatusPill status={c.status} />
+							{#if c.anonymised}<span class="pill arch">Arkiverad</span>{:else}<StatusPill status={c.status} />{/if}
 							<span class="kind">{c.multiDay ? 'Flera dagar' : 'En dag'}</span>
 						</div>
 						<h2>{c.name}</h2>
@@ -50,6 +59,8 @@
 				</li>
 			{/each}
 		</ul>
+		</section>
+		{/each}
 	{/if}
 </div>
 
@@ -80,6 +91,40 @@
 		font-size: clamp(32px, 5vw, 44px);
 		font-weight: 800;
 		letter-spacing: -0.03em;
+	}
+	.group {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.g-head {
+		display: flex;
+		align-items: baseline;
+		gap: 12px;
+		flex-wrap: wrap;
+		padding-bottom: 6px;
+		border-bottom: 2px solid var(--line);
+	}
+	.g-head h2 {
+		font-size: 22px;
+		font-weight: 800;
+		margin: 0;
+	}
+	.g-count {
+		font-size: 14px;
+		font-weight: 700;
+	}
+	.g-link {
+		margin-left: auto;
+		font-weight: 800;
+		min-height: 44px;
+		display: inline-flex;
+		align-items: center;
+	}
+	.arch {
+		background: var(--tint);
+		border: 1px solid var(--line);
+		color: var(--ink);
 	}
 	.grid {
 		list-style: none;

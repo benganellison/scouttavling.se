@@ -16,6 +16,7 @@ import { RateLimiter } from './rateLimit.ts';
 import { registrationWindow, type ManageData, type RegistrationData } from '#lib/registration/rules.ts';
 import { todayIso } from '#lib/ui/admin/format.ts';
 import { trackColors } from '#lib/brand/colors.ts';
+import { classColorTemplate } from './assets.ts';
 
 type CompRow = typeof schema.competition.$inferSelect;
 export type PatrolRow = typeof schema.patrol.$inferSelect;
@@ -112,7 +113,7 @@ export async function tracksWithCounts(competitionId: string) {
 			.groupBy(schema.patrol.trackId)
 	]);
 	const by = new Map(counts.map((c) => [c.trackId, c.n]));
-	const colors = trackColors(tracks);
+	const colors = trackColors(tracks, await classColorTemplate(competitionId));
 	return tracks.map((t) => ({ ...t, color: colors[t.id], patrols: by.get(t.id) ?? 0 }));
 }
 

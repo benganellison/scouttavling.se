@@ -34,7 +34,11 @@
 <div class="wrap" style={accentStyle(data.branding)}>
 	<header class="top">
 		<div class="brand">{#if data.branding.eventLogo}<EventLogo logo={data.branding.eventLogo} height={40} onDark />{:else}<ScouternaSymbol size={28} onDark />{/if} <span>{data.comp.name}</span></div>
-		<p class="state" data-status={live.status}><span class="dot" aria-hidden="true"></span> Preliminärt · live</p>
+		{#if data.comp.final}
+			<p class="state final" data-testid="final">Slutresultat</p>
+		{:else}
+			<p class="state" data-status={live.status}><span class="dot" aria-hidden="true"></span> Preliminärt · live</p>
+		{/if}
 	</header>
 
 	<nav class="tabs" aria-label="Klasser">

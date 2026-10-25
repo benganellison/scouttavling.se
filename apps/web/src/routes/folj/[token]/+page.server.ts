@@ -1,5 +1,6 @@
 import { loadBranding, trackColorFor } from '#lib/server/assets.ts';
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
+import { archivedLinkTarget } from '#lib/server/anonymise.ts';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
 import { NO_STORE, missLimiter, patrolByFollowToken } from '#lib/server/registration.ts';
@@ -16,6 +17,8 @@ export async function load({ params, setHeaders, getClientAddress, depends }) {
 	if (missLimiter.blocked(ip)) error(429, 'För många försök. Vänta en stund.');
 	const row = await patrolByFollowToken(params.token);
 	if (!row) {
+		const archived = await archivedLinkTarget(params.token);
+		if (archived) redirect(303, archived);
 		missLimiter.hit(ip);
 		error(404, 'Länken finns inte eller har slutat gälla');
 	}

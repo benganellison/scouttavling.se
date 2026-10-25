@@ -4,6 +4,8 @@ import { stationCodes } from '@scouttavling/domain';
 import { db, schema } from '#lib/server/db/index.ts';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { recordChange } from '#lib/server/changes.ts';
+import { personalDataLeft } from '#lib/server/anonymise.ts';
+import { editionYearOf, stripYear } from '#lib/server/series.ts';
 
 export async function load(event) {
 	const { comp, user } = await requireCompetition(event, event.params.slug);
@@ -38,7 +40,23 @@ export async function load(event) {
 	const itemStations = new Set(items.map((i) => i.stationId));
 	const checkpoints = new Set(items.filter((i) => i.mode === 'CHECKIN').map((i) => i.stationId)).size;
 
+	// After the competition: the personal-data reminder and "Skapa <serie> <år+1>".
+	let after: { personalLeft: number; nextName: string; nextExists: string | null } | null = null;
+	if (comp.status === 'closed') {
+		const year = editionYearOf(comp) + 1;
+		const series = comp.seriesId ? (await db.select().from(schema.series).where(eq(schema.series.id, comp.seriesId)).limit(1))[0] : null;
+		const [next] = comp.seriesId
+			? await db
+					.select({ slug: schema.competition.slug })
+					.from(schema.competition)
+					.where(and(eq(schema.competition.seriesId, comp.seriesId), eq(schema.competition.editionYear, year)))
+					.limit(1)
+			: [];
+		after = { personalLeft: comp.anonymisedAt ? 0 : await personalDataLeft(cid), nextName: `${series?.name ?? stripYear(comp.name)} ${year}`, nextExists: next?.slug ?? null };
+	}
+
 	return {
+		after,
 		firstName: user.name.split(/\s+/)[0],
 		stats: {
 			patrols: patrols.length,

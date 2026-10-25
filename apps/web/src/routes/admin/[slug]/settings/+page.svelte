@@ -1,15 +1,11 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import Toggle from '#lib/ui/admin/Toggle.svelte';
 	import { shortDate } from '#lib/ui/admin/format.ts';
 	import ColorField from '#lib/ui/brand/ColorField.svelte';
-	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
-	import ScouternaLogo from '#lib/ui/brand/ScouternaLogo.svelte';
+	import BrandingEditor from '#lib/ui/admin/BrandingEditor.svelte';
 	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
-	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
-	import { SCOUTBLA, parseHex, readableText, trackColors } from '#lib/brand/colors.ts';
-	import { effectiveCoverFit, type AssetKind } from '#lib/brand/branding.ts';
+	import { parseHex, trackColors } from '#lib/brand/colors.ts';
 
 	let { data, form } = $props();
 
@@ -32,32 +28,8 @@
 	const eA = $derived(errs('appearance'));
 
 	/** What "Standard" would give each class (its own colour ignored, the others kept). */
-	const trackDefault = (id: string) => trackColors(data.tracks.map((t) => (t.id === id ? { ...t, color: null } : t)))[id];
+	const trackDefault = (id: string) => trackColors(data.tracks.map((t) => (t.id === id ? { ...t, color: null } : t)), data.classTemplate)[id];
 
-	// Live preview state for the accent (the saved value until the organiser picks another).
-	let accent = $state(untrack(() => data.competition.accentColor ?? ''));
-	// Follow the saved value after a save (or another organiser's change).
-	let savedAccent = $state(untrack(() => data.competition.accentColor ?? ''));
-	$effect(() => {
-		const v = c.accentColor ?? '';
-		if (v !== untrack(() => savedAccent)) {
-			savedAccent = v;
-			accent = v;
-		}
-	});
-	const accentHex = $derived(parseHex(accent) ?? SCOUTBLA);
-	const accentCustom = $derived(!!parseHex(accent));
-	const stripe = $derived(accentCustom ? accentHex : 'var(--orange)');
-	const chipText = $derived(readableText(accentHex).text);
-	const b = $derived(data.branding);
-	let fit = $state<string>(untrack(() => data.competition.coverFit ?? ''));
-	const previewFit = $derived(fit === 'contain' || fit === 'cover' ? fit : effectiveCoverFit(null, b.cover));
-	const IMAGES: { kind: AssetKind; title: string; help: string }[] = [
-		{ kind: 'event_logo', title: 'Tävlingens logga', help: 'Visas i sidhuvudet på tävlingssidan, funktionärernas telefoner, utskrifter och i menyn här.' },
-		{ kind: 'organiser_logo', title: 'Arrangörens logga', help: 'Kårens eller distriktets logga. Visas i sidfoten bredvid Scouternas logga.' },
-		{ kind: 'cover', title: 'Omslagsbild', help: 'Stor bild överst på tävlingssidan. Ingen text läggs ovanpå bilden.' }
-	];
-	const current = (k: AssetKind) => (k === 'event_logo' ? b.eventLogo : k === 'organiser_logo' ? b.organiserLogo : b.cover);
 </script>
 
 <svelte:head><title>Inställningar · {c.name}</title></svelte:head>
@@ -163,88 +135,18 @@
 
 <section class="card sec" id="utseende" aria-labelledby="h-look">
 	<h2 id="h-look">Utseende</h2>
-	<p class="muted lead">Grunden följer Scouternas grafiska profil. Tävlingens egen logga, färg och bild syns på tävlingssidan, patrullpasset, följ-sidan, resultaten, funktionärernas telefoner och utskrifterna. Scouternas logga står alltid med som avsändare.</p>
-
-	<form method="POST" action="?/appearance" class="stack" use:enhance={keep} novalidate>
-		<ColorField id="accentColor" name="accentColor" label="Tävlingens färg" bind:value={accent} fallback={SCOUTBLA} fallbackLabel="Scoutblå (standard)" showContrast disabled={!canEdit} />
-		{#if eA.accentColor}<span class="error-text">{eA.accentColor}</span>{/if}
-		<p class="muted small">Färgen används som rand och markering. Sidhuvuden och knappar är alltid Scoutblå, så Scouterna syns tydligt.</p>
-		<fieldset class="fit" disabled={!canEdit}>
-			<legend class="label">Omslagsbild</legend>
-			<label><input type="radio" name="coverFit" value="" bind:group={fit} /> Automatiskt <span class="muted small">(breda banderoller visas hela)</span></label>
-			<label><input type="radio" name="coverFit" value="contain" bind:group={fit} /> Visa hela bilden <span class="muted small">(text i bilden beskärs aldrig)</span></label>
-			<label><input type="radio" name="coverFit" value="cover" bind:group={fit} /> Fyll ytan (beskär)</label>
-		</fieldset>
-		<div class="act">
-			<button class="btn btn-primary" disabled={!canEdit}>Spara utseende</button>
-			{#if ok('appearance') && !(form && 'uploaded' in form)}<span class="pill pill-ok" role="status">Sparat</span>{/if}
-		</div>
-	</form>
-
-	<div class="imgs">
-		{#each IMAGES as im (im.kind)}
-			{@const cur = current(im.kind)}
-			<div class="img" data-testid="img-{im.kind}">
-				<div class="img-prev" class:cover={im.kind === 'cover'}>
-					{#if cur}<img src={cur.url} alt={cur.alt} />{:else}<span class="muted small">Ingen bild</span>{/if}
-				</div>
-				<div class="img-txt">
-					<strong>{im.title}</strong>
-					<span class="muted small">{im.help}</span>
-					<form method="POST" action="?/upload" enctype="multipart/form-data" class="up" use:enhance>
-						<input type="hidden" name="kind" value={im.kind} />
-						<label class="sr-only" for="file-{im.kind}">Välj bild: {im.title}</label>
-						<input id="file-{im.kind}" type="file" name="file" accept="image/png,image/jpeg,image/webp" disabled={!canEdit} />
-						<button class="btn sm" disabled={!canEdit}>{cur ? 'Byt bild' : 'Ladda upp'}</button>
-					</form>
-					{#if cur}
-						<form method="POST" action="?/removeImage" use:enhance>
-							<input type="hidden" name="kind" value={im.kind} />
-							<button class="btn btn-ghost rm sm" disabled={!canEdit}>Ta bort {im.title.toLowerCase()}</button>
-						</form>
-					{/if}
-					{#if eA[im.kind]}<span class="error-text" role="alert">{eA[im.kind]}</span>{/if}
-					{#if form && 'uploaded' in form && form.uploaded === im.kind}<span class="pill pill-ok" role="status">Uppladdad</span>{/if}
-				</div>
-			</div>
-		{/each}
-		<p class="muted small">PNG, JPEG eller WebP, högst 2 MB. SVG går inte (av säkerhetsskäl). Bildinformation som plats och kamera tas bort vid uppladdning.</p>
-	</div>
-
-	<div class="previews" aria-label="Förhandsvisning">
-		<div class="pv-web">
-			<span class="pv-label">Tävlingssidan</span>
-			<div class="pv-frame" data-testid="preview-public">
-				{#if b.cover}<img class="pv-cover {previewFit}" src={b.cover.url} alt="" data-testid="preview-cover" />{/if}
-				<div class="pv-top" style="border-bottom-color:{accentCustom ? accentHex : 'transparent'}">
-					<div class="pv-brand">
-						{#if b.eventLogo}<EventLogo logo={b.eventLogo} height={30} onDark />{:else}<ScouternaSymbol size={22} onDark />{/if}
-						<span>{c.name}</span>
-					</div>
-					{#if chipText && accentCustom}<span class="pv-chip" style="background:{accentHex};color:{chipText}">Anmälan öppen</span>{/if}
-				</div>
-				<div class="pv-foot">
-					{#if b.organiserLogo}<img class="pv-org" src={b.organiserLogo.url} alt="" />{/if}
-					<span class="small">Arrangeras av {c.ownerGroupName ?? '…'} · Scouterna</span>
-				</div>
-			</div>
-		</div>
-		<div class="pv-phone">
-			<span class="pv-label">Funktionärens telefon</span>
-			<div class="pv-ph" data-testid="preview-phone" style="border-top-color:{stripe}">
-				<div class="pv-ph-top">
-					{#if b.eventLogo}<EventLogo logo={b.eventLogo} height={24} />{/if}
-					<span class="small muted">Hej Anna · {c.name}</span>
-				</div>
-				<strong class="pv-ph-h">K3 · Kojbygge</strong>
-				<span class="pv-ph-btn">Skanna patrull</span>
-			</div>
-		</div>
-	</div>
-	<div class="sender-row">
-		<span class="muted small">Avsändare i sidfoten:</span>
-		<ScouternaLogo tagline />
-	</div>
+	<BrandingEditor
+		level="edition"
+		name={c.name}
+		organiserName={c.ownerGroupName}
+		accentColor={c.accentColor}
+		coverFit={c.coverFit}
+		branding={data.branding}
+		{canEdit}
+		errors={eA}
+		saved={ok('appearance')}
+		uploaded={form && 'uploaded' in form ? String(form.uploaded) : null}
+	/>
 </section>
 
 {#if c.multiDay}
@@ -472,183 +374,6 @@
 	.tracks li {
 		padding-bottom: 10px;
 		border-bottom: 1px solid var(--line);
-	}
-	.imgs {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-	.img {
-		display: flex;
-		gap: 14px;
-		align-items: flex-start;
-		flex-wrap: wrap;
-		padding: 12px 0;
-		border-top: 1px solid var(--line);
-	}
-	.img-prev {
-		width: 120px;
-		height: 72px;
-		border: 1px solid var(--line);
-		border-radius: 10px;
-		background: var(--tint);
-		display: grid;
-		place-items: center;
-		overflow: hidden;
-		flex: none;
-	}
-	.img-prev img {
-		max-width: 100%;
-		max-height: 100%;
-		object-fit: contain;
-	}
-	.img-prev.cover img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-	.img-txt {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		flex: 1 1 260px;
-		min-width: 0;
-	}
-	.up {
-		display: flex;
-		gap: 8px;
-		align-items: center;
-		flex-wrap: wrap;
-	}
-	.up input[type='file'] {
-		max-width: 100%;
-		font-size: 14px;
-	}
-	.previews {
-		display: flex;
-		gap: 18px;
-		flex-wrap: wrap;
-		align-items: flex-start;
-	}
-	.pv-label {
-		display: block;
-		font-size: 12px;
-		font-weight: 800;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--ink-2);
-		margin-bottom: 6px;
-	}
-	.pv-web {
-		flex: 1 1 320px;
-		min-width: 0;
-	}
-	.pv-frame {
-		border: 1px solid var(--line);
-		border-radius: 14px;
-		overflow: hidden;
-		background: var(--ground);
-	}
-	.pv-cover {
-		display: block;
-		width: 100%;
-		height: 90px;
-		object-fit: cover;
-		background: var(--brand);
-	}
-	.pv-cover.contain {
-		object-fit: contain;
-	}
-	.fit {
-		border: 0;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-	.fit label {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		min-height: 40px;
-	}
-	.pv-top {
-		background: var(--brand);
-		color: #fff;
-		padding: 12px 14px;
-		border-bottom: 5px solid transparent;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-	.pv-brand {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		font-weight: 800;
-	}
-	.pv-chip {
-		align-self: flex-start;
-		font-size: 12px;
-		font-weight: 800;
-		padding: 3px 10px;
-		border-radius: 999px;
-	}
-	.pv-foot {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 10px 14px;
-		color: var(--ink-2);
-	}
-	.pv-org {
-		height: 24px;
-		width: auto;
-	}
-	.pv-phone {
-		flex: 0 0 200px;
-	}
-	.pv-ph {
-		width: 200px;
-		border: 2px solid var(--ink);
-		border-top: 6px solid var(--orange);
-		border-radius: 18px;
-		background: var(--ground);
-		padding: 10px;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-	.pv-ph-top {
-		display: flex;
-		gap: 6px;
-		align-items: center;
-		min-width: 0;
-	}
-	.pv-ph-top span {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-	.pv-ph-h {
-		font-family: var(--font-display);
-		font-size: 18px;
-	}
-	.pv-ph-btn {
-		background: var(--brand);
-		color: #fff;
-		border-radius: 12px;
-		padding: 12px;
-		text-align: center;
-		font-weight: 800;
-		font-size: 14px;
-	}
-	.sender-row {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		flex-wrap: wrap;
 	}
 	[aria-invalid='true'] {
 		border-color: var(--danger);

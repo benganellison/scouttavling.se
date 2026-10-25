@@ -1,6 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
-import { db, schema } from '#lib/server/db/index.ts';
+import { readAsset } from '#lib/server/assetStore.ts';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -12,11 +11,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  */
 export async function GET({ params, request }) {
 	if (!UUID.test(params.id)) error(404, 'Bilden finns inte');
-	const [a] = await db
-		.select({ mime: schema.asset.mime, data: schema.asset.data, sha256: schema.asset.sha256, size: schema.asset.size })
-		.from(schema.asset)
-		.where(eq(schema.asset.id, params.id))
-		.limit(1);
+	const a = await readAsset(params.id);
 	if (!a) error(404, 'Bilden finns inte');
 	const headers: Record<string, string> = {
 		'content-type': a.mime,

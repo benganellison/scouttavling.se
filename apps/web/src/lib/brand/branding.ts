@@ -1,5 +1,6 @@
 import { SCOUTBLA, parseHex, readableText } from './colors.ts';
 
+
 /** Per-event branding as sent to pages (no bytes, only URLs). */
 export interface BrandImage {
 	url: string;
@@ -26,7 +27,14 @@ export interface Branding {
 	coverFit: 'contain' | 'cover';
 	/** The organiser's explicit choice (null = automatic). */
 	coverFitSetting: 'contain' | 'cover' | null;
+	/** Where each part comes from: the edition's own override, its series, or the Scouterna base. */
+	sources: Record<BrandPart, BrandSource>;
+	/** The series' values alone (what the edition falls back to); null for one-off competitions. */
+	inherited: { seriesName: string; seriesSlug: string; accent: string | null; coverFit: 'contain' | 'cover' | null } | null;
 }
+
+export type BrandSource = 'edition' | 'series' | 'base';
+export type BrandPart = 'accent' | 'coverFit' | 'eventLogo' | 'organiserLogo' | 'cover';
 
 /** Wide banners (often with text baked in) are shown whole by default. */
 export const WIDE_BANNER = 2.5;
@@ -46,10 +54,43 @@ export interface AssetMeta {
 	height: number;
 }
 
+export interface BrandLevel {
+	accentColor: string | null;
+	coverFit?: 'contain' | 'cover' | null;
+	assets: AssetMeta[];
+}
+
+/**
+ * THE branding resolution rule, per part: the edition's own value if set, else the series' value,
+ * else the Scouterna base (Scoutblå, no images, automatic cover fit). Pure; `loadBranding` feeds it.
+ */
+export function resolveBranding(
+	edition: { name: string; ownerGroupName: string | null } & BrandLevel,
+	series: ({ name: string; slug: string } & BrandLevel) | null
+): Branding {
+	const pick = <T>(e: T | null | undefined, s: T | null | undefined): [T | null, BrandSource] =>
+		e != null ? [e, 'edition'] : s != null ? [s, 'series'] : [null, 'base'];
+	const [accentColor, accentSrc] = pick(parseHex(edition.accentColor), parseHex(series?.accentColor ?? null));
+	const [coverFit, fitSrc] = pick(edition.coverFit ?? null, series?.coverFit ?? null);
+	const assets: AssetMeta[] = [];
+	const sources = { accent: accentSrc, coverFit: fitSrc } as Record<BrandPart, BrandSource>;
+	const PART: Record<AssetKind, BrandPart> = { event_logo: 'eventLogo', organiser_logo: 'organiserLogo', cover: 'cover' };
+	for (const kind of ['event_logo', 'organiser_logo', 'cover'] as AssetKind[]) {
+		const [a, src] = pick(edition.assets.find((x) => x.kind === kind), series?.assets.find((x) => x.kind === kind));
+		if (a) assets.push(a);
+		sources[PART[kind]] = src;
+	}
+	return {
+		...buildBranding({ name: edition.name, ownerGroupName: edition.ownerGroupName, accentColor, coverFit }, assets),
+		sources,
+		inherited: series ? { seriesName: series.name, seriesSlug: series.slug, accent: parseHex(series.accentColor), coverFit: series.coverFit ?? null } : null
+	};
+}
+
 export function buildBranding(
 	comp: { name: string; ownerGroupName: string | null; accentColor: string | null; coverFit?: 'contain' | 'cover' | null },
 	assets: AssetMeta[]
-): Branding {
+): Omit<Branding, 'sources' | 'inherited'> {
 	const custom = parseHex(comp.accentColor);
 	const accent = custom ?? SCOUTBLA;
 	const r = readableText(accent);

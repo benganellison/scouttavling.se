@@ -112,16 +112,26 @@ function generated(i: number): string {
 	return `#${[f(0), f(8), f(4)].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
+/** A series' class colour template (class name → hex), looked up case-insensitively. */
+export type ClassColorTemplate = Record<string, string>;
+
+export function templateColor(template: ClassColorTemplate | null | undefined, name: string): string | null {
+	if (!template) return null;
+	const n = name.trim().toLowerCase();
+	for (const [k, v] of Object.entries(template)) if (k.trim().toLowerCase() === n) return parseHex(v);
+	return null;
+}
+
 /**
- * Effective colour per class: an explicit colour wins, then the name default, then a distinct
- * automatic colour, so no two classes in one competition share a *default*. Deterministic in
- * the given order (pass tracks sorted by `sort`).
+ * Effective colour per class: an explicit colour wins, then the series' template colour for that
+ * class name, then the name default, then a distinct automatic colour, so no two classes in one
+ * competition share a *default*. Deterministic in the given order (pass tracks sorted by `sort`).
  */
-export function trackColors(tracks: { id: string; name: string; color?: string | null }[]): Record<string, string> {
+export function trackColors(tracks: { id: string; name: string; color?: string | null }[], template?: ClassColorTemplate | null): Record<string, string> {
 	const out: Record<string, string> = {};
 	const used = new Set<string>();
 	for (const t of tracks) {
-		const c = parseHex(t.color);
+		const c = parseHex(t.color) ?? templateColor(template, t.name);
 		if (c) {
 			out[t.id] = c;
 			used.add(c);

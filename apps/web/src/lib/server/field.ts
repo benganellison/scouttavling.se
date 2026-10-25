@@ -17,7 +17,7 @@ import { db, schema } from '#lib/server/db/index.ts';
 import { sha256 } from '#lib/server/auth.ts';
 import { itemDef, writeScore, voidScore } from '#lib/server/scores.ts';
 import { recordChange } from '#lib/server/changes.ts';
-import { loadBranding } from '#lib/server/assets.ts';
+import { classColorTemplate, loadBranding } from '#lib/server/assets.ts';
 import { trackColors } from '#lib/brand/colors.ts';
 import { GRANT_TYP, uuidv7, type CommandBody, type CommandResult, type GrantClaims, type PatrolStatus } from '#lib/field/protocol.ts';
 import { processBatch, type BatchDeps } from '#lib/field/verify.ts';
@@ -267,7 +267,7 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 	const myItems = isDesk ? [] : allItems.filter((i) => myStationIds.includes(i.stationId));
 	const patrols = await db.select().from(schema.patrol).where(eq(schema.patrol.competitionId, comp.id)).orderBy(schema.patrol.number);
 	const trackName = new Map(tracks.map((t) => [t.id, t.name]));
-	const colors = trackColors(tracks);
+	const colors = trackColors(tracks, await classColorTemplate(comp.id));
 
 	const scores = myItems.length
 		? await db

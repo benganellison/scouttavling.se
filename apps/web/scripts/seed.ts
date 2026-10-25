@@ -15,60 +15,26 @@ import { namedTrackColor } from '../src/lib/brand/colors.ts';
 const client = postgres(process.env.DATABASE_URL!, { max: 1 });
 const db = drizzle(client, { schema: s });
 
-const SLUGS = ['gokopen-2027', 'gokhajk-2027'];
+const SLUGS = ['gokopen-2026', 'gokopen-2027', 'gokhajk-2027'];
+const SERIES = ['gokopen', 'gokhajk'];
 
-async function main() {
-	await db.delete(s.competition).where(inArray(s.competition.slug, SLUGS));
+type StationDef = { name: string; notSparare?: boolean; checkpoint?: boolean; distinct?: boolean; mal?: boolean };
 
-	const [erik] = await db
-		.insert(s.appUser)
-		.values({ memberNo: '3000001', name: 'Erik Rydberg', email: 'erik@example.org', groups: [{ groupNo: '900', name: 'Granlidens scoutkår' }, { groupNo: '90', name: 'Göteborgs scoutdistrikt' }] })
-		.onConflictDoUpdate({ target: s.appUser.memberNo, set: { name: 'Erik Rydberg' } })
-		.returning();
-
-	// ---------- GökOpen 2027: single day ----------
-	const [open] = await db
-		.insert(s.competition)
-		.values({
-			slug: 'gokopen-2027', name: 'GökOpen 2027', ownerGroupNo: '900', ownerGroupName: 'Granlidens scoutkår',
-			startDate: '2027-05-15', endDate: '2027-05-15', location: 'Gökskogens lägerplats', hqPhone: '070-111 22 33',
-			publicResults: true, registrationOpen: true, status: 'live', patrolCodeKey: 'dev-key-gokopen', createdBy: erik.id,
-			registrationOpensOn: '2026-09-01', registrationClosesOn: '2027-05-01', maxPatrols: 40,
-			infoText: 'Välkomna till GökOpen! Banan är cirka 6 km genom Gökskogen. Samling vid lägerplatsens flaggstång kl. 08.30, första start 09.00.\n\nTa med matsäck, vattenflaska, kläder efter väder och en penna.',
-			confirmationText: 'Startavgiften är 150 kr per patrull och betalas till kårens konto senast 1 maj.',
-			followEnabled: true, followShowScores: true,
-			// Event branding: Upptäckarblå accent (black text on it, 7.7:1); the forest cover fills its band.
-			accentColor: '#00a8e1', coverFit: 'cover'
-		})
-		.returning();
-	await db.insert(s.competitionMember).values({ competitionId: open.id, userId: erik.id, role: 'owner' });
-
-	const tracks = await db
-		.insert(s.track)
-		// Class colours stored explicitly (age-group colours; Ledare = Scoutblå). Ledare has no patrols yet.
-		.values(['Spårare', 'Upptäckare', 'Äventyrare', 'Utmanare', 'Ledare'].map((name, i) => ({ competitionId: open.id, name, sort: i + 1, color: namedTrackColor(name) })))
-		.returning();
-	const T = Object.fromEntries(tracks.map((t) => [t.name, t.id]));
-
-	const stationDefs: { name: string; notSparare?: boolean; checkpoint?: boolean; distinct?: boolean; mal?: boolean }[] = [
-		{ name: 'Lägerplatsen' }, { name: 'Naturkunskap' }, { name: 'Knopar & surrningar', distinct: true }, { name: 'Eldstaden' },
-		{ name: 'Kartan & kompassen' }, { name: 'Första hjälpen' }, { name: 'Rastplatsen', checkpoint: true }, { name: 'Repstegen' },
-		{ name: 'Kojbygge' }, { name: 'Kanoten', notSparare: true }, { name: 'Sinnesbanan' }, { name: 'Mörkerstigen', notSparare: true },
-		{ name: 'Spårtecken' }, { name: 'Mål', mal: true }
-	];
+/** The GökOpen course: stations with their items (and class limits). */
+async function gokopenCourse(competitionId: string, T: Record<string, string>, defs: StationDef[]) {
 	const items: (typeof s.scoreItem.$inferSelect)[] = [];
 	const stations: (typeof s.station.$inferSelect)[] = [];
-	for (const [i, d] of stationDefs.entries()) {
+	for (const [i, d] of defs.entries()) {
 		const [st] = await db
 			.insert(s.station)
-			.values({ competitionId: open.id, sort: i + 1, name: d.name, role: d.mal ? 'finish' : null, allTracks: !d.notSparare, startable: !d.checkpoint && !d.mal })
+			.values({ competitionId, sort: i + 1, name: d.name, role: d.mal ? 'finish' : null, allTracks: !d.notSparare, startable: !d.checkpoint && !d.mal })
 			.returning();
 		stations.push(st);
 		if (d.notSparare) {
 			await db.insert(s.stationTrack).values(['Upptäckare', 'Äventyrare', 'Utmanare'].map((t) => ({ stationId: st.id, trackId: T[t] })));
 		}
 		const base = { stationId: st.id, styleMin: 0, styleMax: 5 };
-		const defs = d.mal
+		const itemDefs = d.mal
 			? [
 					{ ...base, sort: 1, name: 'Målregistrering', mode: 'AUTO_ON_SCAN' as const, min: 0, max: 0, styleEnabled: false, countsForTiebreak: false },
 					{ ...base, sort: 2, name: 'Nödbrev', mode: 'DISTINCT' as const, min: 0, max: 20, distinctValues: [{ value: 0, label: 'Ej inlämnat / öppnat' }, { value: 20, label: 'Oöppnat' }], styleEnabled: false, countsForTiebreak: true },
@@ -80,8 +46,79 @@ async function main() {
 				: d.distinct
 					? [{ ...base, sort: 1, name: d.name, mode: 'DISTINCT' as const, min: 0, max: 20, distinctValues: [0, 5, 10, 15, 20].map((value) => ({ value })), styleEnabled: true, countsForTiebreak: true }]
 					: [{ ...base, sort: 1, name: d.name, mode: 'RANGE' as const, min: 0, max: 20, styleEnabled: true, countsForTiebreak: true }];
-		items.push(...(await db.insert(s.scoreItem).values(defs).returning()));
+		items.push(...(await db.insert(s.scoreItem).values(itemDefs).returning()));
 	}
+	return { stations, items };
+}
+
+/** Deterministic pseudo-random numbers (mulberry32), so the seed is the same every run. */
+function rng(seed: number) {
+	return () => {
+		seed = (seed + 0x6d2b79f5) | 0;
+		let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
+}
+
+async function main() {
+	await db.delete(s.competition).where(inArray(s.competition.slug, SLUGS));
+	// Editions created from the demo series (e.g. by the series e2e: "Skapa GökOpen 2028") go too.
+	const oldSeries = await db.select({ id: s.series.id }).from(s.series).where(inArray(s.series.slug, SERIES));
+	if (oldSeries.length) {
+		await db.delete(s.competition).where(inArray(s.competition.seriesId, oldSeries.map((x) => x.id)));
+		await db.delete(s.series).where(inArray(s.series.id, oldSeries.map((x) => x.id)));
+	}
+
+	const [erik] = await db
+		.insert(s.appUser)
+		.values({ memberNo: '3000001', name: 'Erik Rydberg', email: 'erik@example.org', groups: [{ groupNo: '900', name: 'Granlidens scoutkår' }, { groupNo: '90', name: 'Göteborgs scoutdistrikt' }] })
+		.onConflictDoUpdate({ target: s.appUser.memberNo, set: { name: 'Erik Rydberg' } })
+		.returning();
+
+	// ---------- Series GökOpen: shared branding and class colours ----------
+	const [gokopen] = await db
+		.insert(s.series)
+		.values({
+			slug: 'gokopen', name: 'GökOpen', ownerGroupNo: '900', ownerGroupName: 'Granlidens scoutkår', createdBy: erik.id,
+			// Upptäckarblå accent (black text on it, 7.7:1); the forest cover fills its band.
+			accentColor: '#00a8e1', coverFit: 'cover',
+			// Class colours by name (age-group colours; Ledare = Scoutblå).
+			classColors: Object.fromEntries(['Spårare', 'Upptäckare', 'Äventyrare', 'Utmanare', 'Ledare'].map((n) => [n, namedTrackColor(n)!]))
+		})
+		.returning();
+
+	// ---------- GökOpen 2027: single day (the current edition) ----------
+	const [open] = await db
+		.insert(s.competition)
+		.values({
+			slug: 'gokopen-2027', name: 'GökOpen 2027', ownerGroupNo: '900', ownerGroupName: 'Granlidens scoutkår',
+			startDate: '2027-05-15', endDate: '2027-05-15', location: 'Gökskogens lägerplats', hqPhone: '070-111 22 33',
+			publicResults: true, registrationOpen: true, status: 'live', patrolCodeKey: 'dev-key-gokopen', createdBy: erik.id,
+			registrationOpensOn: '2026-09-01', registrationClosesOn: '2027-05-01', maxPatrols: 40,
+			infoText: 'Välkomna till GökOpen! Banan är cirka 6 km genom Gökskogen. Samling vid lägerplatsens flaggstång kl. 08.30, första start 09.00.\n\nTa med matsäck, vattenflaska, kläder efter väder och en penna.',
+			confirmationText: 'Startavgiften är 150 kr per patrull och betalas till kårens konto senast 1 maj.',
+			followEnabled: true, followShowScores: true,
+			// Branding is inherited from the series (no edition override).
+			seriesId: gokopen.id, editionYear: 2027
+		})
+		.returning();
+	await db.insert(s.competitionMember).values({ competitionId: open.id, userId: erik.id, role: 'owner' });
+
+	const tracks = await db
+		.insert(s.track)
+		// Colours come from the series template. Ledare has no patrols yet.
+		.values(['Spårare', 'Upptäckare', 'Äventyrare', 'Utmanare', 'Ledare'].map((name, i) => ({ competitionId: open.id, name, sort: i + 1 })))
+		.returning();
+	const T = Object.fromEntries(tracks.map((t) => [t.name, t.id]));
+
+	const stationDefs: StationDef[] = [
+		{ name: 'Lägerplatsen' }, { name: 'Naturkunskap' }, { name: 'Knopar & surrningar', distinct: true }, { name: 'Eldstaden' },
+		{ name: 'Kartan & kompassen' }, { name: 'Första hjälpen' }, { name: 'Rastplatsen', checkpoint: true }, { name: 'Repstegen' },
+		{ name: 'Kojbygge' }, { name: 'Kanoten', notSparare: true }, { name: 'Sinnesbanan' }, { name: 'Mörkerstigen', notSparare: true },
+		{ name: 'Spårtecken' }, { name: 'Mål', mal: true }
+	];
+	const { stations, items } = await gokopenCourse(open.id, T, stationDefs);
 
 	const patrolDefs: [number, string, string, string][] = [
 		[104, 'Älgarna', 'Utmanare', 'Ekbackens scoutkår'], [108, 'Bävrarna', 'Spårare', 'Granlidens scoutkår'],
@@ -127,22 +164,97 @@ async function main() {
 		}
 	}
 
-	// Event branding images: invented for the demo (scripts/make-seed-assets.ts renders them).
+	// Series branding images: invented for the demo (scripts/make-seed-assets.ts renders them).
 	for (const [kind, file] of [['event_logo', 'gokopen-logo.png'], ['organiser_logo', 'granliden-logo.png'], ['cover', 'gokopen-cover.png']] as const) {
 		const v = validateImage(new Uint8Array(readFileSync(join(import.meta.dirname, 'seed-assets', file))));
 		if (!v.ok) throw new Error(`${file}: ${v.reason}`);
 		await db.insert(s.asset).values({
-			competitionId: open.id, kind, mime: v.mime, size: v.bytes.length, width: v.width, height: v.height,
+			seriesId: gokopen.id, kind, mime: v.mime, size: v.bytes.length, width: v.width, height: v.height,
 			sha256: createHash('sha256').update(v.bytes).digest('hex'), data: v.bytes, uploadedBy: erik.id
 		});
 	}
 
-	// ---------- GökHajk 2027: three days ----------
+	// ---------- GökOpen 2026: last year's edition, closed and already archived (personal data removed) ----------
+	const [prev] = await db
+		.insert(s.competition)
+		.values({
+			slug: 'gokopen-2026', name: 'GökOpen 2026', ownerGroupNo: '900', ownerGroupName: 'Granlidens scoutkår',
+			startDate: '2026-05-16', endDate: '2026-05-16', location: 'Gökskogens lägerplats', publicResults: true, status: 'closed',
+			patrolCodeKey: 'dev-key-gokopen-2026', createdBy: erik.id, seriesId: gokopen.id, editionYear: 2026,
+			infoText: 'GökOpen 2026 gick genom Gökskogen med tretton kontroller.', anonymisedAt: new Date('2026-06-01T10:00:00Z')
+		})
+		.returning();
+	await db.insert(s.competitionMember).values({ competitionId: prev.id, userId: erik.id, role: 'owner' });
+	const prevTracks = await db
+		.insert(s.track)
+		.values(['Spårare', 'Upptäckare', 'Äventyrare', 'Utmanare'].map((name, i) => ({ competitionId: prev.id, name, sort: i + 1 })))
+		.returning();
+	const PT = Object.fromEntries(prevTracks.map((t) => [t.name, t.id]));
+	const prevCourse = await gokopenCourse(prev.id, PT, [
+		{ name: 'Lägerplatsen' }, { name: 'Naturkunskap' }, { name: 'Knopar & surrningar', distinct: true }, { name: 'Eldstaden' },
+		{ name: 'Kartan & kompassen' }, { name: 'Första hjälpen' }, { name: 'Rastplatsen', checkpoint: true }, { name: 'Repstegen' },
+		{ name: 'Kojbygge' }, { name: 'Pilbågsskytte', notSparare: true }, { name: 'Sinnesbanan' }, { name: 'Spårtecken' }, { name: 'Mål', mal: true }
+	]);
+	// Patrols as kept after "Ta bort personuppgifter": number, name, kår, class, status. No members, contacts or links.
+	const prevDefs: [number, string, string, string, number][] = [
+		[101, 'Ekorrarna', 'Spårare', 'Granlidens scoutkår', 0.74], [102, 'Bävrarna', 'Spårare', 'Granlidens scoutkår', 0.61],
+		[103, 'Myrorna', 'Spårare', 'Björkhagens scoutkår', 0.82], [104, 'Igelkottarna', 'Spårare', 'Ekbackens scoutkår', 0],
+		[105, 'Lodjuren', 'Upptäckare', 'Granlidens scoutkår', 0.69], [106, 'Falkarna', 'Upptäckare', 'Sjöviks sjöscoutkår', 0.88],
+		[107, 'Ugglorna', 'Upptäckare', 'Sjöviks sjöscoutkår', 0.77], [108, 'Hjortarna', 'Upptäckare', 'Tallbergets scoutkår', 0.55],
+		[109, 'Tranorna', 'Upptäckare', 'Björkhagens scoutkår', 0.71], [110, 'Vargarna', 'Äventyrare', 'Tallbergets scoutkår', 0.79],
+		[111, 'Rävarna', 'Äventyrare', 'Björkhagens scoutkår', 0.86], [112, 'Örnarna', 'Äventyrare', 'Ekbackens scoutkår', 0.64],
+		[113, 'Älgarna', 'Utmanare', 'Ekbackens scoutkår', 0.81], [114, 'Järvarna', 'Utmanare', 'Sjöviks sjöscoutkår', 0.73]
+	];
+	const prevPatrols = await db
+		.insert(s.patrol)
+		.values(prevDefs.map(([number, name, track, troop, skill]) => ({
+			competitionId: prev.id, number, name, trackId: PT[track], troop, status: skill ? ('finished' as const) : ('resigned' as const), paid: true
+		})))
+		.returning();
+	const rand = rng(2026);
+	const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(v)));
+	const stationOf = new Map(prevCourse.items.map((it) => [it.id, prevCourse.stations.find((st) => st.id === it.stationId)!]));
+	const scoreRows: (typeof s.score.$inferInsert)[] = [];
+	for (const p of prevPatrols) {
+		const skill = prevDefs.find((d) => d[0] === p.number)![4];
+		if (!skill) continue; // Återbud: never started.
+		const sparare = p.trackId === PT['Spårare'];
+		for (const it of prevCourse.items) {
+			const st = stationOf.get(it.id)!;
+			if (!st.allTracks && sparare) continue;
+			const noise = () => (rand() - 0.5) * 0.5;
+			let value = 0;
+			let points = 0;
+			if (it.mode === 'RANGE') value = points = clamp(20 * (skill + noise()), 4, 20);
+			else if (it.mode === 'DISTINCT') {
+				const opts = (it.distinctValues ?? []).map((d) => d.value);
+				value = points = opts.length === 2 ? (rand() < 0.75 + skill / 5 ? opts[1] : opts[0]) : opts[clamp((opts.length - 1) * (skill + noise()), 0, opts.length - 1)];
+			} else if (it.mode === 'COUNT') {
+				value = clamp(10 * (skill + noise()), 2, 10);
+				points = value * (it.countMultiplier ?? 1);
+			}
+			const style = it.styleEnabled ? clamp(5 * (skill + noise()), 1, 5) : null;
+			scoreRows.push({
+				competitionId: prev.id, patrolId: p.id, itemId: it.id, points, stylePoints: style ?? 0, raw: { value, style }, origin: 'device', updatedAt: new Date('2026-05-16T13:00:00Z')
+			});
+		}
+	}
+	const prevScores = await db.insert(s.score).values(scoreRows).returning();
+	await db.insert(s.scoreRevision).values(
+		prevScores.map((sc) => ({ scoreId: sc.id, version: 1, points: sc.points, stylePoints: sc.stylePoints, state: 'active' as const, origin: 'device' as const, at: sc.updatedAt }))
+	);
+
+	// ---------- GökHajk 2027: three days (a one-edition series) ----------
+	const [gokhajk] = await db
+		.insert(s.series)
+		.values({ slug: 'gokhajk', name: 'GökHajk', ownerGroupNo: '90', ownerGroupName: 'Göteborgs scoutdistrikt', createdBy: erik.id })
+		.returning();
 	const [hajk] = await db
 		.insert(s.competition)
 		.values({
 			slug: 'gokhajk-2027', name: 'GökHajk 2027', ownerGroupNo: '90', ownerGroupName: 'Göteborgs scoutdistrikt', multiDay: true,
-			startDate: '2027-05-14', endDate: '2027-05-16', location: 'Gökskogen', status: 'draft', patrolCodeKey: 'dev-key-gokhajk', createdBy: erik.id
+			startDate: '2027-05-14', endDate: '2027-05-16', location: 'Gökskogen', status: 'draft', patrolCodeKey: 'dev-key-gokhajk', createdBy: erik.id,
+			seriesId: gokhajk.id, editionYear: 2027
 		})
 		.returning();
 	await db.insert(s.competitionMember).values({ competitionId: hajk.id, userId: erik.id, role: 'owner' });
@@ -166,7 +278,7 @@ async function main() {
 	}
 
 	const count = await db.select().from(s.patrol).where(eq(s.patrol.competitionId, open.id));
-	console.log(`Seeded: ${SLUGS.join(', ')} — ${count.length} patrols, ${items.length} items in GökOpen.`);
+	console.log(`Seeded series ${SERIES.join(', ')}: ${SLUGS.join(', ')} — ${count.length} patrols, ${items.length} items in GökOpen 2027; ${prevScores.length} scores in GökOpen 2026.`);
 	await client.end();
 }
 

@@ -28,14 +28,14 @@ flowchart LR
   subgraph EU host [EU host · deferred: serverless containers or VPS]
     SK[One SvelteKit 3.1 app · Node 24 LTS · one container<br/>SSR pages · API · BFF · sync · SSE · jobs]
     PG[(PostgreSQL 18<br/>data · sessions · ChangeLog · pg-boss queue)]
-    OS[(S3-compatible bucket<br/>protocol photos)]
+    OS[(Optional S3 bucket<br/>only if uploads grow, e.g. protocol photos)]
     SCH[Scheduler<br/>job tick]
   end
   KC[ScoutID<br/>Keycloak OIDC]
   V & T -- signed commands / SSE --> SK
   A & P --> SK
   SK -- "pooled SQL + one LISTEN per instance" --> PG
-  SK -- presigned URLs --> OS
+  SK -. presigned URLs, later .-> OS
   SCH -- "POST /internal/jobs/tick" --> SK
   SK -- OIDC code + PKCE --> KC
 ```
@@ -59,6 +59,8 @@ flowchart LR
 | Import | Parsed in the browser (SheetJS in a worker) against an allowlist of fields. Personnummer, addresses and criminal-record status are never uploaded, and the server rejects unknown fields. | Server-side parsing | 03 §8, 04 §6 |
 | Printing | Browser HTML/CSS print for every A4 artifact, including "Save as PDF". A server PDF renderer is optional later. | All-server PDF (headless Chromium in the app image) | 03 §7, 02 §8 |
 | Hosting | **Deferred.** Requirements: EU residency, OCI container, ≥60-min SSE requests, scale to zero with min-instances = 1 on event weekends. Options: Cloud Run (europe-north1) + Neon, Scaleway Serverless Containers + Serverless SQL, or a VPS (e.g. Hetzner) with Docker Compose + Traefik. | Committing to one host now | 04 §7 |
+| Images | Event and series images (logos, covers) are stored **in Postgres** behind one module (`assetStore.ts`). Object storage only if uploads grow a lot (e.g. protocol or user photos). | An S3 bucket from day one | 05 §6 |
+| Series | A **series** (GökOpen) owns branding and class colours; each year is a competition (edition). Public archive at `/t/<series>`. Personal data is removed manually per closed edition; results stay identical. | Copying competitions by hand each year | 05 |
 | Migration | No personal data moves from gokapp, only templates (`tools/gokapp-migrate --templates-only`). Pilot runs in parallel with gokapp. | Big-bang switch | 04 §8, 02 §9 |
 
 ## 4. Cross-section contracts (binding)

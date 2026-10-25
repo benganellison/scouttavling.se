@@ -103,5 +103,9 @@ export async function requireCompetition(event: RequestEvent, slug: string, role
 		.where(and(eq(schema.competitionMember.competitionId, comp.id), eq(schema.competitionMember.userId, user.id)));
 	const mine = memberships.map((m) => m.role);
 	if (!mine.some((r) => roles.includes(r))) error(403, 'Du har inte behörighet till den här tävlingen');
+	// An archived (anonymised) edition is read-only: no write of any kind goes through.
+	if (comp.anonymisedAt && event.request.method !== 'GET' && event.request.method !== 'HEAD') {
+		error(409, 'Tävlingen är arkiverad och kan inte ändras');
+	}
 	return { user, comp, roles: mine };
 }

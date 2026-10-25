@@ -17,7 +17,7 @@ This section defines **contracts** that the backend/domain (02) and client (03) 
 | D4 | Non-account actors (station volunteers, start/finish tablets) get a **device-bound grant**. A QR invite secret is exchanged once, online, for an ES256-signed JWS bound to a non-extractable WebCrypto key on the device. Every offline score command is signed with that device key and verified on sync. |
 | D5 | Revocation is done through an **invite generation counter** and **per-device revocation**. Commands that arrive after a revocation are **quarantined for HQ review** rather than dropped, which matches the paper-protocol fallback. |
 | D6 | Scoutnet exports are **parsed in the browser** with a column allowlist. Personnummer, addresses and criminal-record status never leave the device. |
-| D7 | Hosting is **deferred**. The app is one OCI container plus Postgres 18 and an S3 bucket, and §7 fixes the requirements (EU residency, ≥60-min SSE requests, scale to zero with min-instances on event days). The preferred options are serverless containers (Cloud Run, Scaleway); a VPS with Docker Compose + Traefik is the fallback. Roughly €2–16/month between events plus €2–12 per event weekend serverless, or €13–38/month flat on a VPS. |
+| D7 | Hosting is **deferred**. The app is one OCI container plus Postgres 18 (uploaded images are stored in Postgres; an S3 bucket is added only if uploads grow a lot, e.g. protocol photos, 05 §6), and §7 fixes the requirements (EU residency, ≥60-min SSE requests, scale to zero with min-instances on event days). The preferred options are serverless containers (Cloud Run, Scaleway); a VPS with Docker Compose + Traefik is the fallback. Roughly €2–16/month between events plus €2–12 per event weekend serverless, or €13–38/month flat on a VPS. |
 | D8 | The kår that owns a competition is the **controller**. The operator of scouttavling.se is the **processor** under a DPA; organisers confirmed (2026-10-15) this will **normally be the district** (Scouterna or an association also acceptable). Personal data is deleted **90 days after a competition closes**, and protocol photos **30 days** after results are final. |
 
 ---
@@ -336,7 +336,7 @@ Every write records `actor` (member_no or device_id plus display name), `via` (s
 
 ## 7. Hosting, deployment and operations
 
-**Hosting is deferred** (product owner, 2026-10-15). This section fixes the *requirements* and compares *options*. The application is one OCI image (02 §1) plus Postgres and an S3 bucket, so the choice can be made late and changed later without code changes.
+**Hosting is deferred** (product owner, 2026-10-15). This section fixes the *requirements* and compares *options*. The application is one OCI image (02 §1) plus Postgres (images included; a bucket only if uploads grow a lot, 05 §6), so the choice can be made late and changed later without code changes.
 
 ### 7.1 Load expectations
 
@@ -353,7 +353,7 @@ Peak for a single competition: about 60 patrols, about 30 volunteer devices, 2�
 | H5 | Either ≥ 250 concurrent requests per instance, or acceptance that anonymous public results use cached polling instead of SSE (02 §3). |
 | H6 | Postgres 18 with a **pooled URL** and a **direct (session) URL** (02 §1). PITR or 15-min backups during events. |
 | H7 | An external **scheduled HTTP trigger** (5 min + nightly) for `/internal/jobs/tick` (02 §8), and a way to run a **one-shot job** (migrations, `pg_dump`). |
-| H8 | S3-compatible EU bucket with presigned URLs and lifecycle rules. |
+| H8 | Only if uploads grow a lot (protocol/user photos): an S3-compatible EU bucket with presigned URLs and lifecycle rules. Not needed for v0.1, where images live in Postgres. |
 
 ### 7.3 Options compared
 

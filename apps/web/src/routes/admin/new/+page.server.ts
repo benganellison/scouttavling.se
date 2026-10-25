@@ -7,7 +7,7 @@ import { recordChange } from '#lib/server/changes.ts';
 import { slugify } from '#lib/ui/admin/format.ts';
 
 const PRESET_TRACKS = ['Spårare', 'Upptäckare', 'Äventyrare', 'Utmanare', 'Rover'];
-const RESERVED = new Set(['new', 'admin', 'api', 'login', 'auth', 'r', 'j', 'f', 'p', 'ny']);
+const RESERVED = new Set(['new', 'admin', 'api', 'login', 'auth', 'r', 'j', 'f', 'p', 'ny', 'series']);
 const MAX_PER_DAY = 5;
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -94,7 +94,9 @@ export const actions = {
 		let finalSlug = slug;
 		for (let i = 2; ; i++) {
 			const [taken] = await db.select({ id: schema.competition.id }).from(schema.competition).where(eq(schema.competition.slug, finalSlug)).limit(1);
-			if (!taken) break;
+			// Series pages share /t/<slug>, so a series slug is taken too.
+			const [seriesTaken] = taken ? [] : await db.select({ id: schema.series.id }).from(schema.series).where(eq(schema.series.slug, finalSlug)).limit(1);
+			if (!taken && !seriesTaken) break;
 			if (slugInput) return fail(400, { errors: { slug: `Adressen scouttavling.se/${slugInput} är upptagen.` }, values });
 			finalSlug = `${slug}-${i}`;
 			if (i > 99) return fail(400, { errors: { slug: 'Välj en annan adress.' }, values });
@@ -106,7 +108,8 @@ export const actions = {
 				.values({
 					slug: finalSlug, name, ownerGroupNo: group!.groupNo, ownerGroupName: group!.name, multiDay, startDate, endDate,
 					location: location || null, hqPhone: hqPhone || null, styleEnabled, publicResults, registrationOpen,
-					status: 'draft', patrolCodeKey: randomToken(24), createdBy: user.id
+					status: 'draft', patrolCodeKey: randomToken(24), createdBy: user.id,
+					editionYear: Number(startDate.slice(0, 4))
 				})
 				.returning();
 			await tx.insert(schema.competitionMember).values({ competitionId: comp.id, userId: user.id, role: 'owner' });

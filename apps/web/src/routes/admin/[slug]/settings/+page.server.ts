@@ -3,7 +3,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { recordChange } from '#lib/server/changes.ts';
-import { ASSET_KINDS, removeAsset, saveAsset } from '#lib/server/assets.ts';
+import { ASSET_KINDS, removeImage, uploadImage } from '#lib/server/assets.ts';
 import { MAX_BYTES } from '#lib/server/imageValidate.ts';
 import { parseHex } from '#lib/brand/colors.ts';
 import type { AssetKind } from '#lib/brand/branding.ts';
@@ -256,7 +256,7 @@ export const actions = {
 		const file = f.get('file');
 		if (!(file instanceof File) || file.size === 0) return fail(400, { section: 'appearance', errors: { [kind]: 'Välj en bild först.' } as Errors });
 		if (file.size > MAX_BYTES) return fail(400, { section: 'appearance', errors: { [kind]: 'Bilden är större än 2 MB. Förminska den och försök igen.' } as Errors });
-		const r = await saveAsset(comp.id, kind, new Uint8Array(await file.arrayBuffer()), user.id);
+		const r = await uploadImage({ competitionId: comp.id }, kind, new Uint8Array(await file.arrayBuffer()), user.id, [comp.id]);
 		if (!r.ok) return fail(400, { section: 'appearance', errors: { [kind]: r.reason } as Errors });
 		return { section: 'appearance', ok: true, uploaded: kind };
 	},
@@ -266,7 +266,7 @@ export const actions = {
 		const f = await event.request.formData();
 		const kind = String(f.get('kind') ?? '') as AssetKind;
 		if (!ASSET_KINDS.includes(kind)) return fail(400, { section: 'appearance', errors: { upload: 'Okänd bildtyp.' } as Errors });
-		await removeAsset(comp.id, kind);
+		await removeImage({ competitionId: comp.id }, kind, [comp.id]);
 		return { section: 'appearance', ok: true };
 	},
 
