@@ -70,6 +70,7 @@ export const actions = {
 				.set({
 					name, location: location || null, hqPhone: hqPhone || null, ownerGroupNo: group!.groupNo, ownerGroupName: group!.name,
 					styleEnabled: f.get('styleEnabled') === 'on', publicResults: f.get('publicResults') === 'on',
+					stationResultsLive: f.get('stationResultsLive') === 'on',
 					...(comp.multiDay ? {} : { startDate: date, endDate: date })
 				})
 				.where(eq(schema.competition.id, comp.id));

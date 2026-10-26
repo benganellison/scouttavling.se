@@ -3,12 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('$app/env/private', () => ({ DATABASE_URL: 'postgres://unused' }));
 vi.mock('./db/index.ts', () => ({ db: {}, schema: {} }));
 
-const { computeResults, unseenAlarms } = await import('./live.ts');
+const { computeResults, publicTracks, showStationResults, unseenAlarms } = await import('./live.ts');
 type Input = import('./live.ts').ResultsInput;
 
 /** Mirrors scripts/seed.ts for GökOpen 2027 (Upptäckare class and the first five RANGE stations). */
 function seedLike(): Input {
-	const stations = Array.from({ length: 8 }, (_, i) => ({ id: `st${i + 1}`, sort: i + 1, allTracks: true, trackIds: [] as string[] }));
+	const stations = Array.from({ length: 8 }, (_, i) => ({ id: `st${i + 1}`, name: `Kontroll ${i + 1}`, sort: i + 1, allTracks: true, trackIds: [] as string[] }));
 	const items = stations.map((s, i) => ({
 		id: `it${i + 1}`, stationId: s.id, sort: 1, name: `Kontroll ${i + 1}`, mode: (i === 2 ? 'DISTINCT' : 'RANGE') as 'RANGE' | 'DISTINCT',
 		min: 0, max: 20, distinctValues: i === 2 ? [0, 5, 10, 15, 20].map((value) => ({ value })) : null, countMultiplier: null,
@@ -63,6 +63,45 @@ describe('computeResults', () => {
 		const [upp] = computeResults(input);
 		expect(upp.rows.some((r) => r.number === 119)).toBe(false);
 		expect(upp.rows[0].stationsTotal).toBe(7);
+	});
+});
+
+describe('points per station', () => {
+	it('lists each points station in order with its max, and the patrol\'s points (null = not reported)', () => {
+		const [upp] = computeResults(seedLike());
+		expect(upp.stations.map((s) => s.name)).toEqual(Array.from({ length: 8 }, (_, i) => `Kontroll ${i + 1}`));
+		expect(upp.stations[0]).toEqual({ id: 'st1', name: 'Kontroll 1', sort: 1, max: 20, styleMax: 5 });
+		const r112 = upp.rows.find((r) => r.number === 112)!;
+		// 112 reported at the first four RANGE stations: st1, st2, st4, st5 (st3 is DISTINCT).
+		expect(r112.perStation).toEqual([
+			{ points: 18, stylePoints: 4 }, { points: 15, stylePoints: 3 }, null, { points: 20, stylePoints: 4 }, { points: 12, stylePoints: 3 }, null, null, null
+		]);
+		const sum = r112.perStation.reduce((n, c) => n + (c ? c.points + c.stylePoints : 0), 0);
+		expect(sum).toBe(r112.total);
+	});
+
+	it('leaves out check-in stations and stations of other classes', () => {
+		const input = seedLike();
+		input.items[0] = { ...input.items[0], mode: 'CHECKIN' as never, styleEnabled: false };
+		input.stations[7].allTracks = false;
+		const [upp] = computeResults(input);
+		expect(upp.stations.map((s) => s.id)).toEqual(['st2', 'st3', 'st4', 'st5', 'st6', 'st7']);
+		expect(upp.rows[0].perStation).toHaveLength(6);
+	});
+
+	it('strips them from public results unless allowed', () => {
+		const tracks = computeResults(seedLike());
+		expect(publicTracks(tracks, false)[0].stations).toEqual([]);
+		expect(publicTracks(tracks, false)[0].rows[0].perStation).toEqual([]);
+		expect(publicTracks(tracks, true)[0].rows[0].perStation).toHaveLength(8);
+		// Public stations carry no internal ids.
+		expect(publicTracks(tracks, true)[0].stations[0]).toEqual({ name: 'Kontroll 1', max: 20, styleMax: 5 });
+	});
+
+	it('are public once closed, during the competition only when turned on', () => {
+		expect(showStationResults({ status: 'live', stationResultsLive: false })).toBe(false);
+		expect(showStationResults({ status: 'live', stationResultsLive: true })).toBe(true);
+		expect(showStationResults({ status: 'closed', stationResultsLive: false })).toBe(true);
 	});
 });
 

@@ -4,6 +4,8 @@
 *.xlsx
 *.csv
 *.ods
+# …but SvelteKit route folders named like a file (e.g. results.csv/+server.ts) are code.
+!apps/web/src/routes/**/*.csv/
 
 # Local environment and secrets
 .env

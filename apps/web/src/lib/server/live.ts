@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gt, inArray, isNull, max } from 'drizzle-orm';
 import postgres from 'postgres';
-import { rank, stationCodes, type RankedPatrol } from '@scouttavling/domain';
+import { maxPoints, rank, stationCodes, type RankedPatrol } from '@scouttavling/domain';
 import { DATABASE_URL } from '$app/env/private';
 import { db, schema } from './db/index.ts';
 import { itemDef } from './scores.ts';
@@ -21,7 +21,7 @@ type StationRow = typeof schema.station.$inferSelect;
 export interface ResultsInput {
 	styleEnabled: boolean;
 	tracks: { id: string; name: string; sort: number }[];
-	stations: { id: string; sort: number; allTracks: boolean; trackIds: string[] }[];
+	stations: { id: string; name: string; sort: number; allTracks: boolean; trackIds: string[] }[];
 	items: ItemRow[];
 	patrols: { id: string; number: number; name: string; troop: string; trackId: string | null; status: string }[];
 	scores: { patrolId: string; itemId: string; points: number; stylePoints: number }[];
@@ -42,11 +42,25 @@ export interface ResultRow {
 	tieNote: string | null;
 	stationsDone: number;
 	stationsTotal: number;
+	/** Points per station, aligned with TrackResults.stations; null = not reported yet. */
+	perStation: ({ points: number; stylePoints: number } | null)[];
+}
+
+/** A station that gives points in a class (check-ins and lunch stops are left out). */
+export interface ResultStation {
+	id: string;
+	name: string;
+	sort: number;
+	/** Highest points without style. */
+	max: number;
+	/** Highest style points (0 when style is off for all its items). */
+	styleMax: number;
 }
 
 export interface TrackResults {
 	trackId: string;
 	name: string;
+	stations: ResultStation[];
 	rows: ResultRow[];
 }
 
@@ -66,42 +80,65 @@ export function computeResults(input: ResultsInput): TrackResults[] {
 	const out: TrackResults[] = [];
 	const tracks = [...input.tracks].sort((a, b) => a.sort - b.sort);
 	for (const track of tracks) {
-		const stations = input.stations.filter((s) => s.allTracks || s.trackIds.includes(track.id));
+		const stations = input.stations.filter((s) => s.allTracks || s.trackIds.includes(track.id)).sort((a, b) => a.sort - b.sort);
 		const stationOfItem = new Map<string, string>();
 		for (const st of stations) for (const it of itemsByStation.get(st.id) ?? []) stationOfItem.set(it.id, st.id);
 		const items = [...stationOfItem.keys()].map((id) => def.get(id)!);
 		const patrols = input.patrols.filter((p) => p.trackId === track.id && p.status !== 'resigned');
 		const byId = new Map(patrols.map((p) => [p.id, p]));
 		const relevant = (pid: string) => (scoresByPatrol.get(pid) ?? []).filter((s) => stationOfItem.has(s.itemId));
+		const columns: ResultStation[] = stations
+			.map((st) => {
+				const defs = (itemsByStation.get(st.id) ?? []).map((it) => def.get(it.id)!);
+				return {
+					id: st.id, name: st.name, sort: st.sort, max: defs.reduce((n, d) => n + maxPoints(d), 0),
+					styleMax: defs.reduce((n, d) => n + (d.styleEnabled ? d.styleMax : 0), 0)
+				};
+			})
+			.filter((c) => c.max > 0 || c.styleMax > 0);
 		const ranked = rank(
 			patrols.map((p) => ({ id: p.id, number: p.number, scores: relevant(p.id).map((s) => ({ itemId: s.itemId, points: s.points, stylePoints: s.stylePoints })) })),
 			items
 		);
 		const rows: ResultRow[] = ranked.map((r, i) => {
 			const p = byId.get(r.id)!;
-			const done = new Set(relevant(r.id).map((s) => stationOfItem.get(s.itemId)));
+			const mine = relevant(r.id);
+			const done = new Set(mine.map((s) => stationOfItem.get(s.itemId)));
+			const perStation = columns.map((c) => {
+				const at = mine.filter((s) => stationOfItem.get(s.itemId) === c.id);
+				return at.length ? { points: at.reduce((n, s) => n + s.points, 0), stylePoints: at.reduce((n, s) => n + s.stylePoints, 0) } : null;
+			});
 			return {
 				patrolId: r.id, number: r.number, name: p.name, troop: p.troop, place: r.place, total: r.total,
 				scorePoints: r.scorePoints, stylePoints: r.stylePoints, tied: r.tied, decidedBy: r.decidedBy,
-				tieNote: tieNote(ranked, i), stationsDone: done.size, stationsTotal: stations.length
+				tieNote: tieNote(ranked, i), stationsDone: done.size, stationsTotal: stations.length, perStation
 			};
 		});
-		out.push({ trackId: track.id, name: track.name, rows });
+		out.push({ trackId: track.id, name: track.name, stations: columns, rows });
 	}
 	return out;
 }
 
 /** Public results without personal data: number, patrol name, kår and points only. */
-export function publicTracks(tracks: TrackResults[]) {
+export function publicTracks(tracks: TrackResults[], withStations: boolean) {
 	return tracks.map((t) => ({
 		trackId: t.trackId,
 		name: t.name,
+		stations: withStations ? t.stations.map((s) => ({ name: s.name, max: s.max, styleMax: s.styleMax })) : [],
 		rows: t.rows.map((r) => ({
 			number: r.number, name: r.name, troop: r.troop, place: r.place, total: r.total, scorePoints: r.scorePoints,
-			stylePoints: r.stylePoints, tied: r.tied, tieNote: r.tieNote, stationsDone: r.stationsDone, stationsTotal: r.stationsTotal
+			stylePoints: r.stylePoints, tied: r.tied, tieNote: r.tieNote, stationsDone: r.stationsDone, stationsTotal: r.stationsTotal,
+			perStation: withStations ? r.perStation : []
 		}))
 	}));
 }
+
+/**
+ * Points per station in public results: always once the competition is closed (and so in the
+ * archive), during the competition only when the organiser turned it on (default off, so
+ * patrols cannot see a station's scores before they get there).
+ */
+export const showStationResults = (comp: Pick<CompRow, 'status' | 'stationResultsLive'>) => comp.status === 'closed' || comp.stationResultsLive;
 export type PublicTrack = ReturnType<typeof publicTracks>[number];
 
 function tieNote(ranked: RankedPatrol[], i: number): string | null {
@@ -180,7 +217,7 @@ export async function loadResultsInput(comp: Pick<CompRow, 'id' | 'styleEnabled'
 	return {
 		styleEnabled: comp.styleEnabled,
 		tracks,
-		stations: stations.map((s) => ({ id: s.id, sort: s.sort, allTracks: s.allTracks, trackIds: links.filter((l) => l.stationId === s.id).map((l) => l.trackId) })),
+		stations: stations.map((s) => ({ id: s.id, name: s.name, sort: s.sort, allTracks: s.allTracks, trackIds: links.filter((l) => l.stationId === s.id).map((l) => l.trackId) })),
 		items: items.map((r) => r.item),
 		patrols,
 		scores

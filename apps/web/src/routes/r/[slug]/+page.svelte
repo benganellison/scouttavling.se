@@ -5,6 +5,7 @@
 	import SenderFooter from '#lib/ui/brand/SenderFooter.svelte';
 	import { accentStyle } from '#lib/brand/branding.ts';
 	import Medal from '#lib/ui/live/Medal.svelte';
+	import StationBreakdown from '#lib/ui/live/StationBreakdown.svelte';
 	import { LiveStream } from '#lib/ui/live/liveStore.svelte.ts';
 	import { RULE_TEXT } from '#lib/ui/live/format.ts';
 	import type { PublicTrack } from '#lib/server/live.ts';
@@ -15,6 +16,9 @@
 	const tracks = $derived(pushed ?? data.tracks);
 	let tab = $state<string | null>(null);
 	const current = $derived(tracks.find((t) => t.trackId === tab) ?? tracks[0] ?? null);
+	/** Patrol numbers whose points per station are open (kept across live updates). */
+	let open = $state<number[]>([]);
+	const toggle = (n: number) => (open = open.includes(n) ? open.filter((x) => x !== n) : [...open, n]);
 
 	const live = new LiveStream(() => ({
 		url: `/api/v1/live/${data.comp.slug}/results`,
@@ -52,25 +56,41 @@
 			<h1 class="sr-only">Resultat {current.name}</h1>
 			<ol class="list" data-testid="public-list" style="--track:{data.trackColors[current.trackId] ?? 'var(--line)'}">
 				{#each current.rows as r (r.number)}
-					<li class="row-item" class:top3={r.place <= 3} data-number={r.number} data-place={r.place}>
-						<Medal place={r.place} size={40} />
-						<div class="who">
-							<span class="name"><span class="nr">{r.number}</span> {r.name}</span>
-							<span class="troop">{r.troop}</span>
-							{#if r.tied}<span class="tie">Delad plats</span>{/if}
-						</div>
-						<div class="pts">
-							<span class="total">{r.total}</span>
-							{#if r.stylePoints}<span class="split">{r.scorePoints} + {r.stylePoints}</span>{/if}
-						</div>
+					{@const expandable = current.stations.length > 0}
+					{@const isOpen = expandable && open.includes(r.number)}
+					<li class:top3={r.place <= 3} data-number={r.number} data-place={r.place}>
+						{#snippet rowBody()}
+							<Medal place={r.place} size={40} />
+							<span class="who">
+								<span class="name"><span class="nr">{r.number}</span> {r.name}</span>
+								<span class="troop">{r.troop}</span>
+								{#if r.tied}<span class="tie">Delad plats</span>{/if}
+							</span>
+							<span class="pts">
+								<span class="total">{r.total}</span>
+								{#if r.stylePoints}<span class="split">{r.scorePoints} + {r.stylePoints}</span>{/if}
+							</span>
+						{/snippet}
+						{#if expandable}
+							<button class="row-item btn-row" type="button" aria-expanded={isOpen} aria-controls="st-{r.number}" onclick={() => toggle(r.number)}>
+								{@render rowBody()}
+								<svg class="chev" class:up={isOpen} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+							</button>
+						{:else}
+							<div class="row-item">{@render rowBody()}</div>
+						{/if}
+						{#if isOpen}
+							<div class="detail"><StationBreakdown id="st-{r.number}" stations={current.stations} cells={r.perStation} /></div>
+						{/if}
 					</li>
 				{/each}
 			</ol>
 			{#if current.rows.length === 0}<p class="empty">Inga resultat i klassen ännu.</p>{/if}
+			{#if current.stations.length > 0 && current.rows.length > 0}<p class="hint">Tryck på en patrull för poäng per kontroll.</p>{/if}
 		{/if}
 		<footer class="rule">
 			<p>{RULE_TEXT}</p>
-			<p>Resultaten är preliminära tills tävlingsledningen har gått igenom alla rapporter.</p>
+			{#if !data.comp.final}<p>Resultaten är preliminära tills tävlingsledningen har gått igenom alla rapporter.</p>{/if}
 		</footer>
 		<SenderFooter organiserName={data.branding.organiserName} organiserLogo={data.branding.organiserLogo} />
 	</main>
@@ -125,6 +145,9 @@
 		.state .dot {
 			animation: none !important;
 		}
+		.chev {
+			transition: none;
+		}
 	}
 	.tabs {
 		display: flex;
@@ -168,15 +191,46 @@
 		border-radius: var(--r-lg);
 		overflow: hidden;
 	}
+	.list > li {
+		border-top: 1px solid var(--line);
+	}
+	.list > li:first-child {
+		border-top: 0;
+	}
 	.row-item {
 		display: flex;
 		align-items: center;
 		gap: 12px;
 		padding: 12px 14px;
-		border-top: 1px solid var(--line);
+		width: 100%;
 	}
-	.row-item:first-child {
-		border-top: 0;
+	.btn-row {
+		border: 0;
+		background: none;
+		font: inherit;
+		color: inherit;
+		text-align: left;
+		cursor: pointer;
+		min-height: var(--tap);
+	}
+	.btn-row:focus-visible {
+		outline-offset: -3px;
+	}
+	.chev {
+		flex: none;
+		color: var(--ink-2);
+		transition: transform 0.15s;
+	}
+	.chev.up {
+		transform: rotate(180deg);
+	}
+	.detail {
+		padding: 0 14px 12px 66px;
+	}
+	.hint {
+		margin: 10px 0 0;
+		font-size: 13px;
+		color: var(--ink-2);
 	}
 	.who {
 		flex: 1;

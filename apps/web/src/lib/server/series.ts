@@ -250,7 +250,7 @@ export async function createNextEdition(source: CompRow, input: NextInput, userI
 			.values({
 				slug: input.slug, name: input.name, ownerGroupNo: source.ownerGroupNo, ownerGroupName: source.ownerGroupName,
 				multiDay: source.multiDay, startDate: dates[0], endDate: dates.at(-1)!, location: source.location,
-				styleEnabled: source.styleEnabled, publicResults: source.publicResults,
+				styleEnabled: source.styleEnabled, publicResults: source.publicResults, stationResultsLive: source.stationResultsLive,
 				registrationOpen: false, registrationOpensOn: input.registrationOpensOn, registrationClosesOn: input.registrationClosesOn,
 				maxPatrols: source.maxPatrols, infoText: source.infoText, confirmationText: source.confirmationText,
 				followEnabled: source.followEnabled, followShowScores: source.followShowScores,

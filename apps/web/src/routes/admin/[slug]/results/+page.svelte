@@ -2,6 +2,7 @@
 	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 	import { enhance } from '$app/forms';
 	import Medal from '#lib/ui/live/Medal.svelte';
+	import StationBreakdown from '#lib/ui/live/StationBreakdown.svelte';
 	import LiveBadge from '#lib/ui/live/LiveBadge.svelte';
 	import { LiveStream } from '#lib/ui/live/liveStore.svelte.ts';
 	import { RULE_TEXT } from '#lib/ui/live/format.ts';
@@ -10,6 +11,9 @@
 
 	const live = new LiveStream(() => ({ url: `/api/v1/live/${data.comp.slug}/events`, depends: `live:${data.comp.slug}`, debounceMs: 800 }));
 	const base = $derived(`/admin/${data.comp.slug}`);
+	let open = $state<string[]>([]);
+	const toggle = (id: string) => (open = open.includes(id) ? open.filter((x) => x !== id) : [...open, id]);
+	const cols = $derived(3 + (data.comp.styleEnabled ? 1 : 0) + 1 + 1);
 </script>
 
 <svelte:head><title>Resultat · {data.comp.name}</title></svelte:head>
@@ -65,6 +69,7 @@
 						<th scope="col" class="num">Totalt</th>
 						{#if data.comp.styleEnabled}<th scope="col" class="num hide-s">Poäng + stil</th>{/if}
 						<th scope="col" class="num hide-s">Kontroller</th>
+						<th scope="col" class="c-more"><span class="sr-only">Poäng per kontroll</span></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -79,7 +84,26 @@
 							<td class="num total">{r.total}</td>
 							{#if data.comp.styleEnabled}<td class="num hide-s">{r.scorePoints} + {r.stylePoints} stil</td>{/if}
 							<td class="num hide-s">{r.stationsDone}/{r.stationsTotal}</td>
+							<td class="c-more">
+								{#if data.current.stations.length}
+									<button
+										class="btn btn-ghost more"
+										aria-expanded={open.includes(r.patrolId)}
+										aria-controls="st-{r.patrolId}"
+										aria-label="Poäng per kontroll för {r.number} {r.name}"
+										onclick={() => toggle(r.patrolId)}
+									>
+										<svg class:up={open.includes(r.patrolId)} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+									</button>
+								{/if}
+							</td>
 						</tr>
+						{#if open.includes(r.patrolId)}
+							<tr class="detail-row">
+								<td></td>
+								<td colspan={cols - 1}><StationBreakdown id="st-{r.patrolId}" stations={data.current.stations} cells={r.perStation} /></td>
+							</tr>
+						{/if}
 					{/each}
 				</tbody>
 			</table>
@@ -172,6 +196,26 @@
 	}
 	.c-place {
 		width: 64px;
+	}
+	.c-more {
+		width: 48px;
+		text-align: right;
+	}
+	.more {
+		min-width: 44px;
+		padding: 0 10px;
+	}
+	.more svg {
+		transition: transform 0.15s;
+	}
+	.more svg.up {
+		transform: rotate(180deg);
+	}
+	.detail-row td {
+		padding-top: 0;
+	}
+	.detail-row :global(.breakdown) {
+		max-width: 520px;
 	}
 	.num {
 		text-align: right;

@@ -91,7 +91,26 @@ test('live dashboard, patrol edit, results, public page and ceremony', async ({ 
 		const place112 = await r112.getAttribute('data-place');
 		expect(place112).toBe(await r137.getAttribute('data-place'));
 		await expect(r112).toContainText('Delad plats med 137');
+		// Organisers always see points per station.
+		// Retry until hydrated; only click while still closed so a retry never closes it again.
+		const more112 = r112.getByRole('button', { name: /Poäng per kontroll för 112/ });
+		await expect(async () => {
+			if ((await more112.getAttribute('aria-expanded')) !== 'true') await more112.click();
+			await expect(page.getByTestId('station-breakdown')).toBeVisible({ timeout: 1000 });
+		}).toPass({ timeout: 15_000 });
+		await expect(page.getByTestId('station-breakdown')).toContainText('Lägerplatsen');
+		await expect(page.getByTestId('station-breakdown')).toContainText('18/20');
 		await shot(page, 'results');
+		// CSV export: one column per station (points incl. style, plus a style column).
+		const csv = await (await page.request.get(`/admin/${SLUG}/results.csv`)).text();
+		const [head, ...lines] = csv.replace(/^\uFEFF/, '').split('\r\n');
+		const cols = head.split(';');
+		expect(cols).toContain('Lägerplatsen');
+		expect(cols).toContain('Lägerplatsen stil');
+		const line112 = lines.find((l) => l.split(';')[2] === '112')!.split(';');
+		expect(line112[cols.indexOf('Lägerplatsen')]).toBe('22');
+		expect(line112[cols.indexOf('Lägerplatsen stil')]).toBe('4');
+		expect(line112[cols.indexOf('Repstegen')]).toBe('–');
 
 		// 6. Public page at phone width.
 		await page.setViewportSize({ width: 390, height: 844 });
@@ -105,7 +124,36 @@ test('live dashboard, patrol edit, results, public page and ceremony', async ({ 
 		await expect(page.getByText(/Vid lika totalpoäng vinner flest poäng utan stil/)).toBeVisible();
 		const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
 		expect(overflow).toBe(false);
+		// During the competition points per station are hidden by default: rows are not buttons.
+		await expect(pub112.getByRole('button')).toHaveCount(0);
 		await shot(page, 'public');
+
+		// 6b. Turned on in Inställningar → tap a patrol for its points per station.
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await page.goto(`/admin/${SLUG}/settings`);
+		const sw = page.getByRole('switch', { name: 'Visa poäng per kontroll under tävlingen' });
+		await expect(sw).not.toBeChecked();
+		await sw.check();
+		await page.getByRole('button', { name: 'Spara grundinfo' }).click();
+		await expect(page.getByRole('status').filter({ hasText: 'Sparat' }).first()).toBeVisible();
+		try {
+			await page.setViewportSize({ width: 390, height: 844 });
+			// /r is cacheable for 5 s (max-age=5); a new URL skips the copy from step 6.
+			await page.goto(`/r/${SLUG}?efter-installning`);
+			await expect(async () => {
+				await page.getByRole('button', { name: 'Upptäckare' }).click();
+				// getAttribute would wait for the row; count() does not, so a retry clicks the tab again.
+				const btn = pub112.getByRole('button');
+				if ((await btn.count()) && (await btn.getAttribute('aria-expanded')) !== 'true') await btn.click();
+				await expect(pub112.getByTestId('station-breakdown')).toBeVisible({ timeout: 1000 });
+			}).toPass({ timeout: 15_000 });
+			await expect(pub112.getByRole('button')).toHaveAttribute('aria-expanded', 'true');
+			await expect(pub112.getByTestId('station-breakdown')).toContainText('18/20');
+			expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+			await shot(page, 'public-stations');
+		} finally {
+			await sql`update competition set station_results_live = false where id = ${comp.id}`;
+		}
 
 		// 7. Ceremony.
 		await page.setViewportSize({ width: 1600, height: 900 });

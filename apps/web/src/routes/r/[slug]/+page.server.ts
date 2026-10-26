@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { refuseIfSuspended } from '#lib/server/suspended.ts';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
-import { getResults, publicTracks } from '#lib/server/live.ts';
+import { getResults, publicTracks, showStationResults } from '#lib/server/live.ts';
 import { loadBranding, loadTrackColors } from '#lib/server/assets.ts';
 
 /** Public, phone-first results. Only when publicResults; no personal data (patrol name + kår). */
@@ -13,5 +13,5 @@ export async function load({ params, setHeaders }) {
 	const res = await getResults(comp, 10_000);
 	setHeaders({ 'cache-control': 'public, max-age=5' });
 	const [branding, trackColors] = await Promise.all([loadBranding(comp), loadTrackColors(comp.id)]);
-	return { comp: { slug: comp.slug, name: comp.name, location: comp.location, final: comp.status === 'closed' }, seq: res.seq, tracks: publicTracks(res.tracks), branding, trackColors };
+	return { comp: { slug: comp.slug, name: comp.name, location: comp.location, final: comp.status === 'closed' }, seq: res.seq, tracks: publicTracks(res.tracks, showStationResults(comp)), branding, trackColors };
 }

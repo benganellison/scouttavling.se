@@ -63,6 +63,15 @@ test('1. the GökOpen series page shows this year and 2026 in the archive', asyn
 	await page.goto('/r/gokopen-2026');
 	await expect(page.getByTestId('final')).toHaveText('Slutresultat');
 	await expect(page.getByText('Myrorna').first()).toBeVisible();
+	// A closed (here archived) year always shows points per station.
+	const first = page.locator('[data-testid="public-list"] li').first();
+	await expect(async () => {
+		const btn = first.getByRole('button');
+		if ((await btn.count()) && (await btn.getAttribute('aria-expanded')) !== 'true') await btn.click();
+		await expect(first.getByTestId('station-breakdown')).toBeVisible({ timeout: 1000 });
+	}).toPass({ timeout: 15_000 });
+	await expect(first.getByTestId('station-breakdown')).toContainText('Lägerplatsen');
+	await shot(page, 'archive-stations');
 	await page.goto('/t/gokopen-2027');
 	await expect(page.getByTestId('series-link')).toHaveAttribute('href', '/t/gokopen');
 	await ctx.close();

@@ -86,6 +86,8 @@ export const competition = pgTable('competition', {
 	/** Competition-wide switch; each item can additionally turn style off. */
 	styleEnabled: boolean('style_enabled').notNull().default(true),
 	publicResults: boolean('public_results').notNull().default(false),
+	/** Public results also show points per station while the competition runs. Closed editions always do. */
+	stationResultsLive: boolean('station_results_live').notNull().default(false),
 	registrationOpen: boolean('registration_open').notNull().default(false),
 	/** Self-registration window (inclusive dates, Swedish time). null = no limit on that side; closes defaults to endDate. */
 	registrationOpensOn: date('registration_opens_on'),

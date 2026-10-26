@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { refuseIfSuspended } from '#lib/server/suspended.ts';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
-import { cursorFrom, frame, getResults, publicTracks, sseResponse } from '#lib/server/live.ts';
+import { cursorFrom, frame, getResults, publicTracks, showStationResults, sseResponse } from '#lib/server/live.ts';
 
 const PUBLIC_KINDS = new Set(['score', 'patrol', 'competition', 'station']);
 const COALESCE_MS = 10_000;
@@ -26,10 +26,13 @@ export async function GET({ params, request, url }) {
 		const emit = async () => {
 			timer = null;
 			lastEmit = Date.now();
-			const [fresh] = await db.select({ publicResults: schema.competition.publicResults }).from(schema.competition).where(eq(schema.competition.id, comp.id));
+			const [fresh] = await db
+				.select({ publicResults: schema.competition.publicResults, status: schema.competition.status, stationResultsLive: schema.competition.stationResultsLive })
+				.from(schema.competition)
+				.where(eq(schema.competition.id, comp.id));
 			if (!fresh?.publicResults) return send(frame('closed', pendingSeq, {}));
 			const res = await getResults(comp, 0);
-			send(frame('results', pendingSeq, { seq: res.seq, tracks: publicTracks(res.tracks) }));
+			send(frame('results', pendingSeq, { seq: res.seq, tracks: publicTracks(res.tracks, showStationResults(fresh)) }));
 		};
 		timer = setTimeout(emit, Math.max(0, lastEmit + COALESCE_MS - Date.now()));
 	});

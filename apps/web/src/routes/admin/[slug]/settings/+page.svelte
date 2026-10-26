@@ -78,6 +78,12 @@
 		<div class="toggles">
 			<Toggle name="styleEnabled" checked={c.styleEnabled} label="Använd stilpoäng" description="Av = stilpoäng försvinner på funktionärens skärm, protokoll och resultat." />
 			<Toggle name="publicResults" checked={c.publicResults} label="Publika resultat" description="Resultatlistan syns för alla under dagen." />
+			<Toggle
+				name="stationResultsLive"
+				checked={c.stationResultsLive}
+				label="Visa poäng per kontroll under tävlingen"
+				description="Av = de publika resultaten visar bara totalen tills tävlingen är avslutad, så att ingen ser en kontrolls poäng innan de har varit där. Efteråt, och i arkivet, syns poängen per kontroll alltid."
+			/>
 		</div>
 		<div class="act">
 			<button class="btn btn-primary" disabled={!canEdit}>Spara grundinfo</button>
