@@ -30,7 +30,7 @@
 				<span class="pill pill-warn">Endast utveckling</span>
 				<input type="hidden" name="next" value={data.next} />
 				<div class="row">
-					<button class="btn" name="who" value="erik">Logga in som Erik (tävlingsledare)</button>
+					<button class="btn" name="who" value="bengt">Logga in som Bengt (tävlingsledare)</button>
 					<button class="btn" name="who" value="anna">Logga in som Anna</button>
 				</div>
 			</form>

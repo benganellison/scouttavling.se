@@ -70,17 +70,17 @@ async function main() {
 		await db.delete(s.series).where(inArray(s.series.id, oldSeries.map((x) => x.id)));
 	}
 
-	const [erik] = await db
+	const [bengt] = await db
 		.insert(s.appUser)
-		.values({ memberNo: '3000001', name: 'Erik Rydberg', email: 'erik@example.org', groups: [{ groupNo: '900', name: 'Granlidens scoutkår' }, { groupNo: '90', name: 'Göteborgs scoutdistrikt' }] })
-		.onConflictDoUpdate({ target: s.appUser.memberNo, set: { name: 'Erik Rydberg' } })
+		.values({ memberNo: '3000001', name: 'Bengt Ellison', email: 'bengt@example.org', groups: [{ groupNo: '900', name: 'Granlidens scoutkår' }, { groupNo: '90', name: 'Göteborgs scoutdistrikt' }] })
+		.onConflictDoUpdate({ target: s.appUser.memberNo, set: { name: 'Bengt Ellison' } })
 		.returning();
 
 	// ---------- Series GökOpen: shared branding and class colours ----------
 	const [gokopen] = await db
 		.insert(s.series)
 		.values({
-			slug: 'gokopen', name: 'GökOpen', ownerGroupNo: '900', ownerGroupName: 'Granlidens scoutkår', createdBy: erik.id,
+			slug: 'gokopen', name: 'GökOpen', ownerGroupNo: '900', ownerGroupName: 'Granlidens scoutkår', createdBy: bengt.id,
 			// Upptäckarblå accent (black text on it, 7.7:1); the forest cover fills its band.
 			accentColor: '#00a8e1', coverFit: 'cover',
 			// Class colours by name (age-group colours; Ledare = Scoutblå).
@@ -94,7 +94,7 @@ async function main() {
 		.values({
 			slug: 'gokopen-2027', name: 'GökOpen 2027', ownerGroupNo: '900', ownerGroupName: 'Granlidens scoutkår',
 			startDate: '2027-05-15', endDate: '2027-05-15', location: 'Gökskogens lägerplats', hqPhone: '070-111 22 33',
-			publicResults: true, registrationOpen: true, status: 'live', patrolCodeKey: 'dev-key-gokopen', createdBy: erik.id,
+			publicResults: true, registrationOpen: true, status: 'live', patrolCodeKey: 'dev-key-gokopen', createdBy: bengt.id,
 			registrationOpensOn: '2026-09-01', registrationClosesOn: '2027-05-01', maxPatrols: 40,
 			infoText: 'Välkomna till GökOpen! Banan är cirka 6 km genom Gökskogen. Samling vid lägerplatsens flaggstång kl. 08.30, första start 09.00.\n\nTa med matsäck, vattenflaska, kläder efter väder och en penna.',
 			confirmationText: 'Startavgiften är 150 kr per patrull och betalas till kårens konto senast 1 maj.',
@@ -103,7 +103,7 @@ async function main() {
 			seriesId: gokopen.id, editionYear: 2027
 		})
 		.returning();
-	await db.insert(s.competitionMember).values({ competitionId: open.id, userId: erik.id, role: 'owner' });
+	await db.insert(s.competitionMember).values({ competitionId: open.id, userId: bengt.id, role: 'owner' });
 
 	const tracks = await db
 		.insert(s.track)
@@ -158,9 +158,9 @@ async function main() {
 			const it = rangeItems[i];
 			const [sc] = await db
 				.insert(s.score)
-				.values({ competitionId: open.id, patrolId: byNr[nr].id, itemId: it.id, points, stylePoints: style, raw: { value: points, style }, origin: 'admin', userId: erik.id })
+				.values({ competitionId: open.id, patrolId: byNr[nr].id, itemId: it.id, points, stylePoints: style, raw: { value: points, style }, origin: 'admin', userId: bengt.id })
 				.returning();
-			await db.insert(s.scoreRevision).values({ scoreId: sc.id, version: 1, points, stylePoints: style, state: 'active', origin: 'admin', userId: erik.id, reason: 'seed' });
+			await db.insert(s.scoreRevision).values({ scoreId: sc.id, version: 1, points, stylePoints: style, state: 'active', origin: 'admin', userId: bengt.id, reason: 'seed' });
 		}
 	}
 
@@ -170,7 +170,7 @@ async function main() {
 		if (!v.ok) throw new Error(`${file}: ${v.reason}`);
 		await db.insert(s.asset).values({
 			seriesId: gokopen.id, kind, mime: v.mime, size: v.bytes.length, width: v.width, height: v.height,
-			sha256: createHash('sha256').update(v.bytes).digest('hex'), data: v.bytes, uploadedBy: erik.id
+			sha256: createHash('sha256').update(v.bytes).digest('hex'), data: v.bytes, uploadedBy: bengt.id
 		});
 	}
 
@@ -180,11 +180,11 @@ async function main() {
 		.values({
 			slug: 'gokopen-2026', name: 'GökOpen 2026', ownerGroupNo: '900', ownerGroupName: 'Granlidens scoutkår',
 			startDate: '2026-05-16', endDate: '2026-05-16', location: 'Gökskogens lägerplats', publicResults: true, status: 'closed',
-			patrolCodeKey: 'dev-key-gokopen-2026', createdBy: erik.id, seriesId: gokopen.id, editionYear: 2026,
+			patrolCodeKey: 'dev-key-gokopen-2026', createdBy: bengt.id, seriesId: gokopen.id, editionYear: 2026,
 			infoText: 'GökOpen 2026 gick genom Gökskogen med tretton kontroller.', anonymisedAt: new Date('2026-06-01T10:00:00Z')
 		})
 		.returning();
-	await db.insert(s.competitionMember).values({ competitionId: prev.id, userId: erik.id, role: 'owner' });
+	await db.insert(s.competitionMember).values({ competitionId: prev.id, userId: bengt.id, role: 'owner' });
 	const prevTracks = await db
 		.insert(s.track)
 		.values(['Spårare', 'Upptäckare', 'Äventyrare', 'Utmanare'].map((name, i) => ({ competitionId: prev.id, name, sort: i + 1 })))
@@ -247,17 +247,17 @@ async function main() {
 	// ---------- GökHajk 2027: three days (a one-edition series) ----------
 	const [gokhajk] = await db
 		.insert(s.series)
-		.values({ slug: 'gokhajk', name: 'GökHajk', ownerGroupNo: '90', ownerGroupName: 'Göteborgs scoutdistrikt', createdBy: erik.id })
+		.values({ slug: 'gokhajk', name: 'GökHajk', ownerGroupNo: '90', ownerGroupName: 'Göteborgs scoutdistrikt', createdBy: bengt.id })
 		.returning();
 	const [hajk] = await db
 		.insert(s.competition)
 		.values({
 			slug: 'gokhajk-2027', name: 'GökHajk 2027', ownerGroupNo: '90', ownerGroupName: 'Göteborgs scoutdistrikt', multiDay: true,
-			startDate: '2027-05-14', endDate: '2027-05-16', location: 'Gökskogen', status: 'draft', patrolCodeKey: 'dev-key-gokhajk', createdBy: erik.id,
+			startDate: '2027-05-14', endDate: '2027-05-16', location: 'Gökskogen', status: 'draft', patrolCodeKey: 'dev-key-gokhajk', createdBy: bengt.id,
 			seriesId: gokhajk.id, editionYear: 2027
 		})
 		.returning();
-	await db.insert(s.competitionMember).values({ competitionId: hajk.id, userId: erik.id, role: 'owner' });
+	await db.insert(s.competitionMember).values({ competitionId: hajk.id, userId: bengt.id, role: 'owner' });
 	const days = await db
 		.insert(s.day)
 		.values([['2027-05-14', 'Fredag', 'F'], ['2027-05-15', 'Lördag', 'L'], ['2027-05-16', 'Söndag', 'S']].map(([date, name, prefix], i) => ({ competitionId: hajk.id, date, name, prefix, sort: i + 1 })))

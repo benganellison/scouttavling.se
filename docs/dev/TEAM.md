@@ -25,7 +25,7 @@ Read this first. Architecture: `docs/architecture/` (01-overview.md is binding).
 - `change_log.seq` is **per competition** and assigned by a DB trigger. Never set it yourself; always filter by `competition_id`.
 - Demo data: `cd apps/web && npm run db:seed`. It wipes and recreates the series `gokopen` (branding, class colours; editions `gokopen-2026`: closed, archived, with results, and the current `gokopen-2027`) and `gokhajk`. `gokopen-2027` (single day, 14 stations including "Mål" with 4 items, 14 patrols, some scores, a tie between 112 and 137) and `gokhajk-2027` (3 days, F/L/S codes).
 - Dev server: **use your own port** with `PORT=<your port> scripts/dev-server.sh start|stop` (run in `apps/web`). Never `pkill -f vite`: it kills other agents' servers. The log is `.dev-server-<port>.log`.
-- Log in (dev): POST `/login?/dev` with `who=erik`. In a browser, `/login` → "Logga in som Erik". Erik owns both demo competitions.
+- Log in (dev): POST `/login?/dev` with `who=bengt`. In a browser, `/login` → "Logga in som Bengt". Bengt owns both demo competitions.
 - Unit tests: `npx vitest run` (root). Put tests next to code as `*.test.ts`.
 - Browser checks: Playwright 1.64.1 is installed (`@playwright/test`, browsers cached). Write e2e specs as `apps/web/e2e/<area>.e2e.ts`. Use a phone viewport (390×844) for field screens.
 

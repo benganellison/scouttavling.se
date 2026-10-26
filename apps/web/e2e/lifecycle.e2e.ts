@@ -158,7 +158,7 @@ async function goOnline(ctx: BrowserContext, p: Page, pill: string | RegExp = 'S
 const nav = (p: Page, name: string) => p.getByRole('navigation', { name: 'Tävlingsmeny' }).getByRole('link', { name, exact: true }).click();
 
 // ------------------------------------------------------------------ shared state across the serial steps
-let erik: Page;
+let bengt: Page;
 const links: Record<string, string> = {};
 const phones: Record<string, { ctx: BrowserContext; page: Page }> = {};
 
@@ -168,7 +168,7 @@ test.beforeAll(async ({ browser }) => {
 	const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
 	await sql`delete from competition where slug = ${SLUG}`; // repeatable runs (and the 5/day creation limit)
 	await sql.end();
-	erik = (await actor(browser, '00-erik-organiser', DESKTOP)).page;
+	bengt = (await actor(browser, '00-bengt-organiser', DESKTOP)).page;
 });
 
 test.afterEach(async ({}, info) => {
@@ -185,9 +185,9 @@ test.afterAll(async () => {
 
 // ------------------------------------------------------------------ 1
 test('1 organiser creates the competition and shapes the stations', async () => {
-	const p = erik;
+	const p = bengt;
 	await p.goto('/login');
-	await p.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await p.getByRole('button', { name: /Logga in som Bengt/ }).click();
 	await p.waitForURL(/\/admin$/);
 	await p.getByRole('link', { name: 'Ny tävling' }).click();
 	await p.getByLabel('Namn', { exact: true }).pressSequentially(NAME, { delay: 40 });
@@ -276,7 +276,7 @@ test('1 organiser creates the competition and shapes the stations', async () => 
 
 // ------------------------------------------------------------------ 2
 test('2 patrols: import with a blocked Personnummer column, add one by hand, edit it', async () => {
-	const p = erik;
+	const p = bengt;
 	const imported = PLAN.filter((x) => x.nr <= 106);
 	const csv = [
 		'Patrullnamn;Klass;Kår;Kontaktperson;Mobil;Personnummer;Medlemmar',
@@ -315,7 +315,7 @@ test('2 patrols: import with a blocked Personnummer column, add one by hand, edi
 
 // ------------------------------------------------------------------ 3
 test('3 distribute start stations and print', async () => {
-	const p = erik;
+	const p = bengt;
 	await nav(p, 'Fördela start');
 	await p.waitForLoadState('networkidle');
 	await p.getByRole('button', { name: 'Spara fördelning' }).click();
@@ -333,7 +333,7 @@ test('3 distribute start stations and print', async () => {
 
 // ------------------------------------------------------------------ 4
 test('4 invites through the UI, then go live', async () => {
-	const p = erik;
+	const p = bengt;
 	await nav(p, 'Funktionärer');
 	for (const name of ['Fredag start', 'Eldstaden', 'Knopar', 'Fredag mål', 'Lördag start', 'Kanoten', 'Första hjälpen', 'Mål']) {
 		await p.getByRole('link', { name: new RegExp(`^\\w+ ${name}$`) }).click();
@@ -443,7 +443,7 @@ test('5 day 1: desk starts patrols, two volunteers score, one offline', async ({
 	await shot(d, '19d-desk-i-lager');
 
 	// HQ: KPI and no "inte sedd" alarm for a patrol in camp (live.test.ts covers the 45-minute rule itself).
-	const hq = erik;
+	const hq = bengt;
 	await hq.goto(`${ADMIN}/live`);
 	await expect(hq.locator('.kpi', { hasText: 'I läger' }).locator('.v')).toHaveText(String(scorers.length));
 	await expect(hq.locator('.kpi', { hasText: 'På banan' }).locator('.v')).toHaveText('1'); // 106, never scored
@@ -472,7 +472,7 @@ test('6 (step 7) conflict: a stale offline device scores 105 at Knopar different
 	await c.page.getByRole('link', { name: 'Logg' }).click();
 	await shot(c.page, '21b-cia-log-conflict');
 
-	const p = erik;
+	const p = bengt;
 	await p.goto(`${ADMIN}/conflicts`);
 	const card = p.getByTestId('conflict').first();
 	await expect(card).toContainText('105 Lodjuren', { timeout: 30_000 });
@@ -486,7 +486,7 @@ test('6 (step 7) conflict: a stale offline device scores 105 at Knopar different
 
 // ------------------------------------------------------------------ 6 day 2 (+ HQ live)
 test('7 (step 6) day 2: volunteers score, HQ sees it live, Mål sets I mål, desk finishes and marks Återbud', async ({ browser }) => {
-	const p = erik;
+	const p = bengt;
 	await p.goto(`${ADMIN}/live`);
 	await expect(p.getByTestId('live-status')).toHaveAttribute('data-status', 'open', { timeout: 20_000 });
 	const navs: string[] = [];
@@ -544,7 +544,7 @@ test('7 (step 6) day 2: volunteers score, HQ sees it live, Mål sets I mål, des
 
 // ------------------------------------------------------------------ 8 HQ
 test('8 HQ: correction with reason, message with read receipt, backup mode on/off', async () => {
-	const p = erik;
+	const p = bengt;
 	await p.goto(`${ADMIN}/patrol/107`);
 	await expect(p.getByRole('heading', { name: 'Sniglarna' })).toBeVisible();
 	await expect(async () => {
@@ -555,7 +555,7 @@ test('8 HQ: correction with reason, message with read receipt, backup mode on/of
 	await form.locator('label.chip', { hasText: /^\s*7\s*$/ }).first().click();
 	await form.getByLabel('Anledning').fill('fel siffra på lappen');
 	await form.getByRole('button', { name: 'Spara ändring' }).click();
-	await expect(p.getByTestId('timeline')).toContainText('L2 ändrad av Erik · var 6 + 1 → 7 + 1');
+	await expect(p.getByTestId('timeline')).toContainText('L2 ändrad av Bengt · var 6 + 1 → 7 + 1');
 	await expect(p.getByTestId('timeline')).toContainText('fel siffra på lappen');
 	await shot(p, '29-patrol-correction', true);
 
@@ -590,7 +590,7 @@ test('8 HQ: correction with reason, message with read receipt, backup mode on/of
 
 // ------------------------------------------------------------------ 9 after
 test('9 results vs independent calculation, public page, ceremony, close, CSV', async ({ browser }) => {
-	const p = erik;
+	const p = bengt;
 	await nav(p, 'Resultat');
 	for (const cls of ['Upptäckare', 'Utmanare'] as const) {
 		await p.getByRole('link', { name: new RegExp(`^${cls}`) }).click();

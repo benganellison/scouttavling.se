@@ -198,7 +198,7 @@ test('02 ledningscentralen live', async ({ browser }) => {
 	const { page: ph } = await actor(browser, 'demo-02-phone', PHONE, true);
 	// HQ logs in while the phone joins.
 	await hq.goto('/login');
-	await hq.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await hq.getByRole('button', { name: /Logga in som Bengt/ }).click();
 	await hq.waitForURL(/\/admin$/);
 	await hq.goto(`/admin/${SLUG}/live`);
 	await expect(hq.getByTestId('live-status')).toHaveAttribute('data-status', 'open', { timeout: 15_000 });
@@ -283,7 +283,7 @@ test('03 mål med flera delar', async ({ browser }) => {
 test('04 prisutdelning', async ({ browser }) => {
 	const { page } = await actor(browser, 'demo-04-prisutdelning', STAGE);
 	await page.goto('/login');
-	await page.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await page.getByRole('button', { name: /Logga in som Bengt/ }).click();
 	await page.waitForURL(/\/admin$/);
 	await page.goto(`/r/${SLUG}/ceremony`);
 	await page.getByRole('link', { name: /Upptäckare/ }).click();
@@ -313,7 +313,7 @@ test('05 tävlingens eget utseende', async ({ browser }) => {
 	// The organiser: Inställningar → Utseende, then the public page on a big screen.
 	const { page: org } = await actor(browser, 'demo-05-utseende', DESK5);
 	await org.goto('/login');
-	await org.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await org.getByRole('button', { name: /Logga in som Bengt/ }).click();
 	await org.waitForURL(/\/admin$/);
 	await org.goto(`/admin/${SLUG}/settings#utseende`);
 	const look = org.locator('#utseende');
@@ -378,7 +378,7 @@ test('05 tävlingens eget utseende', async ({ browser }) => {
 	// Printed scorecards carry the event logo too.
 	const { page: pr } = await actor(browser, 'demo-05-utskrift', DESK5);
 	await pr.goto('/login');
-	await pr.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await pr.getByRole('button', { name: /Logga in som Bengt/ }).click();
 	await pr.waitForURL(/\/admin$/);
 	await pr.goto(`/admin/${SLUG}/print/scorecards`);
 	await expect(pr.getByTestId('print-event-logo').first()).toBeVisible();

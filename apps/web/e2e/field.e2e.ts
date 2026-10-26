@@ -53,7 +53,7 @@ test.afterAll(async () => {
 
 test('1–2: join a station as Anna', async () => {
 	await page.goto(`/j/${k6Secret}`);
-	await expect(page.getByText('Erik i tävlingsledningen bjuder in dig till')).toBeVisible();
+	await expect(page.getByText('Bengt i tävlingsledningen bjuder in dig till')).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'K6 · Första hjälpen' })).toBeVisible();
 	await page.getByLabel('Vad heter du?').fill('Anna Berg');
 	await expect(page.getByRole('button', { name: 'Öppna min kontroll' })).toBeEnabled();

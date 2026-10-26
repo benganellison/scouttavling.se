@@ -76,7 +76,7 @@ test('organiser uploads logos and cover, sets the accent; SVG in disguise is rej
 	await page.goto('/login');
 	// Scouterna as sender on the login page: white logo on Scoutblå.
 	await expect(page.locator('[data-scouterna-logo="white"] img[alt="Scouterna"]')).toBeVisible();
-	await page.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await page.getByRole('button', { name: /Logga in som Bengt/ }).click();
 	await page.waitForURL(/\/admin/);
 	await page.goto(`/admin/${SLUG}/settings#utseende`);
 	await expect(page.getByRole('heading', { name: 'Utseende' })).toBeVisible();

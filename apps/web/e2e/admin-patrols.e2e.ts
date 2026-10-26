@@ -25,9 +25,9 @@ function scoutnetHtml(): string {
 }
 
 test('import, distribute, invite and print', async ({ page }) => {
-	// 1. Log in as Erik (dev login)
+	// 1. Log in as Bengt (dev login)
 	await page.goto('/login');
-	await page.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await page.getByRole('button', { name: /Logga in som Bengt/ }).click();
 	await page.waitForURL(/\/admin/);
 
 	// 2. Import a fake Scoutnet export

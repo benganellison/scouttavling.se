@@ -49,7 +49,7 @@ docker compose -f compose.dev.yaml up -d      # PostgreSQL 18.6 on 127.0.0.1:554
 cd apps/web
 cp .env.example .env
 npm run db:reset                              # migrate + demo data (GökOpen, GökHajk)
-npm run dev                                   # http://localhost:5173 → /login → "Logga in som Erik"
+npm run dev                                   # http://localhost:5173 → /login → "Logga in som Bengt"
 ```
 
 | Task | Command (in `apps/web`) |

@@ -50,10 +50,10 @@ test.afterEach(async ({}, info) => {
 	for (const c of open.splice(0)) await c.close().catch(() => undefined);
 });
 
-async function loginErik(page: Page) {
+async function loginBengt(page: Page) {
 	await page.goto('/login');
 	await beat(page, 400);
-	await page.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await page.getByRole('button', { name: /Logga in som Bengt/ }).click();
 	await page.waitForURL(/\/admin$/);
 }
 
@@ -106,7 +106,7 @@ test.describe('1 organiser prepares', () => {
 	test('organiser prepares a 2-day competition', async ({ browser }) => {
 		const { page } = await actor(browser, '01-organiser', DESKTOP, false);
 		await sql`delete from competition where slug like 'uat-%'`;
-		await loginErik(page);
+		await loginBengt(page);
 		await expect(page.getByRole('heading', { name: 'Mina tävlingar' })).toBeVisible();
 		await shot(page, '01-admin-start');
 
@@ -229,20 +229,20 @@ test.describe('2 volunteer offline', () => {
 		const { page, ctx: context } = await actor(browser, '02-volunteer-offline', PHONE, true);
 		await clearScores([104, 108, 112, 137], 'Repstegen');
 		await sql`delete from invite where station_id = (select s.id from station s join competition c on c.id = s.competition_id where c.slug = ${SLUG} and s.name = 'Repstegen')`;
-		// Erik creates the invite through the UI in his own context.
-		const erik = await browser.newContext({ viewport: DESKTOP, baseURL: BASE });
-		const ep = await erik.newPage();
-		await loginErik(ep);
+		// Bengt creates the invite through the UI in their own context.
+		const bengt = await browser.newContext({ viewport: DESKTOP, baseURL: BASE });
+		const ep = await bengt.newPage();
+		await loginBengt(ep);
 		await ep.goto(`/admin/${SLUG}/invites`);
 		await ep.getByRole('link', { name: /Repstegen/ }).click();
 		await expect(ep.getByRole('heading', { name: 'K8 · Repstegen' })).toBeVisible();
 		await ep.getByRole('button', { name: 'Skapa inbjudan' }).click();
 		const link = await ep.locator('#invlink').inputValue();
 		expect(link.startsWith(`${BASE}/j/`)).toBe(true);
-		await erik.close();
+		await bengt.close();
 
 		await page.goto(link);
-		await expect(page.getByText('Erik i tävlingsledningen bjuder in dig till')).toBeVisible();
+		await expect(page.getByText('Bengt i tävlingsledningen bjuder in dig till')).toBeVisible();
 		await page.getByLabel('Vad heter du?').pressSequentially('Anna', { delay: 80 });
 		await beat(page);
 		await shot(page, '11-join');
@@ -401,7 +401,7 @@ test.describe('5 hq live', () => {
 	test('HQ sees a score live, edits it and messages the volunteer', async ({ browser }) => {
 		const { page } = await actor(browser, '05-hq-live', DESKTOP, false);
 		await clearScores([137], 'Repstegen');
-		await loginErik(page);
+		await loginBengt(page);
 		await page.goto(`/admin/${SLUG}/live`);
 		await expect(page.getByRole('heading', { name: 'Ledningscentralen' })).toBeVisible();
 		await expect(page.getByTestId('live-status')).toHaveAttribute('data-status', 'open', { timeout: 15_000 });
@@ -441,7 +441,7 @@ test.describe('5 hq live', () => {
 		await shot(page, '29-patrol-edit');
 		await form.getByRole('button', { name: 'Spara ändring' }).click();
 		await expect(form.getByRole('status')).toContainText('sparad');
-		await expect(page.getByTestId('timeline')).toContainText('K8 ändrad av Erik · var 17 + 3 → 16 + 3');
+		await expect(page.getByTestId('timeline')).toContainText('K8 ändrad av Bengt · var 17 + 3 → 16 + 3');
 		await expect(page.getByTestId('timeline')).toContainText('fel siffra på lappen');
 		await beat(page, 1000);
 		await shot(page, '30-patrol-history', true);
@@ -482,7 +482,7 @@ test.describe('6 results', () => {
 
 	test('results, public page and prize ceremony', async ({ browser }) => {
 		const { page } = await actor(browser, '06-results-ceremony', DESKTOP, false);
-		await loginErik(page);
+		await loginBengt(page);
 		const [upp] = await sql`select t.id from track t join competition c on c.id = t.competition_id where c.slug = ${SLUG} and t.name = 'Upptäckare'`;
 		await page.goto(`/admin/${SLUG}/results?class=${upp.id}`);
 		await expect(page.getByRole('heading', { name: 'Resultat' })).toBeVisible();
@@ -539,7 +539,7 @@ test.describe('7 print', () => {
 
 	test('scorecards and reserve protocol', async ({ browser }) => {
 		const { page } = await actor(browser, '07-print', DESKTOP, false);
-		await loginErik(page);
+		await loginBengt(page);
 		// The seed gives gokhajk-2027 no patrols, so its scorecards are an empty state;
 		// the multi-day cards with patrols are shown for UAT Vårhajk (imported in scenario 1).
 		await page.goto('/admin/gokhajk-2027/print/scorecards');
@@ -594,16 +594,16 @@ test.describe('8 accessibility smoke', () => {
 	test('every page has an h1, named controls; keyboard through the score screen', async ({ browser }) => {
 		const { page } = await actor(browser, '08-a11y', PHONE, true);
 		const report: Record<string, unknown> = {};
-		const erik = await browser.newContext({ viewport: DESKTOP, baseURL: BASE });
-		const ep = await erik.newPage();
-		await loginErik(ep);
+		const bengt = await browser.newContext({ viewport: DESKTOP, baseURL: BASE });
+		const ep = await bengt.newPage();
+		await loginBengt(ep);
 		const adminPages = ['/admin', '/admin/new', `/admin/${SLUG}`, `/admin/${SLUG}/stations`, `/admin/${SLUG}/patrols`, `/admin/${SLUG}/import`, `/admin/${SLUG}/distribution`, `/admin/${SLUG}/invites`, `/admin/${SLUG}/print`, `/admin/${SLUG}/settings`, `/admin/${SLUG}/live`, `/admin/${SLUG}/messages`, `/admin/${SLUG}/conflicts`, `/admin/${SLUG}/results`, `/admin/${SLUG}/patrol/112`, `/admin/${SLUG}/live/paper`, '/admin/uat-varhajk/print/scorecards', `/admin/${SLUG}/print/protocol`];
 		for (const p of adminPages) {
 			await ep.goto(p);
 			await ep.waitForLoadState('networkidle').catch(() => undefined);
 			report[p] = await audit(ep);
 		}
-		await erik.close();
+		await bengt.close();
 
 		for (const p of ['/', '/login', `/r/${SLUG}`, `/r/${SLUG}/ceremony`]) {
 			await page.goto(p);

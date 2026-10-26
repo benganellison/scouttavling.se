@@ -21,7 +21,7 @@ const NAMES = ['Tindra Testsson', 'Kontakt Påhittad', 'Volontär Exempelsson'];
 
 async function login(page: Page) {
 	await page.goto('/login');
-	await page.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await page.getByRole('button', { name: /Logga in som Bengt/ }).click();
 	await page.waitForURL(/\/admin/);
 }
 
@@ -191,7 +191,7 @@ test('3. close 2028, remove personal data: links archived, results unchanged, no
 	await sql`insert into competition_member (competition_id, user_id, role) select ${cid}, id, 'organiser' from app_user where member_no = '3000002' on conflict do nothing`;
 	await anna.goto(`/admin/${NEW}`);
 	const annaCard = anna.getByTestId('personal-data-reminder');
-	await expect(annaCard.getByTestId('ask-owner')).toHaveText(/Be ägaren \(Erik Rydberg\) ta bort personuppgifterna/);
+	await expect(annaCard.getByTestId('ask-owner')).toHaveText(/Be ägaren \(Bengt Ellison\) ta bort personuppgifterna/);
 	await expect(annaCard.getByRole('link', { name: 'Ta bort personuppgifter' })).toHaveCount(0);
 	await shot(anna, 'organiser-reminder');
 	await anna.setViewportSize(PHONE);

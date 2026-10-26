@@ -34,7 +34,7 @@ test.beforeAll(async ({ browser }: { browser: Browser }) => {
 	admin = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 	adminPage = await admin.newPage();
 	await adminPage.goto('/login');
-	await adminPage.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await adminPage.getByRole('button', { name: /Logga in som Bengt/ }).click();
 	await adminPage.waitForURL(/\/admin/);
 });
 
@@ -257,14 +257,14 @@ test('fix: conflicts name the reporter; phone shows "Nekad" and a closed banner'
 
 	// A conflict on that score: the existing side must show the device name, the new side the organiser.
 	const [s] = await sql`select s.id, s.item_id, s.version, s.points from score s where s.patrol_id = ${await patrolId(128)} and s.origin = 'device'`;
-	const [erik] = await sql`select id from app_user where member_no = '3000001'`;
+	const [bengt] = await sql`select id from app_user where member_no = '3000001'`;
 	await sql`insert into score_conflict (competition_id, patrol_id, item_id, existing, incoming) values (${await compId()}, ${await patrolId(128)}, ${s.item_id},
 		${sql.json({ points: s.points, stylePoints: 2, version: s.version, state: 'active', origin: 'device' })},
-		${sql.json({ points: 9, stylePoints: 1, origin: 'admin', userId: erik.id, raw: { value: 9, style: 1 } })})`;
+		${sql.json({ points: 9, stylePoints: 1, origin: 'admin', userId: bengt.id, raw: { value: 9, style: 1 } })})`;
 	await adminPage.goto(`/admin/${SLUG}/conflicts`);
 	const card = adminPage.getByTestId('conflict').filter({ hasText: '128' });
 	await expect(card.locator('.side').first()).toContainText('Anna Rapport');
-	await expect(card.locator('.side.new')).toContainText('Erik Rydberg');
+	await expect(card.locator('.side.new')).toContainText('Bengt Ellison');
 	await card.screenshot({ path: 'e2e/screenshots/patrol-conflict.png' });
 	await card.getByRole('button', { name: 'Behåll' }).click();
 

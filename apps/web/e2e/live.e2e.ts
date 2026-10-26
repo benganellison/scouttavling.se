@@ -19,7 +19,7 @@ function databaseUrl() {
 
 async function login(page: Page) {
 	await page.goto('/login');
-	await page.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await page.getByRole('button', { name: /Logga in som Bengt/ }).click();
 	await page.waitForURL(/\/admin/);
 }
 
@@ -72,7 +72,7 @@ test('live dashboard, patrol edit, results, public page and ceremony', async ({ 
 		await form.getByLabel('Anledning').fill('fel patrull vald');
 		await form.getByRole('button', { name: 'Spara ändring' }).click();
 		await expect(form.getByRole('status')).toContainText('sparad');
-		await expect(page.getByTestId('timeline')).toContainText('K1 ändrad av Erik · var 18 + 4 → 16 + 3');
+		await expect(page.getByTestId('timeline')).toContainText('K1 ändrad av Bengt · var 18 + 4 → 16 + 3');
 		await expect(page.getByTestId('timeline')).toContainText("'fel patrull vald'");
 		await shot(page, 'patrol');
 
@@ -205,7 +205,7 @@ test('conflicts resolve and messages send', async ({ page }) => {
 		await expect(page.getByText('Den nya poängen används.')).toBeVisible();
 		await expect(page.getByTestId('conflict')).toHaveCount(0);
 		await page.goto(`/admin/${SLUG}/patrol/137`);
-		await expect(page.getByTestId('timeline')).toContainText('K2 ändrad av Erik · var 15 + 3 → 12 + 2');
+		await expect(page.getByTestId('timeline')).toContainText('K2 ändrad av Bengt · var 15 + 3 → 12 + 2');
 
 		await page.goto(`/admin/${SLUG}/messages`);
 		await expect(async () => {

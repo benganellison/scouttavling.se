@@ -3,7 +3,7 @@ import postgres from 'postgres';
 import { readFileSync } from 'node:fs';
 
 /*
- * Smoke: log in as Erik → create a 3-day competition → add a station with two
+ * Smoke: log in as Bengt → create a 3-day competition → add a station with two
  * items → see FS/F1… codes → overview checklist renders.
  * Run: PORT=5201 scripts/dev-server.sh start && npx playwright test -c e2e/admin-setup.config.ts
  */
@@ -24,7 +24,7 @@ test.beforeAll(async () => {
 
 test('organiser creates a multi-day competition and edits a station', async ({ page }) => {
 	await page.goto('/login');
-	await page.getByRole('button', { name: /Logga in som Erik/ }).click();
+	await page.getByRole('button', { name: /Logga in som Bengt/ }).click();
 	await expect(page).toHaveURL(/\/admin$/);
 	await expect(page.getByRole('heading', { name: 'Mina tävlingar' })).toBeVisible();
 

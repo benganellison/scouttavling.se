@@ -1,7 +1,7 @@
 /**
  * Owners manage owners, and the site admin (platform operator):
  * 1. an owner adds a co-owner and transfers ownership; the last owner cannot leave;
- * 2. the CLI makes Erik site admin; he replaces the owner of a competition whose owner is gone,
+ * 2. the CLI makes Bengt site admin, who replaces the owner of a competition whose owner is gone,
  *    suspends and reopens it (the public page says so), takes temporary access (the owner sees
  *    the notice) and reads the audit log;
  * 3. a non-admin (and a logged-out visitor) gets 404 on /site-admin.
@@ -24,7 +24,7 @@ const GONE_NO = '7200001';
 const ERIK = '3000001';
 const ANNA = '3000002';
 
-async function login(browser: Browser, who: 'Erik' | 'Anna', viewport = { width: 1280, height: 900 }) {
+async function login(browser: Browser, who: 'Bengt' | 'Anna', viewport = { width: 1280, height: 900 }) {
 	const ctx = await browser.newContext({ viewport });
 	const page = await ctx.newPage();
 	await page.goto('/login');
@@ -70,11 +70,11 @@ test.afterAll(async () => {
 });
 
 test('1. an owner adds a co-owner and transfers ownership; the last owner cannot leave', async ({ browser }) => {
-	const erik = await login(browser, 'Erik');
-	await open(erik, `/admin/${OWNERS}/settings`);
-	const sec = erik.locator('#agare');
+	const bengt = await login(browser, 'Bengt');
+	await open(bengt, `/admin/${OWNERS}/settings`);
+	const sec = bengt.locator('#agare');
 	await expect(sec.getByRole('heading', { name: 'Ägare och arrangörer' })).toBeVisible();
-	// Erik is the only owner: he cannot leave or become organiser.
+	// Bengt is the only owner and cannot leave or become organiser.
 	await expect(sec.getByTestId(`member-${ERIK}`).getByRole('button', { name: 'Lämna' })).toBeDisabled();
 	await expect(sec.getByTestId('only-owner')).toHaveText(/Du är enda ägaren/);
 
@@ -90,15 +90,15 @@ test('1. an owner adds a co-owner and transfers ownership; the last owner cannot
 	await expect(sec.getByTestId(`member-${ANNA}`)).toContainText('Arrangör');
 	await sec.getByTestId(`member-${ANNA}`).getByRole('button', { name: 'Överlåt ägarskapet' }).click();
 	await expect(sec.getByText(/Överlåt ägarskapet till Anna Berg\?/)).toBeVisible();
-	await shot(erik, 'settings-transfer-confirm');
+	await shot(bengt, 'settings-transfer-confirm');
 	await sec.getByRole('button', { name: 'Ja, överlåt' }).click();
 	await expect(sec.getByRole('status')).toHaveText(/Anna Berg är nu ägare, och du är arrangör/);
 	await expect(sec.getByTestId(`member-${ERIK}`)).toContainText('Arrangör');
-	// As organiser Erik can no longer touch the owner.
+	// As organiser Bengt can no longer touch the owner.
 	await expect(sec.getByTestId(`member-${ANNA}`).getByRole('button')).toHaveCount(0);
 	// The owners' audit log is not shown to organisers.
-	await expect(erik.locator('#logg')).toHaveCount(0);
-	await erik.context().close();
+	await expect(bengt.locator('#logg')).toHaveCount(0);
+	await bengt.context().close();
 
 	for (const [name, viewport] of [['desktop', { width: 1280, height: 900 }], ['phone', PHONE]] as const) {
 		const anna = await login(browser, 'Anna', viewport);
@@ -121,44 +121,44 @@ test('1. an owner adds a co-owner and transfers ownership; the last owner cannot
 	}
 });
 
-test('2. the CLI makes Erik site admin; he replaces a gone owner, suspends, takes temporary access, reads the log', async ({ browser }) => {
+test('2. the CLI makes Bengt site admin, who replaces a gone owner, suspends, takes temporary access, reads the log', async ({ browser }) => {
 	await expect(cli('grant', ERIK)).rejects.toMatchObject({ code: 2 });
 	const g = await cli('grant', ERIK, '--reason', 'Driftansvarig under e2e-test');
-	expect(g.stdout).toMatch(/Erik Rydberg \(3000001\) is now a site admin \(cli:e2e\)/);
-	expect((await cli('list')).stdout).toContain('Erik Rydberg');
+	expect(g.stdout).toMatch(/Bengt Ellison \(3000001\) is now a site admin \(cli:e2e\)/);
+	expect((await cli('list')).stdout).toContain('Bengt Ellison');
 
-	const erik = await login(browser, 'Erik');
-	await open(erik, '/admin');
-	await erik.getByRole('link', { name: 'Plattformsadmin' }).click();
-	await erik.getByLabel(/Tävling, serie, adress/).fill('borta');
-	await erik.getByRole('button', { name: 'Sök' }).click();
-	const hit = erik.getByTestId(`hit-${GONE}`);
+	const bengt = await login(browser, 'Bengt');
+	await open(bengt, '/admin');
+	await bengt.getByRole('link', { name: 'Plattformsadmin' }).click();
+	await bengt.getByLabel(/Tävling, serie, adress/).fill('borta');
+	await bengt.getByRole('button', { name: 'Sök' }).click();
+	const hit = bengt.getByTestId(`hit-${GONE}`);
 	await expect(hit).toContainText('Gustav Slutat');
 	await expect(hit).toContainText('Patruller');
-	await shot(erik, 'search-desktop');
+	await shot(bengt, 'search-desktop');
 	await hit.click();
-	await expect(erik.getByRole('heading', { level: 1, name: 'Bortaträffen 2027' })).toBeVisible();
+	await expect(bengt.getByRole('heading', { level: 1, name: 'Bortaträffen 2027' })).toBeVisible();
 	// A site admin does not get the admin pages automatically.
-	const denied = await erik.request.get(`/admin/${GONE}`);
+	const denied = await bengt.request.get(`/admin/${GONE}`);
 	expect(denied.status()).toBe(403);
 
 	// Replace the gone owner in one step (a reason is required).
-	await open(erik, `/site-admin/c/${GONE}`);
-	const row = erik.getByTestId(`member-${GONE_NO}`);
+	await open(bengt, `/site-admin/c/${GONE}`);
+	const row = bengt.getByTestId(`member-${GONE_NO}`);
 	await expect(row.getByRole('button', { name: 'Ta bort' })).toBeDisabled();
 	await row.getByRole('button', { name: 'Ersätt ägare' }).click();
 	await row.getByLabel('Ny ägares medlemsnummer').fill(ANNA);
 	await row.getByRole('button', { name: 'Ersätt', exact: true }).click();
-	await expect(erik.getByRole('alert').first()).toHaveText(/minst 10 tecken/);
-	await erik.locator('#mp-reason').fill('Ägaren har slutat, ärende från distriktet');
+	await expect(bengt.getByRole('alert').first()).toHaveText(/minst 10 tecken/);
+	await bengt.locator('#mp-reason').fill('Ägaren har slutat, ärende från distriktet');
 	await row.getByRole('button', { name: 'Ersätt', exact: true }).click();
-	await expect(erik.getByTestId(`member-${ANNA}`)).toContainText('Ägare');
-	await expect(erik.getByTestId(`member-${GONE_NO}`)).toHaveCount(0);
+	await expect(bengt.getByTestId(`member-${ANNA}`)).toContainText('Ägare');
+	await expect(bengt.getByTestId(`member-${GONE_NO}`)).toHaveCount(0);
 
 	// Suspend: the public page says so; reopen.
-	await erik.locator('#susp-reason').fill('Utreder en anmälan om missbruk');
-	await erik.getByRole('button', { name: 'Stäng av tävlingen' }).click();
-	await expect(erik.getByTestId('suspended-pill')).toBeVisible();
+	await bengt.locator('#susp-reason').fill('Utreder en anmälan om missbruk');
+	await bengt.getByRole('button', { name: 'Stäng av tävlingen' }).click();
+	await expect(bengt.getByTestId('suspended-pill')).toBeVisible();
 	const pub = await browser.newPage();
 	const resp = await pub.goto(`/t/${GONE}`);
 	expect(resp?.status()).toBe(423);
@@ -166,49 +166,49 @@ test('2. the CLI makes Erik site admin; he replaces a gone owner, suspends, take
 	await shot(pub, 'public-suspended');
 	await pub.setViewportSize(PHONE);
 	await shot(pub, 'public-suspended-phone');
-	await erik.locator('#susp-reason').fill('Utrett, inget missbruk hittades');
-	await erik.getByRole('button', { name: 'Öppna tävlingen igen' }).click();
-	await expect(erik.getByTestId('suspended-pill')).toHaveCount(0);
+	await bengt.locator('#susp-reason').fill('Utrett, inget missbruk hittades');
+	await bengt.getByRole('button', { name: 'Öppna tävlingen igen' }).click();
+	await expect(bengt.getByTestId('suspended-pill')).toHaveCount(0);
 	expect((await pub.goto(`/t/${GONE}`))?.status()).toBe(200);
 	await pub.close();
 
 	// Temporary access, organiser level, 2 h.
-	await erik.locator('#acc-reason').fill('Ägaren bad om hjälp med kontrollerna');
-	await erik.getByRole('button', { name: 'Ta tillfällig åtkomst' }).click();
-	await expect(erik.getByTestId('access-section')).toContainText('Du har åtkomst till');
-	await shot(erik, 'competition-desktop');
-	await erik.setViewportSize(PHONE);
-	await shot(erik, 'competition-phone');
-	await erik.setViewportSize({ width: 1280, height: 900 });
-	await erik.getByRole('link', { name: 'Öppna tävlingen' }).click();
-	await expect(erik.getByTestId('access-banner')).toContainText('Ägaren bad om hjälp med kontrollerna');
+	await bengt.locator('#acc-reason').fill('Ägaren bad om hjälp med kontrollerna');
+	await bengt.getByRole('button', { name: 'Ta tillfällig åtkomst' }).click();
+	await expect(bengt.getByTestId('access-section')).toContainText('Du har åtkomst till');
+	await shot(bengt, 'competition-desktop');
+	await bengt.setViewportSize(PHONE);
+	await shot(bengt, 'competition-phone');
+	await bengt.setViewportSize({ width: 1280, height: 900 });
+	await bengt.getByRole('link', { name: 'Öppna tävlingen' }).click();
+	await expect(bengt.getByTestId('access-banner')).toContainText('Ägaren bad om hjälp med kontrollerna');
 
 	// The (new) owner sees who had access and why.
 	for (const [name, viewport] of [['desktop', { width: 1280, height: 900 }], ['phone', PHONE]] as const) {
 		const anna = await login(browser, 'Anna', viewport);
 		await open(anna, `/admin/${GONE}`);
-		await expect(anna.getByTestId('access-notice')).toContainText('Plattformsadmin Erik Rydberg har åtkomst till tävlingen');
+		await expect(anna.getByTestId('access-notice')).toContainText('Plattformsadmin Bengt Ellison har åtkomst till tävlingen');
 		await expect(anna.getByTestId('access-notice')).toContainText('Ägaren bad om hjälp med kontrollerna');
 		await shot(anna, `access-notice-${name}`);
 		await anna.context().close();
 	}
 
 	// The audit log, filtered on the competition.
-	await open(erik, `/site-admin/audit?slug=${GONE}`);
-	const rows = erik.getByTestId('audit-row');
+	await open(bengt, `/site-admin/audit?slug=${GONE}`);
+	const rows = bengt.getByTestId('audit-row');
 	await expect(rows).toHaveCount(4);
 	await expect(rows.nth(0)).toContainText('Tog tillfällig åtkomst');
 	await expect(rows.nth(1)).toContainText('Öppnade tävlingen igen');
 	await expect(rows.nth(2)).toContainText('Stängde av tävlingen');
 	await expect(rows.nth(3)).toContainText('Ersatte ägaren: Gustav Slutat → Anna Berg');
 	await expect(rows.nth(3)).toContainText('Anledning: Ägaren har slutat, ärende från distriktet');
-	await shot(erik, 'audit-desktop');
-	await erik.setViewportSize(PHONE);
-	expect(await erik.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-	await shot(erik, 'audit-phone');
-	await open(erik, '/site-admin?q=borta');
-	await shot(erik, 'search-phone');
-	await erik.context().close();
+	await shot(bengt, 'audit-desktop');
+	await bengt.setViewportSize(PHONE);
+	expect(await bengt.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+	await shot(bengt, 'audit-phone');
+	await open(bengt, '/site-admin?q=borta');
+	await shot(bengt, 'search-phone');
+	await bengt.context().close();
 });
 
 test('3. a non-admin and a logged-out visitor get 404 on /site-admin', async ({ browser }) => {
@@ -226,9 +226,9 @@ test('3. a non-admin and a logged-out visitor get 404 on /site-admin', async ({ 
 	const anon = await browser.newPage();
 	expect((await anon.goto('/site-admin'))?.status()).toBe(404);
 	await anon.close();
-	// Revoking removes the area for Erik too.
+	// Revoking removes the area for Bengt too.
 	await cli('revoke', ERIK, '--reason', 'Slut på e2e-testet');
-	const erik = await login(browser, 'Erik');
-	expect((await open(erik, '/site-admin'))?.status()).toBe(404);
-	await erik.context().close();
+	const bengt = await login(browser, 'Bengt');
+	expect((await open(bengt, '/site-admin'))?.status()).toBe(404);
+	await bengt.context().close();
 });
