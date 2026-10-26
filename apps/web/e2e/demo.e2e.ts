@@ -330,9 +330,10 @@ test('05 tävlingens eget utseende', async ({ browser }) => {
 	await say(org, 'Förhandsvisningen visar direkt hur tävlingssidan och telefonen ser ut.', 600);
 	await look.evaluate((el) => el.scrollIntoView({ block: 'start' }));
 	await pause(org, 500);
-	await tap(org, swatch('Upptäckarblå'), 600);
-	await expect(org.locator('input[name=accentColor]')).toHaveValue('#00a8e1');
-	await say(org, 'Tillbaka till Upptäckarblå. Sidhuvuden och knappar är alltid Scoutblå.');
+	// GökOpen 2027 inherits Upptäckarblå from the series: "Standard" goes back to inheriting it.
+	await tap(org, look.getByRole('button', { name: /^Seriens färg \(standard\)/ }), 600);
+	await expect(org.locator('input[name=accentColor]')).toHaveValue('');
+	await say(org, 'Tillbaka till seriens färg, Upptäckarblå. Sidhuvuden och knappar är alltid Scoutblå.');
 
 	await org.goto(`/t/${SLUG}`);
 	await expect(org.getByTestId('cover')).toBeVisible();

@@ -3,7 +3,7 @@
 | File | What | Where it lives |
 |---|---|---|
 | `poang-pa-kontroll.gif` | Score entry on a phone (~5 s loop, 300 px wide) | Committed here |
-| `01-funktionar-offline.mp4` … `05-tavlingssida-varumarke.mp4` | Captioned demo clips (27–84 s, ≤ 559 KB each), each opening with a 1.5 s title card | **Not in git.** Uploaded as GitHub user-attachments (2026-10-25, Scouterna profile) and linked from the root README |
+| `01-funktionar-offline.mp4` … `05-tavlingssida-varumarke.mp4` | Captioned demo clips (27–84 s, ≤ 559 KB each), each opening with a 1.5 s title card | **Not in git.** Uploaded as GitHub user-attachments (2026-10-26, Scouterna profile, demo organiser Bengt) and linked from the root README |
 
 All data shown is invented (seed data and UAT fixtures).
 

@@ -1,6 +1,6 @@
 # scouttavling.se
 
-Patrol competitions for scouts: registration, stations, scoring in the forest (offline), live HQ, results and the prize ceremony. A rebuild of [gokapp](https://github.com/erydberg/gokapp).
+Patrol competitions for scouts: registration, stations, scoring in the forest (offline), live HQ, results with points per station, statistics and the prize ceremony. A rebuild of [gokapp](https://github.com/erydberg/gokapp).
 
 <p align="center">
   <img src="docs/media/poang-pa-kontroll.gif" width="300" alt="En funktionär knappar in patrull 108, sätter 12 + 4 poäng och sparar. Poängen sparas i telefonen och väntar på täckning.">
@@ -12,23 +12,23 @@ Recorded at a calm pace, with captions explaining each step. All data is invente
 
 **Funktionären på kontrollen, även utan täckning.** Join via QR, score, undo, two patrols scored offline, then everything syncs.
 
-https://github.com/user-attachments/assets/89ca7d01-d8db-4cb2-b250-fb58bfb20e8b
+https://github.com/user-attachments/assets/f7b04113-e1a6-4daf-bc87-677b7a048de6
 
 **Ledningscentralen live.** The volunteer saves a score and HQ sees it without reloading. HQ then corrects a score with a reason and sends a message that pops up on the phone.
 
-https://github.com/user-attachments/assets/065de6ca-8c73-4534-b62d-46c78408905e
+https://github.com/user-attachments/assets/a2c7683a-e966-4c85-8ac7-046dacfbca13
 
 **Mål med flera delar.** One scan, all parts on one screen: finish registration, nödbrev, händighet and orientering.
 
-https://github.com/user-attachments/assets/c4a91470-1195-4bdb-a3f8-d9e129f62630
+https://github.com/user-attachments/assets/1e534450-c4d5-4695-b8cd-5e6ea453e462
 
 **Prisutdelning på storbild.** Places are revealed one at a time; tied patrols share a place.
 
-https://github.com/user-attachments/assets/38ba31ae-73b2-45c8-879d-b6a718eba2c4
+https://github.com/user-attachments/assets/b4eab240-ab46-4f01-ad2e-9d9f8a7c9faf
 
 **Tävlingens eget utseende.** Each competition gets its own logo, accent colour and cover image, with the organiser's logo and Scouterna as sender: settings, the public page, registration, the patrol pass, the follow page, live results and the printed scorecards.
 
-https://github.com/user-attachments/assets/fd56cf3e-1a51-4cd2-bfe5-c5c10080c795
+https://github.com/user-attachments/assets/a90eeadc-7c25-4b93-9bdf-9043a9cea715
 
 <!--
 The videos are GitHub user-attachments (not stored in git). To refresh them after UI changes,
