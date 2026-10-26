@@ -19,7 +19,10 @@
 		"db:reset": "scripts/db-backup.sh before-reset && node --env-file=.env scripts/db-reset.ts && node --env-file=.env scripts/migrate.ts && npm run db:seed",
 		"gen:grant-key": "node scripts/gen-grant-key.ts",
 		"db:backup": "scripts/db-backup.sh",
-		"db:restore": "scripts/db-restore.sh"
+		"db:restore": "scripts/db-restore.sh",
+		"site-admin:grant": "node --env-file-if-exists=.env scripts/site-admin.ts grant",
+		"site-admin:revoke": "node --env-file-if-exists=.env scripts/site-admin.ts revoke",
+		"site-admin:list": "node --env-file-if-exists=.env scripts/site-admin.ts list"
 	},
 	"devDependencies": {
 		"@fontsource-variable/eb-garamond": "5.3.0",

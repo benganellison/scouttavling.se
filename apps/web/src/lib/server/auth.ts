@@ -1,5 +1,5 @@
 import { error, redirect, type Cookies, type RequestEvent } from '@sveltejs/kit';
-import { and, eq, gt } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull } from 'drizzle-orm';
 import { db, schema } from './db';
 
 /**
@@ -34,9 +34,13 @@ export interface SessionUser {
 	name: string;
 	groups: { groupNo: string; name: string }[];
 	csrf: string;
+	/** Platform operator (site_admin row). Granted only from the command line. */
+	siteAdmin: boolean;
 }
 
 export async function createSession(cookies: Cookies, url: URL, userId: string) {
+	const [u] = await db.select({ suspendedAt: schema.appUser.suspendedAt }).from(schema.appUser).where(eq(schema.appUser.id, userId)).limit(1);
+	if (u?.suspendedAt) error(403, 'Ditt konto är tillfälligt avstängt. Kontakta den som arrangerar tävlingen eller info@scouttavling.se.');
 	const token = randomToken();
 	await db.insert(schema.session).values({
 		idHash: await sha256(token),
@@ -57,14 +61,16 @@ export async function readSession(cookies: Cookies, url: URL): Promise<SessionUs
 	const token = cookies.get(cookieName(url));
 	if (!token) return null;
 	const rows = await db
-		.select({ s: schema.session, u: schema.appUser })
+		.select({ s: schema.session, u: schema.appUser, admin: schema.siteAdmin.userId })
 		.from(schema.session)
 		.innerJoin(schema.appUser, eq(schema.appUser.id, schema.session.userId))
-		.where(and(eq(schema.session.idHash, await sha256(token)), gt(schema.session.expiresAt, new Date())))
+		.leftJoin(schema.siteAdmin, eq(schema.siteAdmin.userId, schema.appUser.id))
+		// A suspended user has no valid session (their rows are also deleted on suspension).
+		.where(and(eq(schema.session.idHash, await sha256(token)), gt(schema.session.expiresAt, new Date()), isNull(schema.appUser.suspendedAt)))
 		.limit(1);
 	const row = rows[0];
 	if (!row) return null;
-	return { id: row.u.id, memberNo: row.u.memberNo, name: row.u.name, groups: row.u.groups, csrf: row.s.csrf };
+	return { id: row.u.id, memberNo: row.u.memberNo, name: row.u.name, groups: row.u.groups, csrf: row.s.csrf, siteAdmin: !!row.admin };
 }
 
 export async function destroySession(cookies: Cookies, url: URL) {
@@ -92,7 +98,38 @@ export function requireUser(event: RequestEvent): SessionUser {
 
 export type CompetitionRole = (typeof schema.competitionRole.enumValues)[number];
 
-/** Loads a competition by slug and checks the user holds one of `roles` in it. */
+/** An active "Tillfällig åtkomst" of a site admin to a competition. */
+export interface TemporaryAccess {
+	id: string;
+	role: CompetitionRole;
+	reason: string;
+	expiresAt: Date;
+}
+
+/** The site admin's unexpired, not ended temporary access to a competition, or null. */
+export async function activeAccess(userId: string, competitionId: string): Promise<TemporaryAccess | null> {
+	const [a] = await db
+		.select({ id: schema.siteAdminAccess.id, role: schema.siteAdminAccess.role, reason: schema.siteAdminAccess.reason, expiresAt: schema.siteAdminAccess.expiresAt })
+		.from(schema.siteAdminAccess)
+		.innerJoin(schema.siteAdmin, eq(schema.siteAdmin.userId, schema.siteAdminAccess.userId))
+		.where(
+			and(
+				eq(schema.siteAdminAccess.userId, userId),
+				eq(schema.siteAdminAccess.competitionId, competitionId),
+				isNull(schema.siteAdminAccess.endedAt),
+				gt(schema.siteAdminAccess.expiresAt, new Date())
+			)
+		)
+		.orderBy(desc(schema.siteAdminAccess.expiresAt))
+		.limit(1);
+	return a ?? null;
+}
+
+/**
+ * Loads a competition by slug and checks the user holds one of `roles` in it. Role sources:
+ * competition_member rows, and, for a site admin, an active temporary access (role with expiry,
+ * see #lib/server/siteAdmin.ts). A site admin without one is treated like anyone else (403).
+ */
 export async function requireCompetition(event: RequestEvent, slug: string, roles: CompetitionRole[] = ['owner', 'organiser', 'hq']) {
 	const user = requireUser(event);
 	const [comp] = await db.select().from(schema.competition).where(eq(schema.competition.slug, slug)).limit(1);
@@ -101,14 +138,22 @@ export async function requireCompetition(event: RequestEvent, slug: string, role
 		.select({ role: schema.competitionMember.role })
 		.from(schema.competitionMember)
 		.where(and(eq(schema.competitionMember.competitionId, comp.id), eq(schema.competitionMember.userId, user.id)));
-	const mine = memberships.map((m) => m.role);
+	let mine = memberships.map((m) => m.role);
+	let access: TemporaryAccess | null = null;
+	if (user.siteAdmin && !mine.some((r) => roles.includes(r))) {
+		access = await activeAccess(user.id, comp.id);
+		if (access) mine = [...new Set([...mine, access.role])];
+	}
 	if (!mine.some((r) => roles.includes(r))) error(403, 'Du har inte behörighet till den här tävlingen');
+	const write = event.request.method !== 'GET' && event.request.method !== 'HEAD';
+	// A competition suspended by a site admin can be looked at, never changed.
+	if (comp.suspendedAt && write) error(423, 'Tävlingen är tillfälligt avstängd av plattformsadministratören och kan inte ändras.');
 	// An archived (anonymised) edition is read-only: no write of any kind goes through.
 	// Exception: the next-edition form only *reads* this edition to create a new one, and its
 	// POST re-runs the [slug] layout load (e.g. after a validation error).
 	const createsNextEdition = event.route.id === '/admin/[slug]/next-edition';
-	if (comp.anonymisedAt && !createsNextEdition && event.request.method !== 'GET' && event.request.method !== 'HEAD') {
+	if (comp.anonymisedAt && !createsNextEdition && write) {
 		error(409, 'Tävlingen är arkiverad och kan inte ändras');
 	}
-	return { user, comp, roles: mine };
+	return { user, comp, roles: mine, access };
 }

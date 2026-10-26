@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { refuseIfSuspended } from '#lib/server/suspended.ts';
 import { competitionBySlug, isMember, spotCount, tracksWithCounts, windowFor } from '#lib/server/registration.ts';
 import { windowText } from '#lib/registration/rules.ts';
 import { loadBranding, loadSeriesBranding, seriesOf } from '#lib/server/assets.ts';
@@ -11,6 +12,7 @@ import { editionYearOf, seriesArchive, seriesBySlug } from '#lib/server/series.t
 export async function load({ params, locals, setHeaders }) {
 	const comp = await competitionBySlug(params.slug);
 	if (!comp) return seriesPage(params.slug, setHeaders);
+	refuseIfSuspended(comp);
 	const preview = comp.status === 'draft';
 	if (preview && !(await isMember(comp.id, locals.user?.id))) error(404, 'Tävlingen finns inte');
 	const [tracks, count, branding, series] = await Promise.all([tracksWithCounts(comp.id), spotCount(comp.id), loadBranding(comp), seriesOf(comp.id)]);

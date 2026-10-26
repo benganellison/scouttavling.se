@@ -74,7 +74,7 @@ Request: `openid profile email phone scoutnet-memberships`.
 **Decision (organisers, 2026-10-15): any logged-in ScoutID user may create a competition.** There is no role-key allowlist.
 
 - When creating, the user picks the **owning organisation** (kår or district) from their `memberships` (pre-selected: `primary_group_no`). That organisation is the GDPR controller (§6); the creator becomes `owner`.
-- Abuse guards instead of role checks: at most 5 new competitions per user per day, new competitions are unlisted until the owner publishes the competition page, and a platform admin can suspend a competition or user (audited).
+- Abuse guards instead of role checks: at most 5 new competitions per user per day, new competitions are unlisted until the owner publishes the competition page, and a site admin (platform operator) can suspend a competition or user (audited, §10).
 - Memberships are re-evaluated at every login, only to keep the list of selectable owning organisations current. Existing competition roles are explicit grants in our database and stay until an owner removes them. That keeps a running event from breaking because Scoutnet changed mid-weekend.
 - Inviting co-organisers by member number creates a pending `competition_role` row keyed on `member_no`. It becomes active the first time that member logs in. An email is sent only if the inviter supplies an address. **We never look people up in Scoutnet.**
 
@@ -319,7 +319,7 @@ Every write records `actor` (member_no or device_id plus display name), `via` (s
 | Protocol photos (may contain names) | **30 days after results are published final**, at most 90 days | Object storage lifecycle rule plus DB job. EXIF/GPS stripped at upload. |
 | Optional medical/allergy notes | Deleted at **event end + 7 days** | Job. |
 | Device grants, invites | Expire at event end + 24 h. Rows deleted after 90 days. | Job. |
-| Audit log | Same as competition PII (90 days). Afterwards it keeps only role and pseudonymous ids. | Job. |
+| Audit log (`audit_log`, §10.3) | Kept (append-only). It stores only ids, actions and a reason that must not name participants; names are resolved at read time, so nothing personal remains once an account or a competition's personal data is removed. | DB trigger refuses UPDATE/DELETE. |
 | Organiser accounts | Deleted **24 months after last login** (with an email warning at 23 months) | Job. |
 | Application logs | 14 days, **no PII** | Platform log retention set to 14 days (or Docker `local` driver rotation on a VPS). |
 | Backups | Provider PITR (≤ 7 days) plus daily dumps for 14 days and weekly for 8 weeks. Pseudonymisation catches up through the backup expiry (max ~2 months). This is documented in the privacy policy. | restic `forget --keep-daily 14 --keep-weekly 8` (§7.10). |
@@ -327,7 +327,7 @@ Every write records `actor` (member_no or device_id plus display name), `via` (s
 
 ### 6.5 Data subject rights, logging, hosting location
 
-- **Export / erasure:** the owner gets "Export all personal data (JSON/CSV)" and "Erase person" per competition. Requests to the operator are forwarded to the controlling kår. Platform admins can run the same operations through an audited admin endpoint. The target turnaround is under 30 days.
+- **Export / erasure:** the owner gets "Export all personal data (JSON/CSV)" and "Erase person" per competition. Requests to the operator are forwarded to the controlling kår. Site admins can run "Ta bort personuppgifter" on the owners' behalf from `/site-admin` (closed editions only, typed confirmation, reason required, audited; §10). The target turnaround is under 30 days.
 - **Logging without PII:** logs carry internal UUIDv7 ids (user, device, competition) and request ids. They contain no names, phone numbers, emails, member numbers, tokens or invite secrets. pino `redact` paths plus a test that scans captured logs for names, emails and personnummer shapes enforce this. Secrets in `/j/`, `/f/`, `/m/` paths are masked in the app's request log. Platform access logs are configured not to keep them (Traefik `accesslog.fields.names.RequestPath=drop` on a VPS; on serverless platforms, request-path logging is excluded or the log bucket is kept to the 14-day, maintainer-only retention).
 - **Location:** all data and backups are in EU regions of the chosen providers (§7.2 H1). No CDN is used for authenticated content.
 - **Repository hygiene:** the new repo already contains a **real Scoutnet export (`*.xls`) with personal data**. Delete it from the working tree (it is untracked, so it must never be committed), and add to `.gitignore`: `*.xls`, `*.xlsx`, `*.csv`, `/data/`, `/imports/`, `.env*`. Test fixtures must be synthetic and live in `apps/web/tests/fixtures/` with an explicit `!` exception. Add `gitleaks` plus a simple pre-commit/CI check that fails on personnummer-shaped strings.
@@ -508,3 +508,45 @@ gokapp data is per-event and short-lived, and its users are local accounts with 
 5. **Roles:** `platform_admin` (global), and per competition `owner, organiser, hq, startfinish, station_volunteer, patrol_leader`, plus link capabilities `follow` and `manage`, and `public`. Single policy service enforcing §4.
 6. **Links:** follow `/f/<128-bit>`, manage `/m/<128-bit>`, stored hashed, `noindex`, `no-referrer`.
 7. **Import:** client-side allowlisted columns only. The server rejects unknown fields and personnummer patterns.
+
+## 10. Owners, site admin and the audit log
+
+Built in v0.1 (2026-10-26), decided with the product owner. Code: `apps/web/src/lib/server/ownership.ts`, `siteAdmin.ts`, `audit.ts`, `memberActions.ts`, `scripts/site-admin.ts`; routes `/site-admin/**`. Tests: `src/lib/server/siteAdmin.db.test.ts`, `e2e/site-admin.e2e.ts`.
+
+### 10.1 Owners manage owners
+
+- A competition (edition) and a series each have **owners** and **organisers** ("Ägare och arrangörer" in Inställningar and on `/admin/series/<slug>`). Owners add a co-owner by member number (the person must have logged in once, same rule as before), change roles (owner ↔ organiser), remove people and **transfer** ownership (the owner becomes organiser). Organisers can add and remove organisers and leave, never touch an owner. Removal and transfer ask for confirmation.
+- Series owners live in `series_member` (owner/organiser). A series without rows is initialised from its editions' owners/organisers (migration 0008 and lazily in `ensureSeriesMembers`, so a series created by an older app version still works). Access to the series page is unchanged (owner/organiser of any edition) plus series members.
+- **Invariant: at least one owner at all times.** `changeMembers()` is the only write path. It locks the competition/series row `FOR UPDATE`, applies a list of operations, re-counts owners from the database and rolls back if none is left. Concurrent demotions are serialised by the lock (tested: two owners leaving at the same time leave exactly one). The UI only explains the rule; the server enforces it.
+
+### 10.2 Site admin
+
+- **Granted and revoked only on the server command line**, never from the web. The person must have logged in once.
+
+  ```sh
+  cd apps/web
+  npm run site-admin:grant  -- 3000001 --reason "Driftansvarig för scouttavling.se"
+  npm run site-admin:revoke -- 3000001 --reason "Slutar som driftansvarig"
+  npm run site-admin:list
+  # production, inside the running app container (DATABASE_URL is already set there):
+  docker compose --env-file .env.prod -f compose.yaml -f compose.prod.yaml exec \
+    -e SITE_ADMIN_OPERATOR="$USER" app npm run site-admin:grant -- 3000001 --reason "…"
+  ```
+
+  Stored in `site_admin` (`user_id`, `granted_at`, `granted_by` = `cli:<os user>`, `reason`). The image contains the script (Dockerfile) and `postgres`; it does not need the SvelteKit build. Revoking also ends the admin's temporary accesses.
+- `/site-admin` answers **404** to everyone else (also logged out), and the "Plattformsadmin" link is only rendered for site admins. Every action re-checks.
+- What a site admin can do, each with a **required reason (≥ 10 characters)** and an audit row:
+  1. Search competitions, series and users (name, address, member number) and see owners, organisers, status, last activity (newest `change_log` row), anonymised yes/no and patrol count.
+  2. Add, change or remove owners of any competition or series, e.g. when the owner has left. The ≥ 1 owner rule still holds; **"Ersätt ägare"** adds the new owner and removes the old in one transaction.
+  3. **Suspend / reopen a competition** (`competition.suspended_at`): public pages (`/t`, `/r`, registration, `/m`, `/folj`, `/p`, `/j`) answer 423 "Tävlingen är tillfälligt avstängd", field snapshot/sync and joining answer 423 (commands stay in the phones' outbox), and `requireCompetition` refuses every admin write (423). Organisers can still look, with a banner.
+     **Suspend / reopen a user** (`app_user.suspended_at`): all sessions are deleted, `readSession` ignores suspended users and login (`createSession`) is refused. Their roles stay.
+  4. **Remove personal data on behalf of the owners** (GDPR requests forwarded by the district): the same `anonymiseCompetition()`, closed editions only, typed confirmation.
+  5. **Tillfällig åtkomst**: a site admin does **not** see a competition's admin pages by default (403 like anyone else). They take time-limited access (1, 2, 4 or 8 h, organiser level) with a reason (`site_admin_access`). `requireCompetition` reads it as an extra role source while `expires_at > now()` and it has not been ended, so it expires by itself with no job. The admin sees a banner with the end time; the owners see "Plattformsadmin X har/hade åtkomst … Anledning …" on every admin page for 7 days and in Inställningar → Händelselogg for 30 days.
+
+### 10.3 Audit log
+
+- `audit_log` is **append-only**: a trigger (migration 0008) rejects `UPDATE`, `DELETE` and `TRUNCATE`; there is no update/delete path in the app. Columns: `at`, `actor_user_id` (null for the CLI), `actor_kind` (`user`/`site_admin`/`cli`), `action`, `target_type`/`target_id`, `competition_id`, `series_id`, `reason`, `details` (jsonb). No foreign keys, so rows outlive what they mention.
+- Logged: every owner/organiser change (A), every site-admin action and CLI grant/revoke, and every "Ta bort personuppgifter" (owner or site admin).
+- **Personal data:** rows store **ids only**; names are looked up when the log is read ("Borttagen användare" when the account is gone). Removing a competition's personal data therefore never needs to touch the log. The free-text **reason must not contain patrol member names**; every reason field says so. This replaces the "pseudonymise the audit log" job in §6.4 for these rows.
+- Read: `/site-admin/audit` (filter by event type, site-admin only, competition/series address, date range); owners see their competition's (and series') entries read-only in Inställningar → Händelselogg.
+

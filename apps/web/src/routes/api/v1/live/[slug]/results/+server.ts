@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { refuseIfSuspended } from '#lib/server/suspended.ts';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
 import { cursorFrom, frame, getResults, publicTracks, sseResponse } from '#lib/server/live.ts';
@@ -13,6 +14,7 @@ const COALESCE_MS = 10_000;
 export async function GET({ params, request, url }) {
 	const [comp] = await db.select().from(schema.competition).where(eq(schema.competition.slug, params.slug)).limit(1);
 	if (!comp || !comp.publicResults) error(404, 'Resultaten är inte publicerade');
+	refuseIfSuspended(comp);
 	const cursor = await cursorFrom(request, url, comp.id);
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let lastEmit = 0;

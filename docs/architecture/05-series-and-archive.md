@@ -24,7 +24,7 @@ Organisers edit the series branding on `/admin/series/<slug>`; an edition's Inst
 
 ### Permissions (kept simple)
 
-A user organises a series when they are **owner or organiser of any of its editions** (`requireSeries`). There is no separate series membership. "Skapa nästa år" carries the owners and organisers over to the new edition; HQ and start/finish roles do not (product owner confirmed 2026-10-25; the next-year form says so in one line). Those are day-of roles and are invited again per year.
+A user organises a series when they are **owner or organiser of any of its editions**, or a **series member** (`series_member`, owner/organiser; `requireSeries`). Series members are managed in "Ägare och arrangörer" on the series page; the series always has at least one owner (04 §10.1). A series without member rows starts with its editions' owners/organisers (migration 0008, and lazily). "Skapa nästa år" carries the owners and organisers over to the new edition; HQ and start/finish roles do not (product owner confirmed 2026-10-25; the next-year form says so in one line). Those are day-of roles and are invited again per year.
 
 **Removing personal data is owner-only.** Organisers can do everything else on a closed edition, but `/admin/<slug>/anonymise` (page and action) requires the `owner` role and answers 403 otherwise. The overview shows organisers the reminder card with "Be ägaren (namn) ta bort personuppgifterna" instead of the button. Tested in `e2e/series.e2e.ts` (test 3).
 
@@ -62,7 +62,7 @@ Only on a **closed** edition, and only by its **owners** (organisers see who to 
 
 So removed personal data is gone from every copy **at most ~8 weeks** after "Ta bort personuppgifter". A restore from an older backup brings it back: after a restore, run the removal again for every edition with `anonymised_at` set in the live database before the restore. Changing `BACKUP_KEEP`, `BACKUP_INTERVAL` or the restic policy changes this promise; update this table, the confirm page text and the privacy policy together.
 
-Implementation: `anonymiseCompetition()` in one transaction. Integration test: `apps/web/src/lib/server/anonymise.db.test.ts` ranks, removes, ranks again (deep-equal) and queries every affected table. After removal `anonymised_at` is set and `requireCompetition` refuses every non-GET request (409).
+Implementation: `anonymiseCompetition()` in one transaction, which also writes an `audit_log` row (who, when, patrol count; ids only, 04 §10.3). A site admin can run it on the owners' behalf from `/site-admin` (closed editions only, typed confirmation and a reason). Integration test: `apps/web/src/lib/server/anonymise.db.test.ts` ranks, removes, ranks again (deep-equal) and queries every affected table. After removal `anonymised_at` is set and `requireCompetition` refuses every non-GET request (409).
 
 ### Every text/reference column that could identify a person
 

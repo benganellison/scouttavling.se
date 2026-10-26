@@ -35,6 +35,8 @@ export const appUser = pgTable('app_user', {
 	phone: text('phone'),
 	/** [{groupNo, name}] from the scoutnet-memberships claim — selectable owners. */
 	groups: jsonb('groups').$type<{ groupNo: string; name: string }[]>().notNull().default([]),
+	/** Suspended by a site admin: cannot log in, sessions revoked (see #lib/server/siteAdmin.ts). */
+	suspendedAt: timestamp('suspended_at', { withTimezone: true }),
 	createdAt: createdAt()
 });
 
@@ -115,6 +117,8 @@ export const competition = pgTable('competition', {
 	archivePublic: boolean('archive_public').notNull().default(true),
 	/** Set when "Ta bort personuppgifter" ran; the edition is read-only from then on. */
 	anonymisedAt: timestamp('anonymised_at', { withTimezone: true }),
+	/** Suspended by a site admin: public pages say so, field sync and admin writes are refused. */
+	suspendedAt: timestamp('suspended_at', { withTimezone: true }),
 	createdBy: uuid('created_by').references(() => appUser.id),
 	createdAt: createdAt()
 });
@@ -127,6 +131,21 @@ export const competitionMember = pgTable(
 		role: competitionRole('role').notNull()
 	},
 	(t) => [primaryKey({ columns: [t.competitionId, t.userId, t.role] })]
+);
+
+/**
+ * Owners and organisers of a series (who may manage the series page and its owners). Lazily
+ * initialised from the editions' owners/organisers when a series has no rows yet (#lib/server/ownership.ts).
+ * At least one owner at all times, enforced by the ownership helper.
+ */
+export const seriesMember = pgTable(
+	'series_member',
+	{
+		seriesId: uuid('series_id').notNull().references(() => series.id, { onDelete: 'cascade' }),
+		userId: uuid('user_id').notNull().references(() => appUser.id, { onDelete: 'cascade' }),
+		role: competitionRole('role').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.seriesId, t.userId] }), check('series_member_role', sql`${t.role} in ('owner', 'organiser')`)]
 );
 
 export const day = pgTable('day', {
@@ -437,3 +456,59 @@ export const retiredLink = pgTable('retired_link', {
 	kind: text('kind', { enum: ['manage', 'follow'] }).notNull(),
 	createdAt: createdAt()
 });
+
+// ---------- platform operation ----------
+
+/** Platform operators. Granted and revoked ONLY from the server command line (scripts/site-admin.ts). */
+export const siteAdmin = pgTable('site_admin', {
+	userId: uuid('user_id').primaryKey().references(() => appUser.id, { onDelete: 'cascade' }),
+	grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
+	/** e.g. "cli:bengt". */
+	grantedBy: text('granted_by').notNull(),
+	reason: text('reason').notNull()
+});
+
+/**
+ * "Tillfällig åtkomst": a site admin's time-limited role in one competition, with a reason.
+ * Read by requireCompetition as an extra role source while `expires_at > now()` and `ended_at` is null.
+ */
+export const siteAdminAccess = pgTable(
+	'site_admin_access',
+	{
+		id: id(),
+		userId: uuid('user_id').notNull().references(() => appUser.id, { onDelete: 'cascade' }),
+		competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
+		role: competitionRole('role').notNull().default('organiser'),
+		reason: text('reason').notNull(),
+		grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
+		expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+		/** Ended early by the site admin. */
+		endedAt: timestamp('ended_at', { withTimezone: true })
+	},
+	(t) => [index('site_admin_access_comp_idx').on(t.competitionId, t.expiresAt)]
+);
+
+/**
+ * Append-only audit log (owner changes, site-admin actions, personal-data removal). A trigger
+ * rejects UPDATE/DELETE/TRUNCATE (migration 0008). No foreign keys on purpose: rows outlive the
+ * users and competitions they mention, and a cascading delete would be an UPDATE/DELETE.
+ * Only ids are stored; names are looked up at read time. `reason` must never contain patrol member names.
+ */
+export const auditLog = pgTable(
+	'audit_log',
+	{
+		id: id(),
+		at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+		/** null for the command line. */
+		actorUserId: uuid('actor_user_id'),
+		actorKind: text('actor_kind', { enum: ['user', 'site_admin', 'cli'] }).notNull(),
+		action: text('action').notNull(),
+		targetType: text('target_type', { enum: ['competition', 'series', 'user', 'site_admin'] }).notNull(),
+		targetId: uuid('target_id'),
+		competitionId: uuid('competition_id'),
+		seriesId: uuid('series_id'),
+		reason: text('reason'),
+		details: jsonb('details').$type<Record<string, unknown>>().notNull().default({})
+	},
+	(t) => [index('audit_log_at_idx').on(t.at), index('audit_log_comp_idx').on(t.competitionId, t.at), index('audit_log_series_idx').on(t.seriesId, t.at)]
+);

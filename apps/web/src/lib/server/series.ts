@@ -9,6 +9,7 @@ import { getResults } from './live.ts';
 import { activeInvites, rotateInvite } from '../../routes/admin/[slug]/invites/inviteCrypto.server.ts';
 import { addDays, editionShiftDays, shiftDate } from '#lib/series/dates.ts';
 import { slugify } from '#lib/ui/admin/format.ts';
+import { seriesRole } from './ownership.ts';
 
 /**
  * Competition series and yearly editions (docs/architecture/05-series-and-archive.md).
@@ -60,7 +61,10 @@ export async function editionsOf(seriesId: string): Promise<CompRow[]> {
 		.orderBy(desc(schema.competition.editionYear), desc(schema.competition.startDate));
 }
 
-/** Loads a series and checks the user is owner/organiser of one of its editions. */
+/**
+ * Loads a series and checks the user is owner/organiser of one of its editions, or a member of the
+ * series itself (series_member, managed in "Ägare och arrangörer"). `seriesRole` is the latter.
+ */
 export async function requireSeries(event: RequestEvent, slug: string, roles: CompetitionRole[] = ['owner', 'organiser']) {
 	const user = requireUser(event);
 	const s = await seriesBySlug(slug);
@@ -71,8 +75,9 @@ export async function requireSeries(event: RequestEvent, slug: string, roles: Co
 		.innerJoin(schema.competition, eq(schema.competition.id, schema.competitionMember.competitionId))
 		.where(and(eq(schema.competition.seriesId, s.id), eq(schema.competitionMember.userId, user.id), inArray(schema.competitionMember.role, roles)))
 		.limit(1);
-	if (!m) error(403, 'Du har inte behörighet till den här serien');
-	return { user, series: s };
+	const own = await seriesRole(s.id, user.id);
+	if (!m && !own) error(403, 'Du har inte behörighet till den här serien');
+	return { user, series: s, seriesRole: own };
 }
 
 /**

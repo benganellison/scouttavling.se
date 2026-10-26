@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
 import { requireCompetition } from '#lib/server/auth.ts';
@@ -7,6 +7,10 @@ import { ASSET_KINDS, removeImage, uploadImage } from '#lib/server/assets.ts';
 import { MAX_BYTES } from '#lib/server/imageValidate.ts';
 import { parseHex } from '#lib/brand/colors.ts';
 import type { AssetKind } from '#lib/brand/branding.ts';
+import { listMembers, type OwnershipActor } from '#lib/server/ownership.ts';
+import { memberAction, type MemberAction } from '#lib/server/memberActions.ts';
+import { listAudit } from '#lib/server/audit.ts';
+import { accessNotices } from '#lib/server/siteAdmin.ts';
 
 const EDIT = ['owner', 'organiser'] as const;
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -14,14 +18,10 @@ const WEEKDAYS = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag',
 type Errors = Record<string, string>;
 
 export async function load(event) {
-	const { comp, user } = await requireCompetition(event, event.params.slug);
-	const [members, trackUse, dayUse] = await Promise.all([
-		db
-			.select({ userId: schema.appUser.id, name: schema.appUser.name, memberNo: schema.appUser.memberNo, role: schema.competitionMember.role })
-			.from(schema.competitionMember)
-			.innerJoin(schema.appUser, eq(schema.appUser.id, schema.competitionMember.userId))
-			.where(eq(schema.competitionMember.competitionId, comp.id))
-			.orderBy(asc(schema.appUser.name)),
+	const { comp, user, roles } = await requireCompetition(event, event.params.slug);
+	const isOwner = roles.includes('owner');
+	const [members, trackUse, dayUse, audit, notices] = await Promise.all([
+		listMembers({ kind: 'competition', id: comp.id }),
 		db
 			.select({ trackId: schema.patrol.trackId, n: sql<number>`count(*)::int` })
 			.from(schema.patrol)
@@ -31,20 +31,19 @@ export async function load(event) {
 			.select({ dayId: schema.station.dayId, n: sql<number>`count(*)::int` })
 			.from(schema.station)
 			.where(eq(schema.station.competitionId, comp.id))
-			.groupBy(schema.station.dayId)
+			.groupBy(schema.station.dayId),
+		// Owners see this competition's audit entries (read-only) and site-admin access notices.
+		isOwner ? listAudit({ competitionOrSeries: { competitionId: comp.id, seriesId: null }, limit: 50 }) : [],
+		isOwner ? accessNotices(comp.id) : []
 	]);
 	return {
+		audit,
+		notices,
 		groups: user.groups,
 		members,
 		trackPatrols: Object.fromEntries(trackUse.filter((t) => t.trackId).map((t) => [t.trackId!, t.n])) as Record<string, number>,
 		dayStations: Object.fromEntries(dayUse.filter((d) => d.dayId).map((d) => [d.dayId!, d.n])) as Record<string, number>
 	};
-}
-
-async function touch(compId: string) {
-	await db.transaction(async (tx) => {
-		await recordChange(tx, compId, 'competition', compId);
-	});
 }
 
 export const actions = {
@@ -270,40 +269,24 @@ export const actions = {
 		return { section: 'appearance', ok: true };
 	},
 
-	invite: async (event) => {
-		const { comp } = await requireCompetition(event, event.params.slug, [...EDIT]);
-		const f = await event.request.formData();
-		const memberNo = String(f.get('memberNo') ?? '').replace(/\s+/g, '');
-		if (!/^\d{3,12}$/.test(memberNo)) return fail(400, { section: 'members', errors: { memberNo: 'Skriv ett medlemsnummer (bara siffror).' } as Errors, memberNo });
-		const [u] = await db.select().from(schema.appUser).where(eq(schema.appUser.memberNo, memberNo)).limit(1);
-		if (!u) {
-			return fail(400, {
-				section: 'members',
-				memberNo,
-				errors: { memberNo: `Ingen med medlemsnummer ${memberNo} har loggat in här. Personen måste logga in en gång först.` } as Errors
-			});
-		}
-		const existing = await db
-			.select()
-			.from(schema.competitionMember)
-			.where(and(eq(schema.competitionMember.competitionId, comp.id), eq(schema.competitionMember.userId, u.id)));
-		if (existing.some((m) => m.role === 'owner' || m.role === 'organiser')) {
-			return fail(400, { section: 'members', memberNo, errors: { memberNo: `${u.name} är redan arrangör.` } as Errors });
-		}
-		await db.insert(schema.competitionMember).values({ competitionId: comp.id, userId: u.id, role: 'organiser' }).onConflictDoNothing();
-		await touch(comp.id);
-		return { section: 'members', ok: true, added: u.name };
-	},
-
-	removeMember: async (event) => {
-		const { comp, user } = await requireCompetition(event, event.params.slug, [...EDIT]);
-		const f = await event.request.formData();
-		const userId = String(f.get('userId') ?? '');
-		if (userId === user.id) return fail(400, { section: 'members', errors: { members: 'Du kan inte ta bort dig själv.' } as Errors });
-		await db
-			.delete(schema.competitionMember)
-			.where(and(eq(schema.competitionMember.competitionId, comp.id), eq(schema.competitionMember.userId, userId), eq(schema.competitionMember.role, 'organiser')));
-		await touch(comp.id);
-		return { section: 'members', ok: true };
+	memberAdd: (event) => members(event, 'add'),
+	memberRole: (event) => members(event, 'role'),
+	memberRemove: (event) => members(event, 'remove'),
+	memberTransfer: (event) => members(event, 'transfer'),
+	memberLeave: async (event) => {
+		const r = await members(event, 'leave');
+		if (r && 'left' in r && r.left) redirect(303, '/admin');
+		return r;
 	}
 };
+
+/** "Ägare och arrangörer": every check (owner-only changes, ≥ 1 owner) is in #lib/server/ownership.ts. */
+async function members(event: RequestEvent<{ slug: string }>, kind: MemberAction) {
+	const { comp, user, access } = await requireCompetition(event, event.params.slug, [...EDIT]);
+	const f = await event.request.formData();
+	const actor: OwnershipActor = access
+		? { kind: 'site_admin', userId: user.id, reason: access.reason, accessRole: 'organiser' }
+		: { kind: 'user', userId: user.id };
+	const list = await listMembers({ kind: 'competition', id: comp.id });
+	return memberAction(kind, f, { kind: 'competition', id: comp.id }, actor, new Map(list.map((m) => [m.userId, m.name])));
+}

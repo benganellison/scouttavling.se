@@ -11,7 +11,7 @@
 <svelte:head><title>Mina tävlingar · Scouttävling</title></svelte:head>
 
 <div class="page">
-	<Topbar userName={data.user.name} />
+	<Topbar userName={data.user.name} siteAdmin={data.user.siteAdmin} />
 
 	<header class="head">
 		<div class="stack tight">

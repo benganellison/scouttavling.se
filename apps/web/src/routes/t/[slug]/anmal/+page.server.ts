@@ -1,4 +1,5 @@
 import { loadBranding } from '#lib/server/assets.ts';
+import { refuseIfSuspended } from '#lib/server/suspended.ts';
 import { error, fail } from '@sveltejs/kit';
 import {
 	competitionBySlug, isMember, publicOrigin, registerLimiter, registerPatrol, spotCount, tracksWithCounts, windowFor
@@ -8,6 +9,7 @@ import { readForm, validateRegistration, windowText } from '#lib/registration/ru
 async function loadComp(slug: string, userId: string | undefined) {
 	const comp = await competitionBySlug(slug);
 	if (!comp) error(404, 'Tävlingen finns inte');
+	refuseIfSuspended(comp);
 	if (comp.status === 'draft' && !(await isMember(comp.id, userId))) error(404, 'Tävlingen finns inte');
 	return comp;
 }

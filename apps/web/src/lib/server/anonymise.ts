@@ -3,6 +3,7 @@ import { db, schema } from './db/index.ts';
 import { recordChange } from './changes.ts';
 import { clearUploader } from './assetStore.ts';
 import { sha256 } from './auth.ts';
+import { writeAudit, type Actor } from './audit.ts';
 
 /**
  * "Ta bort personuppgifter" for a CLOSED edition (manual only). Every decision per column is
@@ -38,7 +39,11 @@ export async function personalDataLeft(competitionId: string): Promise<number> {
 /** JSON keys that may name or identify a person inside score_conflict.existing/incoming. */
 const CONFLICT_PERSONAL_KEYS = ['deviceName', 'deviceId', 'userId', 'reason', 'note', 'by', 'name'];
 
-export async function anonymiseCompetition(competitionId: string): Promise<{ patrols: number }> {
+/**
+ * `actor` is logged in audit_log in the same transaction (owner from the confirm page, a site admin
+ * on behalf of the owners). The audit row keeps only ids, the action and the reason.
+ */
+export async function anonymiseCompetition(competitionId: string, actor?: Actor): Promise<{ patrols: number }> {
 	return db.transaction(async (tx) => {
 		const [comp] = await tx.select().from(schema.competition).where(eq(schema.competition.id, competitionId)).for('update');
 		if (!comp) throw new Error('Tävlingen finns inte');
@@ -107,6 +112,12 @@ export async function anonymiseCompetition(competitionId: string): Promise<{ pat
 			.set({ anonymisedAt: new Date(), hqPhone: null, registrationOpen: false })
 			.where(eq(schema.competition.id, competitionId));
 		await recordChange(tx, competitionId, 'competition', competitionId);
+		if (actor) {
+			await writeAudit(tx, actor, {
+				action: 'competition.anonymise', targetType: 'competition', targetId: competitionId, competitionId, seriesId: comp.seriesId,
+				details: { patrols: patrolIds.length }
+			});
+		}
 		return { patrols: patrolIds.length };
 	});
 }

@@ -5,6 +5,8 @@
 	import BrandingEditor from '#lib/ui/admin/BrandingEditor.svelte';
 	import ColorField from '#lib/ui/brand/ColorField.svelte';
 	import { dateRange } from '#lib/ui/admin/format.ts';
+	import MembersPanel from '#lib/ui/admin/MembersPanel.svelte';
+	import AuditList from '#lib/ui/admin/AuditList.svelte';
 
 	let { data, form } = $props();
 	const s = $derived(data.series);
@@ -17,7 +19,7 @@
 <svelte:head><title>{s.name} · Serie</title></svelte:head>
 
 <div class="page">
-	<Topbar userName={data.user.name} />
+	<Topbar userName={data.user.name} siteAdmin={data.user.siteAdmin} />
 
 	<header class="head">
 		<div class="stack tight">
@@ -97,6 +99,24 @@
 			</div>
 		</form>
 	</section>
+	<section class="card sec" id="agare" aria-labelledby="h-members">
+		<h2 id="h-members">Ägare och arrangörer</h2>
+		<MembersPanel
+			members={data.members}
+			meId={data.user.id}
+			power={data.seriesRole}
+			{form}
+			scopeText="serien"
+			lead="Ägare och arrangörer av serien kan ändra seriens utseende, klassfärger och arkiv. Bara ägare kan ändra vilka som är ägare. Serien har alltid minst en ägare. Vem som arrangerar ett visst år ställs in under årets Inställningar."
+		/>
+	</section>
+
+	{#if data.seriesRole === 'owner'}
+		<section class="card sec" aria-labelledby="h-audit">
+			<h2 id="h-audit">Händelselogg för serien</h2>
+			<AuditList rows={data.audit} />
+		</section>
+	{/if}
 </div>
 
 <style>

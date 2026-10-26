@@ -2,6 +2,7 @@
  * Field devices (04 §3): invite redemption → device grant, grant verification,
  * station pack (snapshot) and signed-command sync. Contracts C1–C3, C8, C10.
  */
+import { refuseIfSuspended } from './suspended.ts';
 import { error } from '@sveltejs/kit';
 import { and, desc, eq, inArray, max, sql } from 'drizzle-orm';
 import {
@@ -90,6 +91,7 @@ export async function inviteInfo(secret: string) {
 		.where(eq(schema.invite.secretHash, await sha256(secret)))
 		.limit(1);
 	if (!row || row.invite.revokedAt) return null;
+	refuseIfSuspended(row.comp);
 	const { comp, invite } = row;
 	const { codes, stations } = await stationCodeMap(comp.id);
 	const station = invite.stationId ? stations.find((s) => s.id === invite.stationId) ?? null : null;
@@ -155,6 +157,7 @@ export async function redeemInvite(input: { secret: unknown; displayName: unknow
 	if (!row || row.invite.revokedAt) error(404, 'Inbjudan finns inte eller har ersatts');
 	const { invite, comp } = row;
 	if (comp.status === 'closed') error(410, 'Tävlingen är avslutad');
+	refuseIfSuspended(comp);
 
 	const stationIds = invite.stationId
 		? [invite.stationId]
@@ -225,6 +228,8 @@ export async function authenticateDevice(request: Request, slug: string): Promis
 		.limit(1);
 	if (!row || row.comp.id !== claims.cid || row.comp.slug !== slug) deny('grant_invalid', 'Behörigheten gäller inte den här tävlingen');
 	if ((await calculateJwkThumbprint(row.device.publicJwk as JWK)) !== claims.cnf?.jkt) deny('grant_invalid', 'Fel enhetsnyckel');
+	// Suspended by a site admin: no snapshot, no sync. Commands stay in the device's outbox.
+	refuseIfSuspended(row.comp);
 	return {
 		comp: row.comp,
 		device: row.device,

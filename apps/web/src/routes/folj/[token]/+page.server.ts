@@ -1,4 +1,5 @@
 import { loadBranding, trackColorFor } from '#lib/server/assets.ts';
+import { refuseIfSuspended } from '#lib/server/suspended.ts';
 import { error, redirect } from '@sveltejs/kit';
 import { archivedLinkTarget } from '#lib/server/anonymise.ts';
 import { and, eq } from 'drizzle-orm';
@@ -22,6 +23,7 @@ export async function load({ params, setHeaders, getClientAddress, depends }) {
 		missLimiter.hit(ip);
 		error(404, 'Länken finns inte eller har slutat gälla');
 	}
+	refuseIfSuspended(row.comp);
 	setHeaders(NO_STORE);
 	const { patrol, comp } = row;
 	const compInfo = { name: comp.name, slug: comp.slug, status: comp.status, publicResults: comp.publicResults };

@@ -77,6 +77,22 @@ scripts/deploy.sh          # backup → migrate → replace app; a failing migra
 
 Schema changes, backups, deploys and rollback: **[docs/dev/MIGRATIONS.md](docs/dev/MIGRATIONS.md)**.
 
+### Site admin (platform operator)
+
+Granted and revoked only on the server's command line (never from the web). The person must have logged in once. Every grant/revoke is written to the audit log.
+
+```sh
+# dev (in apps/web)
+npm run site-admin:grant  -- <memberNo> --reason "Driftansvarig för scouttavling.se"
+npm run site-admin:revoke -- <memberNo> --reason "Slutar som driftansvarig"
+npm run site-admin:list
+# production: inside the running app container
+docker compose --env-file .env.prod -f compose.yaml -f compose.prod.yaml exec -e SITE_ADMIN_OPERATOR="$USER" \
+  app npm run site-admin:grant -- <memberNo> --reason "…"
+```
+
+Site admins get `/site-admin` (search, owners, suspension, personal-data removal, temporary access, audit log). Details: [docs/architecture/04 §10](docs/architecture/04-security-and-operations.md).
+
 `ORIGIN` is baked into the image at build time, so each public domain needs its own build. Released images are built by CI with the repository variable `PUBLIC_ORIGIN`.
 
 ## Versions and releases

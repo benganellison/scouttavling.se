@@ -42,5 +42,5 @@ export async function load(event) {
 		else groups.push({ series: c.series, competitions: [c] });
 	}
 	groups.sort((a, b) => (a.series === null ? 1 : b.series === null ? -1 : 0));
-	return { user: { name: user.name }, competitions, groups };
+	return { user: { name: user.name, siteAdmin: user.siteAdmin }, competitions, groups };
 }

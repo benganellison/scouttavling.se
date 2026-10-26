@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
 import { recordChange } from '#lib/server/changes.ts';
@@ -7,26 +7,34 @@ import { editionYearOf, editionsOf, patrolCounts, requireSeries } from '#lib/ser
 import { MAX_BYTES } from '#lib/server/imageValidate.ts';
 import { namedTrackColor, parseHex } from '#lib/brand/colors.ts';
 import type { AssetKind } from '#lib/brand/branding.ts';
+import { listMembers } from '#lib/server/ownership.ts';
+import { memberAction, type MemberAction } from '#lib/server/memberActions.ts';
+import { listAudit } from '#lib/server/audit.ts';
 
 type Errors = Record<string, string>;
 
 /** Organiser view of a series: its editions, shared branding, class colours and the public archive. */
 export async function load(event) {
-	const { user, series } = await requireSeries(event, event.params.slug);
+	const { user, series, seriesRole } = await requireSeries(event, event.params.slug);
 	const editions = await editionsOf(series.id);
-	const [counts, branding, tracks] = await Promise.all([
+	const [counts, branding, tracks, members, audit] = await Promise.all([
 		patrolCounts(editions.map((e) => e.id)),
 		loadSeriesBranding(series),
 		editions.length
 			? db.select({ name: schema.track.name, sort: schema.track.sort }).from(schema.track).where(inArray(schema.track.competitionId, editions.map((e) => e.id))).orderBy(asc(schema.track.sort))
-			: []
+			: [],
+		listMembers({ kind: 'series', id: series.id }),
+		seriesRole === 'owner' ? listAudit({ seriesId: series.id, limit: 50 }) : []
 	]);
 	const classNames = [...new Set([...tracks.map((t) => t.name), ...Object.keys(series.classColors)])];
 	const latest = editions[0] ?? null;
 	const nextYear = latest ? editionYearOf(latest) + 1 : null;
 	return {
-		user: { name: user.name },
+		user: { id: user.id, name: user.name, siteAdmin: user.siteAdmin },
 		series,
+		members,
+		seriesRole,
+		audit,
 		branding,
 		editions: editions.map((e) => ({
 			slug: e.slug, name: e.name, year: editionYearOf(e), startDate: e.startDate, endDate: e.endDate, status: e.status, location: e.location,
@@ -42,7 +50,23 @@ async function notifyAll(seriesId: string) {
 	return eds.map((e) => e.id);
 }
 
+/** "Ägare och arrangörer" of the series; checks in #lib/server/ownership.ts. */
+async function members(event: RequestEvent<{ slug: string }>, kind: MemberAction) {
+	const { user, series } = await requireSeries(event, event.params.slug);
+	const list = await listMembers({ kind: 'series', id: series.id });
+	return memberAction(kind, await event.request.formData(), { kind: 'series', id: series.id }, { kind: 'user', userId: user.id }, new Map(list.map((m) => [m.userId, m.name])));
+}
+
 export const actions = {
+	memberAdd: (event) => members(event, 'add'),
+	memberRole: (event) => members(event, 'role'),
+	memberRemove: (event) => members(event, 'remove'),
+	memberTransfer: (event) => members(event, 'transfer'),
+	memberLeave: async (event) => {
+		const r = await members(event, 'leave');
+		if (r && 'left' in r && r.left) redirect(303, '/admin');
+		return r;
+	},
 	appearance: async (event) => {
 		const { series } = await requireSeries(event, event.params.slug);
 		const f = await event.request.formData();

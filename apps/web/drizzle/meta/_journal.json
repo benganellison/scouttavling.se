@@ -50,6 +50,20 @@
       "when": 1792929041355,
       "tag": "0006_series_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792966575114,
+      "tag": "0007_site_admin_audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792966585022,
+      "tag": "0008_audit_immutable_series_members",
+      "breakpoints": true
     }
   ]
 }

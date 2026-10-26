@@ -6,6 +6,8 @@
 	import BrandingEditor from '#lib/ui/admin/BrandingEditor.svelte';
 	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 	import { parseHex, trackColors } from '#lib/brand/colors.ts';
+	import MembersPanel from '#lib/ui/admin/MembersPanel.svelte';
+	import AuditList from '#lib/ui/admin/AuditList.svelte';
 
 	let { data, form } = $props();
 
@@ -22,7 +24,6 @@
 	const eB = $derived(errs('basics'));
 	const eD = $derived(errs('days'));
 	const eT = $derived(errs('tracks'));
-	const eM = $derived(errs('members'));
 	const eR = $derived(errs('registration'));
 	const canEdit = $derived(data.roles.includes('owner') || data.roles.includes('organiser'));
 	const eA = $derived(errs('appearance'));
@@ -230,36 +231,39 @@
 	</form>
 </section>
 
-<section class="card sec" aria-labelledby="h-members">
-	<h2 id="h-members">Arrangörer</h2>
-	<p class="muted lead">Medarrangörer kan ändra allt utom ägarskapet. De loggar in med ScoutID.</p>
-	
-	<ul class="members">
-		{#each data.members as m (m.userId + m.role)}
-			<li>
-				<span class="mn"><strong>{m.name}</strong><span class="muted small">Medlemsnr {m.memberNo}</span></span>
-				<span class="pill">{ROLE[m.role] ?? m.role}</span>
-				{#if m.role === 'organiser' && m.userId !== data.user.id && canEdit}
-					<form method="POST" action="?/removeMember" use:enhance>
-						<input type="hidden" name="userId" value={m.userId} />
-						<button class="btn btn-ghost rm" aria-label="Ta bort {m.name} som arrangör">Ta bort</button>
-					</form>
-				{/if}
-			</li>
-		{/each}
-	</ul>
-	{#if eM.members}<span class="error-text">{eM.members}</span>{/if}
-	<form method="POST" action="?/invite" class="invite" use:enhance novalidate>
-		<div class="field grow">
-			<label for="memberNo">Bjud in med medlemsnummer</label>
-			<input id="memberNo" name="memberNo" inputmode="numeric" value={form && form.section === 'members' && 'memberNo' in form ? form.memberNo : ''} placeholder="t.ex. 3000002" aria-invalid={eM.memberNo ? 'true' : undefined} aria-describedby="mn-help" />
-		</div>
-		<button class="btn btn-accent" disabled={!canEdit}>Lägg till arrangör</button>
-		<span id="mn-help" class="muted small full">Personen måste ha loggat in på scouttavling.se minst en gång.</span>
-		{#if eM.memberNo}<span class="error-text full" role="alert">{eM.memberNo}</span>{/if}
-		{#if form && form.section === 'members' && 'added' in form && form.added}<span class="pill pill-ok full" role="status">{form.added} är nu arrangör</span>{/if}
-	</form>
+<section class="card sec" id="agare" aria-labelledby="h-members">
+	<h2 id="h-members">Ägare och arrangörer</h2>
+	<MembersPanel
+		members={data.members}
+		meId={data.user.id}
+		power={data.roles.includes('owner') ? 'owner' : canEdit ? 'organiser' : null}
+		{form}
+		lead="Ägare kan ändra allt, även vilka som är ägare. Arrangörer kan ändra allt utom ägarna. Tävlingen har alltid minst en ägare. Alla loggar in med ScoutID."
+	/>
 </section>
+
+{#if data.roles.includes('owner')}
+	<section class="card sec" id="logg" aria-labelledby="h-audit">
+		<h2 id="h-audit">Händelselogg</h2>
+		<p class="muted lead">Ändringar av ägare och arrangörer, borttagning av personuppgifter och allt plattformsadministratören gör med tävlingen. Loggen kan inte ändras.</p>
+		{#if data.notices.length}
+			<div class="notices" data-testid="access-notices">
+				<h3>Tillfällig åtkomst från plattformsadmin (30 dagar)</h3>
+				<ul>
+					{#each data.notices as n (n.id)}
+						<li>
+							<strong>{n.adminName}</strong>
+							{n.active ? 'har åtkomst' : 'hade åtkomst'} som arrangör
+							{new Date(n.grantedAt).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Stockholm' })}–{new Date(n.until).toLocaleTimeString('sv-SE', { timeStyle: 'short', timeZone: 'Europe/Stockholm' })}.
+							<span class="muted">Anledning: {n.reason}</span>
+						</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
+		<AuditList rows={data.audit} />
+	</section>
+{/if}
 
 <style>
 	.head {
@@ -324,26 +328,14 @@
 		gap: 10px;
 	}
 	.day,
-	.tracks li,
-	.members li {
+	.tracks li {
 		display: flex;
 		gap: 10px;
 		align-items: flex-end;
 		flex-wrap: wrap;
 	}
-	.tracks li,
-	.members li {
+	.tracks li {
 		align-items: center;
-	}
-	.members li {
-		padding: 10px 0;
-		border-top: 1px solid var(--line);
-		gap: 12px;
-	}
-	.mn {
-		display: flex;
-		flex-direction: column;
-		flex: 1;
 	}
 	.grow {
 		flex: 1 1 180px;
@@ -365,17 +357,24 @@
 	.full {
 		flex-basis: 100%;
 	}
-	.invite {
-		display: flex;
-		gap: 10px;
-		align-items: flex-end;
-		flex-wrap: wrap;
-	}
 	.tracks li {
 		padding-bottom: 10px;
 		border-bottom: 1px solid var(--line);
 	}
 	[aria-invalid='true'] {
 		border-color: var(--danger);
+	}
+	.notices {
+		background: var(--tint);
+		border-radius: var(--r-md);
+		padding: 14px 16px;
+	}
+	.notices h3 {
+		font-size: 16px;
+		font-weight: 800;
+		margin: 0 0 6px;
+	}
+	.notices ul {
+		gap: 6px;
 	}
 </style>

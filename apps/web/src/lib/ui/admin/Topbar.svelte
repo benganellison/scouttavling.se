@@ -1,12 +1,13 @@
 <script lang="ts">
 	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 
-	let { userName }: { userName: string } = $props();
+	let { userName, siteAdmin = false }: { userName: string; siteAdmin?: boolean } = $props();
 </script>
 
 <header class="topbar">
 	<a class="brand" href="/admin"><ScouternaSymbol size={34} /> <span>Scouttävling</span></a>
 	<div class="right">
+		{#if siteAdmin}<a class="btn btn-ghost" href="/site-admin">Plattformsadmin</a>{/if}
 		<span class="who">{userName}</span>
 		<form method="POST" action="/auth/logout">
 			<button class="btn btn-ghost" type="submit">Logga ut</button>
@@ -33,6 +34,7 @@
 		font-size: 22px;
 	}
 	.right {
+		flex-wrap: wrap;
 		display: flex;
 		align-items: center;
 		gap: 6px;

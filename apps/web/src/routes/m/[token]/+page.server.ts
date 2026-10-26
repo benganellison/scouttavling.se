@@ -1,4 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
+import { refuseIfSuspended } from '#lib/server/suspended.ts';
 import { archivedLinkTarget } from '#lib/server/anonymise.ts';
 import { asc, eq } from 'drizzle-orm';
 import { patrolCodeUrl, stationCodes } from '@scouttavling/domain';
@@ -19,6 +20,7 @@ async function lookup(token: string, ip: string) {
 		missLimiter.hit(ip);
 		error(404, 'Länken finns inte eller har slutat gälla');
 	}
+	refuseIfSuspended(row.comp);
 	return row;
 }
 
