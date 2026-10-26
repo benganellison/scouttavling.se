@@ -2,6 +2,7 @@ import { fail } from '@sveltejs/kit';
 import { and, eq, max, ne } from 'drizzle-orm';
 import * as v from 'valibot';
 import { db, schema } from '#lib/server/db/index.ts';
+import { paidAtFor, paidAtNew } from '#lib/server/payments.ts';
 import { recordChange } from '#lib/server/changes.ts';
 
 /** Server side of the add/edit patrol form. No birth data is ever accepted. */
@@ -97,10 +98,10 @@ export async function savePatrol(competitionId: string, patrolId: string | null,
 	await db.transaction(async (tx) => {
 		let id = patrolId;
 		if (id) {
-			await tx.update(schema.patrol).set(row).where(and(eq(schema.patrol.id, id), eq(schema.patrol.competitionId, competitionId)));
+			await tx.update(schema.patrol).set({ ...row, paidAt: paidAtFor(row.paid) }).where(and(eq(schema.patrol.id, id), eq(schema.patrol.competitionId, competitionId)));
 			await tx.delete(schema.member).where(eq(schema.member.patrolId, id));
 		} else {
-			const [created] = await tx.insert(schema.patrol).values({ ...row, competitionId }).returning({ id: schema.patrol.id });
+			const [created] = await tx.insert(schema.patrol).values({ ...row, paidAt: paidAtNew(row.paid), competitionId }).returning({ id: schema.patrol.id });
 			id = created.id;
 		}
 		if (data.members.length) {

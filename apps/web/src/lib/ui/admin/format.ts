@@ -164,6 +164,7 @@ export function adminNav(slug: string): { group: string; items: NavItem[] }[] {
 			group: 'Efter',
 			items: [
 				{ label: 'Resultat', href: `${b}/results`, key: 'results' },
+				{ label: 'Statistik', href: `${b}/stats`, key: 'stats' },
 				{ label: 'Prisutdelning', href: `/r/${slug}/ceremony`, key: 'ceremony' }
 			]
 		}

@@ -88,6 +88,8 @@ export const competition = pgTable('competition', {
 	publicResults: boolean('public_results').notNull().default(false),
 	/** Public results also show points per station while the competition runs. Closed editions always do. */
 	stationResultsLive: boolean('station_results_live').notNull().default(false),
+	/** Participation fee per patrol in whole kronor (null = no fee). Paid is ticked by hand. */
+	feePerPatrol: integer('fee_per_patrol'),
 	registrationOpen: boolean('registration_open').notNull().default(false),
 	/** Self-registration window (inclusive dates, Swedish time). null = no limit on that side; closes defaults to endDate. */
 	registrationOpensOn: date('registration_opens_on'),
@@ -232,6 +234,8 @@ export const patrol = pgTable(
 		startStationId: uuid('start_station_id').references(() => station.id, { onDelete: 'set null' }),
 		startLocked: boolean('start_locked').notNull().default(false),
 		paid: boolean('paid').notNull().default(false),
+		/** When "Betald" was ticked (null while unpaid). */
+		paidAt: timestamp('paid_at', { withTimezone: true }),
 		contactName: text('contact_name'),
 		contactPhone: text('contact_phone'),
 		contactEmail: text('contact_email'),
@@ -325,6 +329,12 @@ export const score = pgTable(
 		deviceId: uuid('device_id').references(() => device.id, { onDelete: 'set null' }),
 		userId: uuid('user_id').references(() => appUser.id, { onDelete: 'set null' }),
 		note: text('note'),
+		/**
+		 * When the patrol was at the station: the phone's clock at the first device report (capped at
+		 * server time). Null for paper and HQ entries, which are typed in afterwards. Drives the times
+		 * between stations; kept by "Ta bort personuppgifter".
+		 */
+		scoredAt: timestamp('scored_at', { withTimezone: true }),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [unique('score_patrol_item').on(t.patrolId, t.itemId), index('score_comp_idx').on(t.competitionId)]

@@ -71,6 +71,13 @@
       "when": 1793047062544,
       "tag": "0009_station_results_live",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793049531754,
+      "tag": "0010_stats_times_fees",
+      "breakpoints": true
     }
   ]
 }

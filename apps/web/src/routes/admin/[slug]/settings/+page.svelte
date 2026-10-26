@@ -118,6 +118,11 @@
 				<input id="maxPatrols" name="maxPatrols" inputmode="numeric" value={c.maxPatrols ?? ''} placeholder="Obegränsat" aria-invalid={eR.maxPatrols ? 'true' : undefined} />
 				{#if eR.maxPatrols}<span class="error-text">{eR.maxPatrols}</span>{/if}
 			</div>
+			<div class="field">
+				<label for="feePerPatrol">Avgift per patrull (kr)</label>
+				<input id="feePerPatrol" name="feePerPatrol" inputmode="numeric" value={c.feePerPatrol ?? ''} placeholder="Ingen avgift" aria-invalid={eR.feePerPatrol ? 'true' : undefined} aria-describedby="feePerPatrol-help" />
+				{#if eR.feePerPatrol}<span class="error-text">{eR.feePerPatrol}</span>{:else}<span class="muted small" id="feePerPatrol-help">Bocka i "Betald" på Patruller när pengarna har kommit in.</span>{/if}
+			</div>
 		</div>
 		<div class="field">
 			<label for="infoText">Information på tävlingssidan</label>

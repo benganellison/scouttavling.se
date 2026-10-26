@@ -3,6 +3,7 @@ import { eq, inArray, max } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { recordChange } from '#lib/server/changes.ts';
 import { db, schema } from '#lib/server/db/index.ts';
+import { paidAtFor, paidAtNew } from '#lib/server/payments.ts';
 import { loadPatrols, loadTracks } from '../print/prep.server.ts';
 import { matchExisting, parseImportPayload } from './validate.ts';
 
@@ -62,10 +63,10 @@ export const actions = {
 				let id: string;
 				if (hit) {
 					id = hit.id;
-					await tx.update(schema.patrol).set(fields).where(eq(schema.patrol.id, id));
+					await tx.update(schema.patrol).set({ ...fields, paidAt: paidAtFor(fields.paid) }).where(eq(schema.patrol.id, id));
 					if (!touched.includes(id)) updated++;
 				} else {
-					const [p] = await tx.insert(schema.patrol).values({ ...fields, competitionId: comp.id, number: next++ }).returning({ id: schema.patrol.id });
+					const [p] = await tx.insert(schema.patrol).values({ ...fields, paidAt: paidAtNew(fields.paid), competitionId: comp.id, number: next++ }).returning({ id: schema.patrol.id });
 					id = p.id;
 					existing.push({ id, name: r.patrolName, contactMemberNo: fields.contactMemberNo });
 					created++;

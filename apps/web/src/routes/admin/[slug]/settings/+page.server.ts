@@ -86,6 +86,7 @@ export const actions = {
 		const opensOn = s('registrationOpensOn');
 		const closesOn = s('registrationClosesOn');
 		const max = s('maxPatrols');
+		const fee = s('feePerPatrol').replace(/\s|kr$/gi, '');
 		const infoText = s('infoText');
 		const confirmationText = s('confirmationText');
 		const errors: Errors = {};
@@ -93,6 +94,7 @@ export const actions = {
 		if (closesOn && !ISO.test(closesOn)) errors.registrationClosesOn = 'Välj ett datum.';
 		if (opensOn && closesOn && !errors.registrationOpensOn && !errors.registrationClosesOn && opensOn > closesOn) errors.registrationClosesOn = 'Sista dagen kan inte vara före första dagen.';
 		if (max && (!/^\d{1,4}$/.test(max) || Number(max) < 1)) errors.maxPatrols = 'Skriv ett antal (1–9999) eller lämna tomt.';
+		if (fee && (!/^\d{1,6}$/.test(fee))) errors.feePerPatrol = 'Skriv ett belopp i hela kronor (0–999999) eller lämna tomt.';
 		if (infoText.length > 4000) errors.infoText = 'Högst 4000 tecken.';
 		if (confirmationText.length > 1000) errors.confirmationText = 'Högst 1000 tecken.';
 		if (Object.keys(errors).length) return fail(400, { section: 'registration', errors });
@@ -101,7 +103,7 @@ export const actions = {
 				.update(schema.competition)
 				.set({
 					registrationOpen: f.get('registrationOpen') === 'on', registrationOpensOn: opensOn || null, registrationClosesOn: closesOn || null,
-					maxPatrols: max ? Number(max) : null, infoText: infoText || null, confirmationText: confirmationText || null,
+					maxPatrols: max ? Number(max) : null, feePerPatrol: fee ? Number(fee) : null, infoText: infoText || null, confirmationText: confirmationText || null,
 					followEnabled: f.get('followEnabled') === 'on', followShowScores: f.get('followShowScores') === 'on'
 				})
 				.where(eq(schema.competition.id, comp.id));

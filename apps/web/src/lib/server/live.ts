@@ -231,6 +231,7 @@ export async function loadResultsInput(comp: Pick<CompRow, 'id' | 'styleEnabled'
 export interface StationInfo {
 	id: string;
 	code: string;
+	dayId: string | null;
 	name: string;
 	sort: number;
 	allTracks: boolean;
@@ -272,7 +273,7 @@ export async function loadStations(competitionId: string): Promise<StationInfo[]
 		const its = items.filter((r) => r.item.stationId === s.id).map((r) => r.item);
 		const finish = s.role === 'finish' || its.some((i) => i.mode === 'AUTO_ON_SCAN');
 		return {
-			id: s.id, code: codes.get(s.id) ?? '?', name: s.name, sort: s.sort, allTracks: s.allTracks,
+			id: s.id, code: codes.get(s.id) ?? '?', dayId: s.dayId, name: s.name, sort: s.sort, allTracks: s.allTracks,
 			trackIds: links.filter((l) => l.stationId === s.id).map((l) => l.trackId), startable: s.startable, role: s.role,
 			finishSets: (finish ? (!lastDay || s.dayId === lastDay.id ? 'finished' : 'camp') : null) as StationInfo['finishSets'],
 			checkpoint: its.length > 0 && its.every((i) => i.mode === 'CHECKIN' || i.mode === 'AUTO_ON_SCAN'),
@@ -520,6 +521,14 @@ class Hub {
 				.catch((e) => console.error('[live] LISTEN failed, relying on poll', e));
 		}
 		if (!this.poll) this.poll = setInterval(() => this.pumpAll(), 3000);
+	}
+
+	/** On shutdown: stop polling and drop the LISTEN connection so the process can exit. */
+	async close() {
+		this.stopPoll();
+		const l = this.listener;
+		this.listener = null;
+		await l?.end({ timeout: 5 });
 	}
 
 	private stopPoll() {

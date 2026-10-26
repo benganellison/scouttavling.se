@@ -43,6 +43,7 @@
 		{:else}
 			<p class="state" data-status={live.status}><span class="dot" aria-hidden="true"></span> Preliminärt · live</p>
 		{/if}
+		<a class="stats-link" href="/r/{data.comp.slug}/statistik">Statistik</a>
 	</header>
 
 	<nav class="tabs" aria-label="Klasser">
@@ -126,6 +127,13 @@
 		font-weight: 800;
 		font-size: 14px;
 		color: var(--on-brand);
+	}
+	.stats-link {
+		align-self: flex-start;
+		color: #fff;
+		font-weight: 800;
+		font-size: 14px;
+		text-underline-offset: 3px;
 	}
 	.dot {
 		width: 9px;

@@ -114,6 +114,9 @@ async function applyStatusRules(tx: Tx, w: WriteScore, item: ItemRow) {
 	await recordChange(tx, w.competitionId, 'patrol', p.id);
 }
 
+/** When the patrol was at the station: only a phone at the station knows (paper/HQ are typed in later). */
+const visitTime = (w: WriteScore) => (w.origin === 'device' ? (w.at ?? new Date()) : null);
+
 export async function writeScore(w: WriteScore): Promise<WriteResult> {
 	return db.transaction(async (tx) => {
 		const [item] = await tx.select().from(schema.scoreItem).where(eq(schema.scoreItem.id, w.itemId)).limit(1);
@@ -146,7 +149,8 @@ export async function writeScore(w: WriteScore): Promise<WriteResult> {
 				.insert(schema.score)
 				.values({
 					competitionId: w.competitionId, patrolId: w.patrolId, itemId: w.itemId, points: value.points, stylePoints: value.stylePoints,
-					raw: w.raw, origin: w.origin, deviceId: w.deviceId ?? null, userId: w.userId ?? null, note: w.note ?? null
+					raw: w.raw, origin: w.origin, deviceId: w.deviceId ?? null, userId: w.userId ?? null, note: w.note ?? null,
+					scoredAt: visitTime(w)
 				})
 				.returning();
 			await revision(row.id, 1, 'active');
@@ -174,7 +178,9 @@ export async function writeScore(w: WriteScore): Promise<WriteResult> {
 			.update(schema.score)
 			.set({
 				points: value.points, stylePoints: value.stylePoints, raw: w.raw, state: 'active', version, origin: w.origin,
-				deviceId: w.deviceId ?? null, userId: w.userId ?? null, note: w.note ?? existing.note, updatedAt: sql`now()`
+				deviceId: w.deviceId ?? null, userId: w.userId ?? null, note: w.note ?? existing.note, updatedAt: sql`now()`,
+				// The first device report sets the visit time; later corrections never move it.
+				scoredAt: existing.scoredAt ?? visitTime(w)
 			})
 			.where(eq(schema.score.id, existing.id));
 		await revision(existing.id, version, 'active');

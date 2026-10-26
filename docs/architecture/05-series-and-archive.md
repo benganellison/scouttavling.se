@@ -71,11 +71,11 @@ Implementation: `anonymiseCompetition()` in one transaction, which also writes a
 | `member.*` (first/last name, troop_text) | **Deleted** (rows). |
 | `patrol.contact_name / contact_phone / contact_email / contact_member_no` | **Nulled.** |
 | `patrol.manage_token_hash / follow_token_hash / follow_token_enc` | **Nulled**; hashes moved to `retired_link` (hash → edition only). |
-| `patrol.number / name / troop / track_id / status / paid / start_station_id` | Kept (results). Patrol names are team names, not personal names. |
+| `patrol.number / name / troop / track_id / status / paid / paid_at / start_station_id` | Kept (results, statistics). Patrol names are team names, not personal names. |
 | `device.display_name` (volunteer name), the device grant | **Deleted** (rows; grants are only valid with the device row and its invite). |
 | `invite.*` | **Deleted.** |
 | `message.title / body / created_by`, `message_read` | **Deleted.** |
-| `score.note`, `score.user_id`, `score.device_id` | **Nulled.** `points`, `style_points`, `raw`, `state`, `version`, `origin` kept. |
+| `score.note`, `score.user_id`, `score.device_id` | **Nulled.** `points`, `style_points`, `raw`, `state`, `version`, `origin`, `scored_at` (visit time, 06 §2) kept. |
 | `score_revision.reason / user_id / device_id / command_id` | **Nulled.** Points history kept. |
 | `score_conflict.existing / incoming` | Keys `deviceName, deviceId, userId, reason, note, by, name` **stripped**; `command_id` nulled. |
 | `status_event.device_id / user_id` | **Nulled.** |

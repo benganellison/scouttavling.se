@@ -1,5 +1,7 @@
 import type { Handle } from '@sveltejs/kit/hooks';
 import { readSession } from '#lib/server/auth.ts';
+import { closeDb } from '#lib/server/db/index.ts';
+import { hub } from '#lib/server/live.ts';
 import { GRANT_SIGNING_KEY } from '$app/env/private';
 import { dev } from '$app/env';
 
@@ -8,6 +10,14 @@ import { dev } from '$app/env';
 if (!dev && !GRANT_SIGNING_KEY) {
 	throw new Error('GRANT_SIGNING_KEY is not set. Generate one with `npm run gen:grant-key` and add it to the environment.');
 }
+
+// Graceful shutdown (docker stop, SIGTERM): adapter-node closes the HTTP server and then emits
+// this. Without closing the database pool and the live LISTEN connection, Node never exits and
+// the container is killed after the stop timeout (old test servers lingered for days).
+process.once('sveltekit:shutdown', async () => {
+	await hub.close();
+	await closeDb();
+});
 
 /**
  * Session lookup + CSRF for organiser requests. Field devices authenticate with

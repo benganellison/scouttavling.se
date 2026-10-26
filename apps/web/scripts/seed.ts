@@ -97,7 +97,7 @@ async function main() {
 			publicResults: true, registrationOpen: true, status: 'live', patrolCodeKey: 'dev-key-gokopen', createdBy: bengt.id,
 			registrationOpensOn: '2026-09-01', registrationClosesOn: '2027-05-01', maxPatrols: 40,
 			infoText: 'Välkomna till GökOpen! Banan är cirka 6 km genom Gökskogen. Samling vid lägerplatsens flaggstång kl. 08.30, första start 09.00.\n\nTa med matsäck, vattenflaska, kläder efter väder och en penna.',
-			confirmationText: 'Startavgiften är 150 kr per patrull och betalas till kårens konto senast 1 maj.',
+			confirmationText: 'Startavgiften är 150 kr per patrull och betalas till kårens konto senast 1 maj.', feePerPatrol: 150,
 			followEnabled: true, followShowScores: true,
 			// Branding is inherited from the series (no edition override).
 			seriesId: gokopen.id, editionYear: 2027
@@ -131,10 +131,16 @@ async function main() {
 	];
 	const patrols = await db
 		.insert(s.patrol)
-		.values(patrolDefs.map(([number, name, track, troop]) => ({
-			competitionId: open.id, number, name, trackId: T[track], troop, status: 'active' as const,
-			contactName: 'Kontakt ' + name, contactPhone: '070-000 00 ' + String(number).slice(-2), contactEmail: `${name.toLowerCase()}@example.org`
-		})))
+		.values(patrolDefs.map(([number, name, track, troop], i) => {
+			// Invented registration and payment dates: from September to April; the last three have not paid yet.
+			const createdAt = new Date(Date.UTC(2026, 8, 3 + i * 16 + (i % 3) * 2, 8 + (i % 9), 15));
+			const paid = i < patrolDefs.length - 3;
+			return {
+				competitionId: open.id, number, name, trackId: T[track], troop, status: 'active' as const, createdAt,
+				paid, paidAt: paid ? new Date(createdAt.getTime() + (3 + (i % 5) * 4) * 86400_000) : null,
+				contactName: 'Kontakt ' + name, contactPhone: '070-000 00 ' + String(number).slice(-2), contactEmail: `${name.toLowerCase()}@example.org`
+			};
+		}))
 		.returning();
 	await db.insert(s.member).values(
 		patrols.flatMap((p) => ['Elsa', 'Noah', 'Maja', 'Liam'].map((firstName, i) => ({ patrolId: p.id, firstName, lastName: ['Ek', 'Berg', 'Lind', 'Holm'][i] })))
@@ -180,7 +186,7 @@ async function main() {
 		.values({
 			slug: 'gokopen-2026', name: 'GökOpen 2026', ownerGroupNo: '900', ownerGroupName: 'Granlidens scoutkår',
 			startDate: '2026-05-16', endDate: '2026-05-16', location: 'Gökskogens lägerplats', publicResults: true, status: 'closed',
-			patrolCodeKey: 'dev-key-gokopen-2026', createdBy: bengt.id, seriesId: gokopen.id, editionYear: 2026,
+			patrolCodeKey: 'dev-key-gokopen-2026', createdBy: bengt.id, seriesId: gokopen.id, editionYear: 2026, feePerPatrol: 150,
 			infoText: 'GökOpen 2026 gick genom Gökskogen med tretton kontroller.', anonymisedAt: new Date('2026-06-01T10:00:00Z')
 		})
 		.returning();
@@ -207,18 +213,34 @@ async function main() {
 	];
 	const prevPatrols = await db
 		.insert(s.patrol)
-		.values(prevDefs.map(([number, name, track, troop, skill]) => ({
-			competitionId: prev.id, number, name, trackId: PT[track], troop, status: skill ? ('finished' as const) : ('resigned' as const), paid: true
-		})))
+		.values(prevDefs.map(([number, name, track, troop, skill], i) => {
+			const createdAt = new Date(Date.UTC(2026, 1, 2 + i * 6, 9 + (i % 8), 30));
+			return {
+				competitionId: prev.id, number, name, trackId: PT[track], troop, status: skill ? ('finished' as const) : ('resigned' as const),
+				createdAt, paid: true, paidAt: new Date(createdAt.getTime() + (2 + (i % 4) * 5) * 86400_000)
+			};
+		}))
 		.returning();
 	const rand = rng(2026);
 	const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(v)));
 	const stationOf = new Map(prevCourse.items.map((it) => [it.id, prevCourse.stations.find((st) => st.id === it.stationId)!]));
 	const scoreRows: (typeof s.score.$inferInsert)[] = [];
-	for (const p of prevPatrols) {
+	for (const [pi, p] of prevPatrols.entries()) {
 		const skill = prevDefs.find((d) => d[0] === p.number)![4];
 		if (!skill) continue; // Återbud: never started.
 		const sparare = p.trackId === PT['Spårare'];
+		// Invented visit times (as reported by the phones): each patrol starts at its own station, walks
+		// the course in order and ends at Mål; 12–45 min per leg, faster for stronger patrols.
+		const course = prevCourse.stations.filter((st) => st.allTracks || !sparare).sort((a, b) => a.sort - b.sort);
+		const mal = course.filter((st) => st.name === 'Mål');
+		const loop = course.filter((st) => st.name !== 'Mål');
+		const order = [...loop.slice(pi % loop.length), ...loop.slice(0, pi % loop.length), ...mal];
+		const visitAt = new Map<string, Date>();
+		let t = Date.parse('2026-05-16T07:00:00Z') + pi * 4 * 60_000;
+		for (const st of order) {
+			visitAt.set(st.id, new Date(t));
+			t += Math.round(12 + rand() * 18 + (1 - skill) * 15) * 60_000;
+		}
 		for (const it of prevCourse.items) {
 			const st = stationOf.get(it.id)!;
 			if (!st.allTracks && sparare) continue;
@@ -235,7 +257,8 @@ async function main() {
 			}
 			const style = it.styleEnabled ? clamp(5 * (skill + noise()), 1, 5) : null;
 			scoreRows.push({
-				competitionId: prev.id, patrolId: p.id, itemId: it.id, points, stylePoints: style ?? 0, raw: { value, style }, origin: 'device', updatedAt: new Date('2026-05-16T13:00:00Z')
+				competitionId: prev.id, patrolId: p.id, itemId: it.id, points, stylePoints: style ?? 0, raw: { value, style }, origin: 'device',
+				scoredAt: visitAt.get(st.id)!, updatedAt: visitAt.get(st.id)!
 			});
 		}
 	}
