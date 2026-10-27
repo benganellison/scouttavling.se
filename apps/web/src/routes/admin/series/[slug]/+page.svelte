@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 	import Topbar from '#lib/ui/admin/Topbar.svelte';
 	import StatusPill from '#lib/ui/admin/StatusPill.svelte';
@@ -26,7 +27,7 @@
 			<a class="back" href="/admin">Mina tävlingar</a>
 			<span class="muted kicker">Tävlingsserie</span>
 			<h1>{s.name}</h1>
-			<span class="muted">Publik sida: <a href="/t/{s.slug}">scouttavling.se/t/{s.slug}</a></span>
+			<span class="muted">Publik sida: <a href="/{s.slug}">{page.data.siteHost}/{s.slug}</a></span>
 		</div>
 		{#if data.next && !nextExists}
 			<a class="btn btn-accent" href="/admin/{data.next.from}/next-edition" data-testid="series-next">Skapa {data.next.name}</a>

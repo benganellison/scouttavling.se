@@ -191,7 +191,7 @@ test('1 organiser creates the competition and shapes the stations', async () => 
 	await p.waitForURL(/\/admin$/);
 	await p.getByRole('link', { name: 'Ny tävling' }).click();
 	await p.getByLabel('Namn', { exact: true }).pressSequentially(NAME, { delay: 40 });
-	await expect(p.getByText(`scouttavling.se/${SLUG}`).first()).toBeVisible();
+	await expect(p.getByText(new RegExp(`^[\\w.:-]+/${SLUG}$`)).first()).toBeVisible();
 	await p.getByRole('radio', { name: /Flera dagar/ }).check();
 	await p.getByLabel('Första dagen').fill('2027-06-11');
 	await p.getByLabel('Sista dagen').fill('2027-06-12');

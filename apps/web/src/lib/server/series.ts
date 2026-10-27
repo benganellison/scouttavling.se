@@ -10,6 +10,7 @@ import { activeInvites, rotateInvite } from '../../routes/admin/[slug]/invites/i
 import { addDays, editionShiftDays, shiftDate } from '#lib/series/dates.ts';
 import { slugify } from '#lib/ui/admin/format.ts';
 import { seriesRole } from './ownership.ts';
+import { isReservedSlug } from '#lib/routing/slugs.ts';
 
 /**
  * Competition series and yearly editions (docs/architecture/05-series-and-archive.md).
@@ -113,8 +114,12 @@ export async function organisedSeries(userId: string): Promise<SeriesRow[]> {
 	return db.select().from(schema.series).where(inArray(schema.series.id, ids)).orderBy(asc(schema.series.name));
 }
 
-/** True when a series or a competition already uses `slug` (both live under /t/<slug>). */
+/**
+ * True when `slug` cannot be used: a series or competition has it (both live under /t/<slug> and
+ * the short address /<slug>), or it is reserved for a route (#lib/routing/slugs.ts).
+ */
 export async function slugTaken(slug: string): Promise<boolean> {
+	if (isReservedSlug(slug)) return true;
 	const [a] = await db.select({ id: schema.series.id }).from(schema.series).where(eq(schema.series.slug, slug)).limit(1);
 	if (a) return true;
 	const [b] = await db.select({ id: schema.competition.id }).from(schema.competition).where(eq(schema.competition.slug, slug)).limit(1);

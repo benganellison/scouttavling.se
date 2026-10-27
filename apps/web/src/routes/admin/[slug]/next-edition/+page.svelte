@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { shortDate } from '#lib/ui/admin/format.ts';
 
 	let { data, form } = $props();
@@ -41,7 +42,7 @@
 				</div>
 				<div class="stack tight">
 					<label class="label" for="slug">Adress</label>
-					<div class="prefix"><span class="muted">scouttavling.se/t/</span><input id="slug" name="slug" class="field" value={v?.slug ?? p.slug} aria-invalid={e.slug ? 'true' : undefined} /></div>
+					<div class="prefix"><span class="muted">{page.data.siteHost}/</span><input id="slug" name="slug" class="field" value={v?.slug ?? p.slug} aria-invalid={e.slug ? 'true' : undefined} /></div>
 					{#if e.slug}<span class="error-text">{e.slug}</span>{/if}
 				</div>
 			</div>

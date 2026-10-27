@@ -1,9 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { createNextEdition, planNextEdition, requireNextEditionSource, slugTaken } from '#lib/server/series.ts';
 import { slugify } from '#lib/ui/admin/format.ts';
+import { isReservedSlug } from '#lib/routing/slugs.ts';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
-const RESERVED = new Set(['new', 'admin', 'api', 'login', 'auth', 'r', 'j', 'f', 'p', 'ny', 'series']);
 
 /**
  * "Skapa <serie> <år+1>": confirm form with the shifted dates (the organiser may adjust them).
@@ -29,7 +29,7 @@ export const actions = {
 		const opens = s('registrationOpensOn') || null;
 		const closes = s('registrationClosesOn') || null;
 		if (name.length < 2 || name.length > 80) errors.name = 'Namnet ska vara 2–80 tecken.';
-		if (RESERVED.has(slug)) errors.slug = 'Den adressen är reserverad.';
+		if (isReservedSlug(slug)) errors.slug = 'Den adressen är reserverad.';
 		else if (await slugTaken(slug)) errors.slug = `Adressen ${slug} är upptagen.`;
 		dates.forEach((d, i) => {
 			if (!ISO.test(d)) errors[`date_${i}`] = 'Välj ett datum.';

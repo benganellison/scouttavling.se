@@ -108,6 +108,8 @@ Details and what is read: [docs/architecture/02 §9](docs/architecture/02-backen
 
 `ORIGIN` is baked into the image at build time, so each public domain needs its own build. Released images are built by CI with the repository variable `PUBLIC_ORIGIN`.
 
+**Domain and addresses.** Everything lives on one domain (`DOMAIN`), as paths: a competition or series is at `/t/<slug>`, with the short address `/<slug>` (for posters) redirecting there; results at `/r/<slug>`. Point DNS for both `DOMAIN` and `www.DOMAIN` at the server: `www` gets its own certificate and redirects permanently to `DOMAIN`. Other subdomains are not served. Addresses shown in the app come from `ORIGIN`. Top-level routes are reserved and can never be used as a slug (`apps/web/src/lib/routing/slugs.ts`).
+
 ## Versions and releases
 
 - **SemVer**: 0.x during development and pilot. `1.0.0` is the first real competition. After that, patch = fixes, minor = features, major = breaking changes (e.g. the offline sync format).

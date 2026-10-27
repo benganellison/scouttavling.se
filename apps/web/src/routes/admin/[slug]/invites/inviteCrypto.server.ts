@@ -1,6 +1,5 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import QRCode from 'qrcode';
-import { ORIGIN } from '$app/env/private';
 import { db, schema } from '#lib/server/db/index.ts';
 import { randomToken, sha256 } from '#lib/server/auth.ts';
 
@@ -44,9 +43,7 @@ export async function decryptSecret(patrolCodeKey: string, enc: string | null): 
 	}
 }
 
-export function publicOrigin(url: URL): string {
-	return (ORIGIN || url.origin).replace(/\/$/, '');
-}
+export { publicOrigin } from '#lib/server/origin.ts';
 
 export function inviteUrl(origin: string, secret: string): string {
 	return `${origin}/j/${secret}`;

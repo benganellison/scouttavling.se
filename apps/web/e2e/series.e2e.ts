@@ -77,6 +77,21 @@ test('1. the GökOpen series page shows this year and 2026 in the archive', asyn
 	await ctx.close();
 });
 
+test('1b. short addresses: /<slug> leads to the series or competition page', async ({ page, request }) => {
+	for (const [from, to] of [['/gokopen', '/t/gokopen'], ['/gokopen-2027', '/t/gokopen-2027'], ['/GokOpen?fran=affisch', '/t/gokopen?fran=affisch']]) {
+		const r = await request.get(from, { maxRedirects: 0 });
+		expect(r.status(), from).toBe(302);
+		expect(r.headers().location, from).toBe(to);
+	}
+	// A draft and an unknown address look the same: not found.
+	for (const p of ['/gokhajk-2027', '/finns-inte-alls']) expect((await request.get(p, { maxRedirects: 0 })).status(), p).toBe(404);
+	// Routes always win over short addresses.
+	expect((await request.get('/admin', { maxRedirects: 0 })).status()).toBe(303);
+	await page.goto('/gokopen');
+	await expect(page).toHaveURL(/\/t\/gokopen$/);
+	await expect(page.getByRole('heading', { level: 1, name: 'GökOpen' })).toBeVisible();
+});
+
 test('2. create GökOpen 2028 from 2027: stations and classes copied, no patrols', async ({ page }) => {
 	await login(page);
 	await page.goto('/admin');
@@ -316,17 +331,17 @@ test('5. "Ny tävling": standalone, new series or a new year in an existing seri
 	await page.getByRole('radio', { name: /Ny tävlingsserie/ }).check();
 	await page.getByLabel('Namn', { exact: true }).fill('E2E Vårcup 2027');
 	await expect(page.getByLabel('Seriens namn')).toHaveValue('E2E Vårcup');
-	await expect(page.locator('#series-help')).toContainText('scouttavling.se/t/e2e-varcup');
+	await expect(page.locator('#series-help')).toContainText(/[\w.:-]+\/e2e-varcup/);
 	await page.getByLabel('Datum').fill('2027-04-17');
 	await expect(page.getByTestId('wizard-summary')).toContainText('upplaga 2027');
 	await shot(page, 'wizard-new-series-desktop');
 	await page.getByRole('button', { name: 'Ändra adress' }).first().click();
 	await page.getByLabel('Seriens adress').fill('gokopen');
 	await page.getByRole('button', { name: /^Skapa E2E Vårcup/ }).click();
-	await expect(page.getByText('Adressen scouttavling.se/t/gokopen är upptagen')).toBeVisible();
+	await expect(page.getByText(/^Adressen [\w.:-]+\/gokopen är upptagen/)).toBeVisible();
 	await page.getByLabel('Seriens adress').fill('gokopen-2027');
 	await page.getByRole('button', { name: /^Skapa E2E Vårcup/ }).click();
-	await expect(page.getByText('Adressen scouttavling.se/t/gokopen-2027 är upptagen')).toBeVisible();
+	await expect(page.getByText(/^Adressen [\w.:-]+\/gokopen-2027 är upptagen/)).toBeVisible();
 	await page.getByLabel('Seriens adress').fill('e2e-varcup');
 	await page.getByRole('button', { name: /^Skapa E2E Vårcup/ }).click();
 	await page.waitForURL('/admin/e2e-varcup-2027');

@@ -29,6 +29,7 @@ import {
 	type ScoreItemDef
 } from '@scouttavling/domain';
 import * as schema from './db/schema.ts';
+import { isReservedSlug } from '../routing/slugs.ts';
 
 /**
  * What the importer may read, per table: field → the column names it has had across gokapp
@@ -341,6 +342,7 @@ export async function writeImport(sqlClient: postgres.Sql, data: GokappData, opt
 		let [series] = await tx.select().from(schema.series).where(eq(schema.series.slug, opts.series)).limit(1);
 		if (!series) {
 			if (!opts.seriesName) throw new Error(`Serien "${opts.series}" finns inte. Ange --series-name för att skapa den.`);
+			if (isReservedSlug(opts.series)) throw new Error(`Adressen ${opts.series} är reserverad. Välj en annan serieadress.`);
 			if (slugify(opts.series) !== opts.series) throw new Error(`Serieadressen får bara ha a–z, 0–9 och bindestreck (t.ex. ${slugify(opts.seriesName)}).`);
 			const [clash] = await tx.select({ id: schema.competition.id }).from(schema.competition).where(eq(schema.competition.slug, opts.series)).limit(1);
 			if (clash) throw new Error(`Adressen ${opts.series} används redan av en tävling.`);
@@ -351,7 +353,7 @@ export async function writeImport(sqlClient: postgres.Sql, data: GokappData, opt
 		if (!p.date || !/^\d{4}-\d{2}-\d{2}$/.test(p.date)) throw new Error('Inget datum: ange --date ÅÅÅÅ-MM-DD.');
 		const [slugTaken] = await tx.select({ id: schema.competition.id }).from(schema.competition).where(eq(schema.competition.slug, p.slug)).limit(1);
 		const [seriesSlug] = await tx.select({ id: schema.series.id }).from(schema.series).where(eq(schema.series.slug, p.slug)).limit(1);
-		if (slugTaken || seriesSlug) throw new Error(`Adressen ${p.slug} är upptagen. Välj en annan med --slug.`);
+		if (slugTaken || seriesSlug || isReservedSlug(p.slug)) throw new Error(`Adressen ${p.slug} är upptagen eller reserverad. Välj en annan med --slug.`);
 		const [sameYear] = await tx
 			.select({ slug: schema.competition.slug })
 			.from(schema.competition)

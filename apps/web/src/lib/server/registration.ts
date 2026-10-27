@@ -7,7 +7,6 @@
  */
 import { and, asc, eq, max, ne, sql } from 'drizzle-orm';
 import QRCode from 'qrcode';
-import { ORIGIN } from '$app/env/private';
 import { dev } from '$app/env';
 import { db, schema } from './db/index.ts';
 import { randomToken, sha256 } from './auth.ts';
@@ -29,9 +28,7 @@ export const registerLimiter = new RateLimiter(dev ? 200 : 10, 3600_000);
 /** Unknown-token lookups per IP (enumeration guard). */
 export const missLimiter = new RateLimiter(30, 600_000);
 
-export function publicOrigin(url: URL): string {
-	return (ORIGIN || url.origin).replace(/\/$/, '');
-}
+export { publicOrigin } from './origin.ts';
 
 export async function qrSvg(text: string): Promise<string> {
 	return QRCode.toString(text, { type: 'svg', errorCorrectionLevel: 'M', margin: 1, color: { dark: '#000000', light: '#ffffff' } });

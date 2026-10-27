@@ -113,7 +113,7 @@ test.describe('1 organiser prepares', () => {
 		// Wizard
 		await page.getByRole('link', { name: 'Ny tävling' }).click();
 		await page.getByLabel('Namn', { exact: true }).pressSequentially('UAT Vårhajk', { delay: 50 });
-		await expect(page.locator('#name-help')).toContainText('scouttavling.se/uat-varhajk');
+		await expect(page.locator('#name-help')).toContainText(/[\w.:-]+\/uat-varhajk/);
 		await page.getByRole('radio', { name: /Flera dagar/ }).check();
 		await page.getByLabel('Första dagen').fill('2027-05-15');
 		await page.getByLabel('Sista dagen').fill('2027-05-16');

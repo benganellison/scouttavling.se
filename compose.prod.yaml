@@ -43,6 +43,16 @@ services:
       - traefik.http.routers.scouttavling.tls.certresolver=le
       - traefik.http.routers.scouttavling.middlewares=scouttavling-headers
       - traefik.http.services.scouttavling.loadbalancer.server.port=3000
+      # www.<DOMAIN> → <DOMAIN> (permanent, path and query kept). Needs a DNS record for www too;
+      # it gets its own certificate. Every other subdomain gets no answer from this stack.
+      - traefik.http.routers.scouttavling-www.rule=Host(`www.${DOMAIN}`)
+      - traefik.http.routers.scouttavling-www.entrypoints=websecure
+      - traefik.http.routers.scouttavling-www.tls.certresolver=le
+      - traefik.http.routers.scouttavling-www.middlewares=scouttavling-www-redirect
+      - traefik.http.routers.scouttavling-www.service=scouttavling
+      - traefik.http.middlewares.scouttavling-www-redirect.redirectregex.regex=^https?://www\.([^/]+)(.*)
+      - traefik.http.middlewares.scouttavling-www-redirect.redirectregex.replacement=https://$${1}$${2}
+      - traefik.http.middlewares.scouttavling-www-redirect.redirectregex.permanent=true
       - traefik.http.services.scouttavling.loadbalancer.healthcheck.path=/healthz
       - traefik.http.middlewares.scouttavling-headers.headers.stsSeconds=31536000
       - traefik.http.middlewares.scouttavling-headers.headers.stsIncludeSubdomains=true

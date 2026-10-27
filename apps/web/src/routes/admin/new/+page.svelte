@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 	import { daysBetween } from '@scouttavling/domain';
 	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
@@ -184,7 +185,7 @@
 						/>
 						{#if errors.seriesName}<span class="error-text">{errors.seriesName}</span>{/if}
 						<span id="series-help" class="help">
-							Seriens sida blir <strong class="url">scouttavling.se/t/{seriesSlug || '…'}</strong>
+							Seriens sida blir <strong class="url">{page.data.siteHost}/{seriesSlug || '…'}</strong>
 							{#if !editSeriesSlug}<button type="button" class="linkish" onclick={() => { editSeriesSlug = true; seriesSlugTyped = seriesSlug; }}>Ändra adress</button>{/if}
 							· Året ({editionYear ?? 'från datumet'}) läggs till per upplaga.
 						</span>
@@ -192,7 +193,7 @@
 					{#if editSeriesSlug}
 						<div class="field">
 							<label for="seriesSlug">Seriens adress</label>
-							<div class="prefixed"><span aria-hidden="true">scouttavling.se/t/</span><input id="seriesSlug" name="seriesSlug" bind:value={seriesSlugTyped} aria-invalid={errors.seriesSlug ? 'true' : undefined} /></div>
+							<div class="prefixed"><span aria-hidden="true">{page.data.siteHost}/</span><input id="seriesSlug" name="seriesSlug" bind:value={seriesSlugTyped} aria-invalid={errors.seriesSlug ? 'true' : undefined} /></div>
 						</div>
 					{/if}
 					{#if errors.seriesSlug}<span class="error-text">{errors.seriesSlug}</span>{/if}
@@ -242,14 +243,14 @@
 					<input id="name" name="name" bind:value={name} autocomplete="off" placeholder="t.ex. GökOpen 2027" aria-invalid={errors.name ? 'true' : undefined} aria-describedby="name-help" class="big" />
 					{#if errors.name}<span class="error-text">{errors.name}</span>{/if}
 					<span id="name-help" class="help">
-						Tävlingssidan blir <strong class="url">scouttavling.se/{slug || '…'}</strong>
+						Tävlingssidan blir <strong class="url">{page.data.siteHost}/{slug || '…'}</strong>
 						{#if !editSlug}<button type="button" class="linkish" onclick={() => { editSlug = true; slugTyped = slug; }}>Ändra adress</button>{/if}
 					</span>
 				</div>
 				{#if editSlug}
 					<div class="field">
 						<label for="slug">Adress</label>
-						<div class="prefixed"><span aria-hidden="true">scouttavling.se/</span><input id="slug" name="slug" bind:value={slugTyped} aria-invalid={errors.slug ? 'true' : undefined} /></div>
+						<div class="prefixed"><span aria-hidden="true">{page.data.siteHost}/</span><input id="slug" name="slug" bind:value={slugTyped} aria-invalid={errors.slug ? 'true' : undefined} /></div>
 					</div>
 				{/if}
 				{#if errors.slug}<span class="error-text">{errors.slug}</span>{/if}
@@ -420,10 +421,10 @@
 			<section class="card sec summary-card" aria-labelledby="h-sum" data-testid="wizard-summary">
 				<h2 id="h-sum">Sammanfattning</h2>
 				<dl class="sum">
-					<dt>Tävling</dt><dd>{name.trim() || '–'} · <span class="url">scouttavling.se/{slug || '…'}</span></dd>
+					<dt>Tävling</dt><dd>{name.trim() || '–'} · <span class="url">{page.data.siteHost}/{slug || '…'}</span></dd>
 					<dt>Serie</dt>
 					<dd>
-						{#if seriesMode === 'new'}Ny serie <strong>{seriesNameEff || '…'}</strong> · <span class="url">scouttavling.se/t/{seriesSlug || '…'}</span>{#if editionYear} · upplaga {editionYear}{/if}{:else}Fristående{/if}
+						{#if seriesMode === 'new'}Ny serie <strong>{seriesNameEff || '…'}</strong> · <span class="url">{page.data.siteHost}/{seriesSlug || '…'}</span>{#if editionYear} · upplaga {editionYear}{/if}{:else}Fristående{/if}
 					</dd>
 					<dt>Utseende</dt>
 					<dd>Scouternas grundutseende. {seriesMode === 'new' ? 'Logga, färg och omslagsbild för serien lägger du till under Serien; alla år ärver dem.' : 'Logga, färg och omslagsbild lägger du till under Inställningar.'}</dd>

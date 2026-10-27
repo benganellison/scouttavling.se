@@ -47,6 +47,7 @@ COPY --from=build --chown=node:node /repo/apps/web/scripts/site-admin.ts ./apps/
 COPY --from=build --chown=node:node /repo/apps/web/scripts/gokapp-import.ts ./apps/web/scripts/gokapp-import.ts
 COPY --from=build --chown=node:node /repo/apps/web/src/lib/server/gokappImport.ts ./apps/web/src/lib/server/gokappImport.ts
 COPY --from=build --chown=node:node /repo/apps/web/src/lib/server/db/schema.ts ./apps/web/src/lib/server/db/schema.ts
+COPY --from=build --chown=node:node /repo/apps/web/src/lib/routing/slugs.ts ./apps/web/src/lib/routing/slugs.ts
 COPY --from=build --chown=node:node /repo/package.json ./package.json
 
 USER node

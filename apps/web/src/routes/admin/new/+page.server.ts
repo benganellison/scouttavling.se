@@ -7,9 +7,10 @@ import { recordChange } from '#lib/server/changes.ts';
 import { slugify } from '#lib/ui/admin/format.ts';
 import { loadSeriesBranding } from '#lib/server/assets.ts';
 import { editionYearOf, editionsOf, organisedSeries, organisesEdition, slugTaken } from '#lib/server/series.ts';
+import { isReservedSlug } from '#lib/routing/slugs.ts';
+import { publicHost } from '#lib/server/origin.ts';
 
 const PRESET_TRACKS = ['Spårare', 'Upptäckare', 'Äventyrare', 'Utmanare', 'Rover'];
-const RESERVED = new Set(['new', 'admin', 'api', 'login', 'auth', 'r', 'j', 'f', 'p', 'ny', 'series']);
 const MAX_PER_DAY = 5;
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -107,14 +108,14 @@ export const actions = {
 		else if (name.length > 80) errors.name = 'Namnet får vara högst 80 tecken.';
 		const slug = slugInput || slugify(name);
 		if (name && !slug) errors.slug = 'Adressen måste innehålla bokstäver eller siffror.';
-		else if (RESERVED.has(slug)) errors.slug = 'Den adressen är reserverad. Välj en annan.';
+		else if (slugInput && isReservedSlug(slug)) errors.slug = 'Den adressen är reserverad. Välj en annan.';
 
 		if (seriesMode === 'new') {
 			if (seriesName.length < 2) errors.seriesName = 'Skriv seriens namn, minst två tecken.';
 			else if (seriesName.length > 80) errors.seriesName = 'Seriens namn får vara högst 80 tecken.';
 			else if (!seriesSlug) errors.seriesSlug = 'Adressen måste innehålla bokstäver eller siffror.';
-			else if (RESERVED.has(seriesSlug)) errors.seriesSlug = 'Den adressen är reserverad. Välj en annan.';
-			else if (await slugTaken(seriesSlug)) errors.seriesSlug = `Adressen scouttavling.se/t/${seriesSlug} är upptagen av en annan serie eller tävling.`;
+			else if (isReservedSlug(seriesSlug)) errors.seriesSlug = 'Den adressen är reserverad. Välj en annan.';
+			else if (await slugTaken(seriesSlug)) errors.seriesSlug = `Adressen ${publicHost(event.url)}/${seriesSlug} är upptagen av en annan serie eller tävling.`;
 			else if (slugInput && slugInput === seriesSlug) errors.slug = 'Tävlingen och serien kan inte ha samma adress.';
 		}
 
@@ -164,7 +165,7 @@ export const actions = {
 		for (let i = 2; ; i++) {
 			// Series pages share /t/<slug>, so a series slug is taken too.
 			if (!(await slugTaken(finalSlug)) && !(seriesMode === 'new' && finalSlug === seriesSlug)) break;
-			if (slugInput) return fail(400, { errors: { slug: `Adressen scouttavling.se/${slugInput} är upptagen.` }, values });
+			if (slugInput) return fail(400, { errors: { slug: `Adressen ${publicHost(event.url)}/${slugInput} är upptagen.` }, values });
 			finalSlug = `${base}-${i}`;
 			if (i > 99) return fail(400, { errors: { slug: 'Välj en annan adress.' }, values });
 		}

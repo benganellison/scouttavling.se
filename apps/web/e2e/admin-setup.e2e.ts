@@ -30,7 +30,8 @@ test('organiser creates a multi-day competition and edits a station', async ({ p
 
 	await page.getByRole('link', { name: 'Ny tävling' }).click();
 	await page.getByLabel('Namn', { exact: true }).fill('E2E Hajk');
-	await expect(page.locator('#name-help')).toContainText('scouttavling.se/e2e-hajk');
+	// Addresses show the deployment's own domain (from ORIGIN), whatever the test server uses.
+	await expect(page.locator('#name-help')).toContainText(/[\w.:-]+\/e2e-hajk/);
 	await page.getByRole('radio', { name: /Flera dagar/ }).check();
 	await page.getByLabel('Första dagen').fill('2027-06-11');
 	await page.getByLabel('Sista dagen').fill('2027-06-13');

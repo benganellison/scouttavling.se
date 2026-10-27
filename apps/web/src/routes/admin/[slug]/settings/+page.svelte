@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 	import Toggle from '#lib/ui/admin/Toggle.svelte';
 	import { shortDate } from '#lib/ui/admin/format.ts';
@@ -37,7 +38,7 @@
 
 <header class="head">
 	<h1>Inställningar</h1>
-	<span class="muted">Adress: <strong>scouttavling.se/{c.slug}</strong></span>
+	<span class="muted">Adress: <strong>{page.data.siteHost}/{c.slug}</strong></span>
 </header>
 {#if !canEdit}<p class="pill pill-warn">Du kan se men inte ändra inställningarna.</p>{/if}
 
@@ -97,7 +98,7 @@
 		<h2 id="h-reg">Anmälan och tävlingssida</h2>
 		<a class="btn btn-ghost sm" href="/t/{c.slug}" target="_blank" rel="noopener">Visa tävlingssidan</a>
 	</div>
-	<p class="muted lead">Tävlingssidan <strong>scouttavling.se/t/{c.slug}</strong> syns för alla när tävlingen inte är ett utkast.</p>
+	<p class="muted lead">Tävlingssidan <strong>{page.data.siteHost}/{c.slug}</strong> syns för alla när tävlingen inte är ett utkast.</p>
 	<form method="POST" action="?/registration" class="stack" use:enhance={keep} novalidate>
 		<div class="toggles">
 			<Toggle name="registrationOpen" checked={c.registrationOpen} label="Öppen självanmälan" description="Patrulledare kan anmäla via tävlingssidan." />
