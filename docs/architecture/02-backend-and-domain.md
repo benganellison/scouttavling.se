@@ -19,7 +19,7 @@ Version numbers were checked against the npm registry, nodejs.org and postgresql
 | Runtime | **Node.js 24.22.0 LTS** ("Krypton") | Node 26.12.0 is "Current" and becomes LTS at the end of October 2026. Move at the first 26.x LTS release. |
 | Language | **TypeScript 6.0.3** | SvelteKit 3.1.0's peer range is `typescript ^6.0.0`, so TypeScript 7.0.2 (native compiler) cannot be used yet, in the app or the packages. Move everything together when the peer range allows it. |
 | Framework | **SvelteKit 3.1.0** + `@sveltejs/adapter-node` **6.0.0** | API under `src/routes/api/v1/**/+server.ts`. Session, CSRF, rate limits and security headers live in `hooks.server.ts`. Server-only code lives in `src/lib/server/` (SvelteKit refuses to bundle it into the client). |
-| Monorepo | **npm workspaces** | `apps/web`, `packages/domain`, `packages/schema`, `packages/ui`, `tools/gokapp-migrate` (03 §14). |
+| Monorepo | **npm workspaces** | `apps/web`, `packages/domain`, `packages/schema`, `packages/ui` (03 §14). The gokapp import is a CLI in `apps/web/scripts` (§9). |
 | Shared domain | `packages/domain`: **pure TS, no I/O** | Ranking and tiebreak, distribution strategies, item/score rules, import normalisation, sync conflict rules, command envelope, JWS signing and verification. Used by the server (authoritative) and the client (previews, offline validation). |
 | Validation | `packages/schema`: **Valibot 1.5.0** | Every API body, command payload, station pack and import row. `v.strictObject` rejects unknown keys. The schemas *are* the API contract, shared at compile time. OpenAPI is optional: generate it with `@valibot/to-json-schema` **1.8.0** only if an external integration needs it. |
 | Database | **PostgreSQL 18.6** (supported to 2030-11) | Reasons below. |
@@ -417,25 +417,20 @@ Templates are versioned. Organisations can clone the global Scoutnet template an
 - Start and end times are free strings.
 - Users have local passwords.
 
-**Approach:** a one-off TypeScript CLI in `tools/gokapp-migrate`, run with `npx gokapp-migrate --source=mysql://… --owner-org=<id> --competition-name=… [--templates-only]`. It reads gokapp's MySQL with **mysql2 3.24.6** and writes through our server modules' public `index.ts` functions (as a system actor), so all validation applies. It is re-runnable: it matches on `legacy_id` and is a no-op on a second run. Per 01 §3 and 04 §8, production gets **`--templates-only`** (stations, items, tracks, settings). The full mode, with patrols and scores, runs only into a local or staging scratch database for the ranking parity check.
+**As built (2026-10-27): old years go into the archive.** `npm run gokapp:import` (`apps/web/scripts/gokapp-import.ts`, core in `src/lib/server/gokappImport.ts`, pure mapping in `packages/domain/src/gokapp.ts`) reads one gokapp MySQL database with **mysql2 3.24.6** and creates **one already-archived edition** of a series (`anonymised_at` set, closed, public results, read-only). It runs locally or in the production container; the MySQL address comes from `GOKAPP_SOURCE` (never the command line).
+
+- **Read allowlist** (`READS`): station definitions, classes, station↔class links, patrol `patrolid/patrolname/troop/fk_track/status`, and scores. Members, contacts, notes, start/end strings, external ids, payments, users and messages are **never selected** (unit test against `NEVER_READ`; the integration test fills those columns with markers and searches every table afterwards).
+- **Dry run by default:** prints the edition, date (guessed from the most common score date unless `--date`), counts, the podium per class, scores outside today's rules (imported as they were) and a **ranking parity check** against gokapp's comparator (`gokappComparator`, the same oracle as the parity test). `--commit` writes it in one transaction; anything off (slug or year taken, unknown owner, no date) writes nothing.
+- **Times:** gokapp was used live at the stations, so its `last_saved` becomes `scored_at` (times between stations). A score corrected later moved its save time; use `--no-times` if that happened a lot.
 
 | gokapp | scouttavling.se |
 |---|---|
-| `config` + `configregistration` | one `Competition` (+ one `Day`, prefix "") |
-| `track` | `Track` |
-| `station` | `Station` (order = `stationnumber`, code = number) + **one** `ScoreItem`: mode WAYPOINT→CHECKIN, `usedistinctscores`→DISTINCT (`distinctscores` CSV → `[{value,label:null}]`), else RANGE with min/max; `style_enabled = maxstylescore > 0`; `alltracks` / `station_track` kept |
-| `station.user_id` | not migrated as an account; becomes a suggested station invite |
-| `patrol` | `Patrol` (`number` = old `patrolid`, `legacy_id`, `externalid` → `external_key` if present), `troop` → `org_text` + alias suggestion, `paid`, `note` |
-| `patrol.members` | split on newlines/commas into `Member` rows (best effort, flagged for review) |
-| `leadercontact/contactmail/leadercontactphone` | `Contact` (phone normalised) |
-| `status` REGISTERED/ACTIVE/FINISHED/RESIGNED | ANMALD / PA_BANAN / I_MAL / ATERBUD |
-| `starttime`/`endtime` strings | `StatusEvent`s if parseable as a time on the competition date, else kept in `note` |
-| `fk_station` (start station) | `StartAssignment` (locked, plan = "migrated") |
-| `score` | `Score` (new UUIDv7, version 1, origin MIGRATED, `recorded_at = lastSaved`) + revision CREATE |
-| `usermessage` / `message_read` | `Message` / `MessageReceipt` keyed to a legacy actor label |
-| `users`, `user_roles` | **not migrated**; admins re-attach via ScoutID membership invites |
-
-**Verification built into the tool:** after migrating, it computes the ranking per track twice. One pass uses the *gokapp* comparator, ported from `Patrol.compareTo` to a TS test fixture (`tools/gokapp-migrate/test/gokapp-comparator.ts`). The other uses `packages/domain/ranking`. It prints any differences in order. The only expected difference is shared places for exact ties. The same fixture backs the golden-parity property test (§10).
+| `config.name` | only suggested in the dry run; the edition is named "<series> <year>" |
+| `track` | `track` (order by id; colours from the series template) |
+| `station` | `station` (order = `stationnumber`) + **one** `score_item`: `waypoint`→CHECKIN, `usedistinctscores` (+ `distinctscores` CSV)→DISTINCT, else RANGE min/max; style when `maxstylescore > 0`; `alltracks` / `station_track` kept |
+| `patrol` | `patrol`: number = `patrolid`, name, kår, class, status (REGISTERED/ACTIVE/FINISHED/RESIGNED → registered/active/finished/resigned) |
+| `score` | `score` + revision v1 (origin `admin`, reason "Importerad från gokapp"); a waypoint only when visited; duplicates: last saved wins |
+| everything else | not read |
 
 ---
 

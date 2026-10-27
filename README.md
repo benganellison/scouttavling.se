@@ -93,6 +93,19 @@ docker compose --env-file .env.prod -f compose.yaml -f compose.prod.yaml exec -e
 
 Site admins get `/site-admin` (search, owners, suspension, personal-data removal, temporary access, audit log). Details: [docs/architecture/04 §10](docs/architecture/04-security-and-operations.md).
 
+### Old years from gokapp
+
+Imports one gokapp database as an archived year of a series: patrol name, kår, class and points per station only. Dry run first; add `--commit` to write.
+
+```sh
+# the password stays out of the process list and shell history
+read -rs GOKAPP_SOURCE && export GOKAPP_SOURCE   # mysql://user:pass@host:3306/gokapp
+npm run gokapp:import -- --series hajk-dm --series-name "Hajk-DM" --year 2023 --owner <memberNo>
+npm run gokapp:import -- --series hajk-dm --series-name "Hajk-DM" --year 2023 --owner <memberNo> --commit
+```
+
+Details and what is read: [docs/architecture/02 §9](docs/architecture/02-backend-and-domain.md).
+
 `ORIGIN` is baked into the image at build time, so each public domain needs its own build. Released images are built by CI with the repository variable `PUBLIC_ORIGIN`.
 
 ## Versions and releases

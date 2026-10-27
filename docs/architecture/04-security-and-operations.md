@@ -479,7 +479,7 @@ Every option is small enough for a kår, district or Scouterna to sponsor. The s
 
 ## 8. Migration and rollout from gokapp
 
-gokapp data is per-event and short-lived, and its users are local accounts with no ScoutID link. **We do not migrate personal data.** Only reusable *templates* move: station definitions, scoring rules and class configurations.
+gokapp data is per-event and short-lived, and its users are local accounts with no ScoutID link. **We do not migrate personal data.** Old years can be imported into a series' archive with `npm run gokapp:import` (02 §9): station definitions, classes, patrol number/name/kår/class/status and scores, exactly what an archived edition keeps after "Ta bort personuppgifter" (05 §4). Members, contacts, notes, payments and users are never read.
 
 | Phase | When (indicative) | Content | Exit criteria |
 |---|---|---|---|
@@ -491,7 +491,7 @@ gokapp data is per-event and short-lived, and its users are local accounts with 
 | 5. Decommission | ≤ 6 months after phase 4 | Export gokapp results to static archive pages (patrol names and kår only), wipe the gokapp DB, stop the gokapp host | DB deletion confirmed |
 
 **Responsibilities:**
-- **Developers** use `tools/gokapp-migrate --templates-only` (02 §9), a TS CLI that reads a gokapp MySQL dump *offline* and creates stations, items and tracks. They also build the results-archive exporter. The full mode runs only into scratch databases for ranking parity.
+- **Organisers/operators** import finished gokapp years into the series archive with `npm run gokapp:import` (02 §9): no personal data is read, and the ranking is checked against gokapp's before anything is written.
 - **Ops (this section)** runs both stacks during phases 2–4 on separate hosts and accounts. gokapp stays on its current compose/Traefik host. `gokapp.<domain>` keeps working until decommission.
 - **Competition owners** re-import participants from Scoutnet with the new wizard, which is how data minimisation applies from day one.
 

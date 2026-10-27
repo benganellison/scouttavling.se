@@ -34,7 +34,8 @@ ENV NODE_ENV=production \
 	BODY_SIZE_LIMIT=3M
 WORKDIR /app
 
-# Runtime deps (pruned), the built server, migrations, the migrate script and the site-admin CLI
+# Runtime deps (pruned), the built server, migrations, the migrate script, the site-admin CLI and the
+# gokapp importer (`npm run gokapp:import`, 02 §9)
 # (`docker compose exec app npm run site-admin:grant -- <memberNo> --reason "…"`, docs/architecture/04 §10).
 COPY --from=build --chown=node:node /repo/node_modules ./node_modules
 COPY --from=build --chown=node:node /repo/packages ./packages
@@ -43,6 +44,9 @@ COPY --from=build --chown=node:node /repo/apps/web/package.json ./apps/web/packa
 COPY --from=build --chown=node:node /repo/apps/web/drizzle ./apps/web/drizzle
 COPY --from=build --chown=node:node /repo/apps/web/scripts/migrate.ts ./apps/web/scripts/migrate.ts
 COPY --from=build --chown=node:node /repo/apps/web/scripts/site-admin.ts ./apps/web/scripts/site-admin.ts
+COPY --from=build --chown=node:node /repo/apps/web/scripts/gokapp-import.ts ./apps/web/scripts/gokapp-import.ts
+COPY --from=build --chown=node:node /repo/apps/web/src/lib/server/gokappImport.ts ./apps/web/src/lib/server/gokappImport.ts
+COPY --from=build --chown=node:node /repo/apps/web/src/lib/server/db/schema.ts ./apps/web/src/lib/server/db/schema.ts
 COPY --from=build --chown=node:node /repo/package.json ./package.json
 
 USER node

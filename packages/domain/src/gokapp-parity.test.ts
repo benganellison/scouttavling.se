@@ -2,15 +2,13 @@
  * Golden test: rank() must order real competition results exactly like gokapp.
  *
  * Fixture: Hajk-DM 2023 as stored by gokapp, anonymised (numbers only).
- * Oracle: a line-by-line port of gokapp's Patrol.compareTo / getNumberOfXPoints
- * (verified against the 2023 app's compiled classes and the current source):
- *   total ↓ → points without style ↓ → count of max-score, then max−1, … (0..50),
- *   counting only non-waypoint scores with points > 0.
+ * Oracle: gokappComparator (gokapp.ts), a line-by-line port of gokapp's Patrol.compareTo /
+ * getNumberOfXPoints (verified against the 2023 app's compiled classes and the current source).
  * gokapp leaves exact ties in arbitrary order; scouttavling gives them a shared place.
  */
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { rank, evaluate, type ScoreItemDef } from './index.ts';
+import { rank, evaluate, gokappComparator, type ScoreItemDef } from './index.ts';
 
 const fx = JSON.parse(readFileSync(new URL('./fixtures/hajkdm2023.json', import.meta.url), 'utf8'));
 type Station = { id: string; min: number; max: number; styleMin: number; styleMax: number; waypoint: boolean };
@@ -24,16 +22,8 @@ const items: ScoreItemDef[] = stations.map((s) => ({
 	styleEnabled: s.styleMax > 0, styleMin: s.styleMin, styleMax: s.styleMax, countsForTiebreak: !s.waypoint
 }));
 
-// ---- gokapp oracle ----
 const total = (p: string) => of(p).reduce((a, s) => a + s[2] + s[3], 0);
-const points = (p: string) => of(p).reduce((a, s) => a + s[2], 0);
-const nX = (p: string, x: number) => of(p).filter(([, sid, pts]) => { const s = st.get(sid)!; return !s.waypoint && s.max - x > 0 && pts === s.max - x; }).length;
-function gokapp(a: string, b: string) {
-	let c = total(b) - total(a);
-	if (c === 0) c = points(b) - points(a);
-	if (c === 0) for (let i = 0; i <= 50; i++) { c = nX(b, i) - nX(a, i); if (c !== 0) break; }
-	return c;
-}
+const gokapp = gokappComparator(scores.map(([patrolId, stationId, points, style]) => ({ patrolId, stationId, points, style })), st);
 
 describe('gokapp parity on Hajk-DM 2023 (anonymised real data)', () => {
 	it('every stored score is valid under the new score rules', () => {

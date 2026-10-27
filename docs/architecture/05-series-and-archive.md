@@ -93,6 +93,10 @@ Implementation: `anonymiseCompetition()` in one transaction, which also writes a
 
 **Points per station.** Removal keeps every score, so an archived year shows the same breakdown as on the day: tap a patrol on `/r/<slug>` for its points (and style) per station against the station's max. Public results show it **always once an edition is closed**; while it runs only when the organiser turns on "Visa poäng per kontroll under tävlingen" (`competition.station_results_live`, default off, so patrols cannot see a station's scores before they get there; copied to the next year). Organisers always see it on their results page, and the CSV export has one column per station. Rule: `showStationResults()` in `#lib/server/live.ts`; `publicTracks()` strips the breakdown otherwise.
 
+### Older years from gokapp
+
+`npm run gokapp:import -- --series <slug> --year <yyyy> --owner <memberNo>` adds an old gokapp year to a series as an already-archived edition (dry run first, `--commit` to write; 02 §9). It shows up under "Tidigare år" like any other closed year, with points per station and statistics.
+
 ## 6. Image storage
 
 Uploaded images stay in **Postgres** (`asset.data`, owner decision): a few logos and covers per edition or series, ≤2 MB each, so backups and restores stay one database dump. All reads and writes go through `#lib/server/assetStore.ts` (`saveAsset` / `readAsset` / `deleteAsset`, plus `listAssets`, `copyAssets`, `clearUploader`), so a switch to object storage touches that one file. **Threshold:** move to an S3-compatible bucket only if uploads grow a lot, e.g. user or protocol photos (hundreds of MB per event), or if the dump size starts to slow backups/restores.

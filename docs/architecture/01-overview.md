@@ -61,7 +61,7 @@ flowchart LR
 | Hosting | **Deferred.** Requirements: EU residency, OCI container, ≥60-min SSE requests, scale to zero with min-instances = 1 on event weekends. Options: Cloud Run (europe-north1) + Neon, Scaleway Serverless Containers + Serverless SQL, or a VPS (e.g. Hetzner) with Docker Compose + Traefik. | Committing to one host now | 04 §7 |
 | Images | Event and series images (logos, covers) are stored **in Postgres** behind one module (`assetStore.ts`). Object storage only if uploads grow a lot (e.g. protocol or user photos). | An S3 bucket from day one | 05 §6 |
 | Series | A **series** (GökOpen) owns branding and class colours; each year is a competition (edition). Public archive at `/t/<series>`. Personal data is removed manually per closed edition; results stay identical. | Copying competitions by hand each year | 05 |
-| Migration | No personal data moves from gokapp, only templates (`tools/gokapp-migrate --templates-only`). Pilot runs in parallel with gokapp. | Big-bang switch | 04 §8, 02 §9 |
+| Migration | No personal data moves from gokapp. Old years are imported into the series archive (patrol name, kår, class, points) with `npm run gokapp:import`. Pilot runs in parallel with gokapp. | Big-bang switch | 04 §8, 02 §9 |
 
 ## 4. Cross-section contracts (binding)
 
@@ -95,7 +95,7 @@ Every version below was verified against the npm registry, nodejs.org, postgresq
 | Client | Svelte 5.57.2, Vite 8.3.4, Dexie 4.4.6, Workbox 7.4.1, TanStack Svelte Query 6.3.3, Bits UI 2.19.5, Paraglide JS 2.29.0 |
 | Field features | barcode-detector 3.2.2 / zxing-wasm 3.1.5, SheetJS 0.20.3 (from cdn.sheetjs.com, **not** npm `xlsx`) |
 | Testing | Vitest 5.0.5, fast-check 4.10.2 + `@fast-check/vitest` 0.5.0, `@testcontainers/postgresql` 12.2.1, Playwright 1.64.1, axe-core 4.14.0, MSW 3.0.3, dependency-cruiser 18.6.0 |
-| Tools | mysql2 3.24.6 (gokapp-migrate) |
+| Tools | mysql2 3.24.6 (gokapp import) |
 | CI | actions/checkout v7.0.1, actions/setup-node v7.1.0, docker/setup-buildx-action v4.4.1, docker/metadata-action v6.2.0, docker/build-push-action v7.4.0, docker/login-action v4.6.0, trivy-action v0.36.0, attest-build-provenance v4.2.2 |
 | Ops (by option) | Traefik v3.7.15 (VPS only), Uptime Kuma 2.5.6, GlitchTip 6.1.8, Prometheus 3.15.0 / Grafana 13.2.4 (VPS, optional), Keycloak 26.8.1 (local dev only) + scoutid-keycloak-provider v0.14.0 |
 

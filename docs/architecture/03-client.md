@@ -453,7 +453,6 @@ scouttavling.se/
 ├─ packages/domain/              pure TS: ranking, distribution, item rules, sync decide(), command envelope + JWS, QR, import normalisation
 ├─ packages/schema/              Valibot schemas: API bodies, commands, station pack, import rows
 ├─ packages/ui/                  tokens.css, Bits UI–based primitives, domain components
-├─ tools/gokapp-migrate/         TS CLI (mysql2) + ported gokapp comparator fixture
 └─ docs/architecture/
 ```
 
