@@ -106,7 +106,8 @@ export function computeResults(input: ResultsInput): TrackResults[] {
 			const done = new Set(mine.map((s) => stationOfItem.get(s.itemId)));
 			const perStation = columns.map((c) => {
 				const at = mine.filter((s) => stationOfItem.get(s.itemId) === c.id);
-				return at.length ? { points: at.reduce((n, s) => n + s.points, 0), stylePoints: at.reduce((n, s) => n + s.stylePoints, 0) } : null;
+				const style = (s: (typeof at)[number]) => (def.get(s.itemId)?.styleEnabled === false ? 0 : s.stylePoints);
+				return at.length ? { points: at.reduce((n, s) => n + s.points, 0), stylePoints: at.reduce((n, s) => n + style(s), 0) } : null;
 			});
 			return {
 				patrolId: r.id, number: r.number, name: p.name, troop: p.troop, place: r.place, total: r.total,

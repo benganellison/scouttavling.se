@@ -643,7 +643,8 @@ test('9 results vs independent calculation, public page, ceremony, close, CSV', 
 	await expect(p.locator('.status.closed').first()).toHaveText('Avslutad');
 	await shot(p, '37-overview-closed');
 
-	// A volunteer tries to change a score after the competition is closed: it must not reach the results (step 10 checks totals).
+	// A volunteer tries to change a score after the competition is closed: it must not reach the results (step 10 checks totals),
+	// but it is kept for HQ's review instead of being dropped (step 10 checks that too).
 	const bo = phones.bo.page;
 	await bo.getByRole('navigation', { name: 'Huvudmeny' }).getByRole('link', { name: 'Kontroll' }).click();
 	await toScan(bo, 101);
@@ -693,8 +694,8 @@ test('10 database agrees with what the UI did', async () => {
 			expect(r.n).toBe(12); // FS check-in, F1, F2, FM check-in, LS check-in + Chiffer, L1, L2, 4 Mål items
 		}
 		expect(sc.map((r) => r.number)).toEqual([101, 102, 103, 104, 105, 107]);
-		const [{ open: openConflicts }] = await sql`select count(*)::int open from score_conflict where competition_id = ${c.id} and status = 'open'`;
-		expect(openConflicts).toBe(0);
+		const open = await sql`select kind, incoming->>'reason' as reason from score_conflict where competition_id = ${c.id} and status = 'open'`;
+		expect(open.map((r) => [r.kind, r.reason])).toEqual([['quarantine', 'Tävlingen är avslutad']]);
 	} finally {
 		await sql.end();
 	}

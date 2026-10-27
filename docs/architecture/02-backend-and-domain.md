@@ -470,3 +470,34 @@ The pure cores (ranking, distribution, sync decisions, normalisation) need no da
   - rate limiting of join, sync, public registration and the follow page
   - host requirements: 60-min requests, min-instances on event days, pooled + direct DB URLs, scheduled trigger for `/internal/jobs/tick`
   - Postgres 18 hosting and backups
+
+---
+
+## 11. Correctness review 2026-10-27 (before v0.1.0)
+
+Fixed, each with a test (`scores.db.test.ts` reproduces the races against Postgres and fails on the old code):
+
+| Finding | Fix |
+|---|---|
+| A failed or duplicate sync answered "Behandlas redan" as **rejected**: the phone dropped the report for good | Each command is one transaction (claim → checks → apply/quarantine → result, `BatchDeps.atomic`): a failure leaves nothing behind and the retry is processed afresh; a concurrent copy waits and reads the stored result. |
+| Two first reports for the same patrol and item → unique-key error (500) instead of a conflict | `INSERT … ON CONFLICT DO NOTHING`, then the normal version check (→ conflict for HQ, or a merged duplicate). |
+| Deadlock between score writes and patrol updates (desk status, HQ edit, import) | One lock order everywhere: patrol row, then score, then `change_seq`. |
+| Re-joining (expired grant, new code) sent reports signed by the old key → rejected for good | Pending reports lose the old signature on re-join and are signed by the new key; reports from well before the join go to HQ's review. |
+| A phone clock stepping back could block the outbox forever | A report waiting for an earlier one's result is skipped for one round, not the whole batch. |
+| Import merged same-named patrols of different kårer, and a re-import cleared "Betald" and the class | Match on member number + name, then name + kår, then a unique name; never a patrol created in the same import; no payment column / no class keeps the patrol's value. |
+| HQ's patrol form wrote back the status from when the page was loaded | Status only written when changed in the form (`statusWas`), with a `status_event`. |
+| Style points counted after style was switched off; the live stream cached results with stale settings | Ranking and per-station breakdown ignore style of items without style; the stream reads the competition row on every update. |
+| "Använd nya" on a quarantined undo wrote 0 points | Calls `voidScore`; the review page shows it as "Ångrad". |
+| Late finish report from an earlier day put an active patrol in camp; a finish station without a day never finished; undoing a Mål scan kept "I mål" | `nextPatrolStatus` gets the latest day seen; undoing the finish report re-derives the status. |
+| Reports after closing were rejected (dropped) | Quarantined with "Tävlingen är avslutad" (C4); the phone shows "Väntar på granskning". |
+| Start distribution used other days' stations and start/finish desks | Only the first day's ordinary startable stations. |
+| After a deploy, the old service worker could serve a new shell whose code was not cached (no offline start) | Content-hashed build files are cached on first fetch, from any version. |
+| Changing an item's scoring rules left stored points computed by the old rules | Refused while the item has scores (mode, values, multiplier, a narrower range); name, style and a wider range are fine. |
+| Smaller: stale undo not shown to HQ; visit time after undo + re-report; item deletion racing a report; manage page dropping members' kår text; grant expiry an hour off in winter; a tab waiting for the sync lock never retried | Fixed. |
+
+**Known limitations for v0.1:**
+- A phone's grant expiry is fixed when it joins: if the competition is extended afterwards, volunteers re-scan the invite.
+- Patrol numbers above 99 999 are not supported by patrol QR codes (the form caps at 99 999; automatic numbering does not).
+- Concurrent creation of patrols by hand can hit the unique number (an error, nothing lost).
+- Prize-ceremony snapshots live in process memory (one app instance in v0.1).
+- A new event logo or cover reaches phones at their next snapshot refresh, not instantly.

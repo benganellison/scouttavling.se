@@ -215,7 +215,8 @@ export interface ImportRow {
 	contactEmail: string;
 	contactMemberNo: string;
 	members: ParsedMember[];
-	paid: boolean;
+	/** null = the file has no payment column (an update then leaves "Betald" as it is). */
+	paid: boolean | null;
 }
 
 export interface ImportIssue {
@@ -254,7 +255,7 @@ export function buildImport(table: Table, columns: ColumnGuess[], knownTracks: s
 			contactEmail: get(r, 'contactEmail').toLowerCase(),
 			contactMemberNo: get(r, 'contactMemberNo').replace(/\D/g, ''),
 			members: parseMembers(get(r, 'members')),
-			paid: /^betald|^ja/i.test(get(r, 'paid'))
+			paid: col('paid') === undefined ? null : /^betald|^ja/i.test(get(r, 'paid'))
 		});
 	}
 	const issues: ImportIssue[] = [];

@@ -166,12 +166,17 @@ export const patrolByFollowToken = (token: string) => byHash('followTokenHash', 
 
 export async function updateRegistration(compId: string, patrolId: string, data: ManageData) {
 	await db.transaction(async (tx) => {
+		await tx.select({ id: schema.patrol.id }).from(schema.patrol).where(eq(schema.patrol.id, patrolId)).for('update');
 		await tx
 			.update(schema.patrol)
 			.set({ contactName: data.contactName, contactPhone: data.contactPhone, contactEmail: data.contactEmail })
 			.where(eq(schema.patrol.id, patrolId));
+		// The form edits names only: keep each member's kår text (from an import) when the name stays.
+		const before = await tx.select().from(schema.member).where(eq(schema.member.patrolId, patrolId));
+		const key = (m: { firstName: string; lastName: string }) => `${m.firstName.trim().toLowerCase()}|${m.lastName.trim().toLowerCase()}`;
+		const troopOf = new Map(before.map((m) => [key(m), m.troopText]));
 		await tx.delete(schema.member).where(eq(schema.member.patrolId, patrolId));
-		await tx.insert(schema.member).values(data.members.map((m) => ({ patrolId, firstName: m.firstName, lastName: m.lastName })));
+		await tx.insert(schema.member).values(data.members.map((m) => ({ patrolId, firstName: m.firstName, lastName: m.lastName, troopText: troopOf.get(key(m)) ?? '' })));
 		await recordChange(tx, compId, 'patrol', patrolId);
 	});
 }

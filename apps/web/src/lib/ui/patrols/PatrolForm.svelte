@@ -77,6 +77,8 @@
 				<select id="status" name="status" value={initial.status}>
 					{#each STATUS_ORDER as s (s)}<option value={s}>{STATUS_LABEL[s]}</option>{/each}
 				</select>
+				<!-- The status when this page was loaded: the server only changes the live status if you did. -->
+				<input type="hidden" name="statusWas" value={initial.status} />
 			</div>
 			<label class="check">
 				<input type="checkbox" name="paid" checked={initial.paid} />

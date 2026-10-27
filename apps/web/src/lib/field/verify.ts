@@ -62,6 +62,12 @@ export interface BatchDeps {
 	lookup(body: CommandBody): Promise<{ stationId: string | null; patrolOk: boolean }>;
 	/** Applies an authorised command (writeScore / voidScore / status). */
 	apply(body: CommandBody): Promise<CommandResult>;
+	/**
+	 * Runs one command's claim → checks → apply/quarantine → finish as one unit (a DB transaction):
+	 * if anything fails, nothing is kept, so the phone's retry is processed afresh instead of being
+	 * answered "already being processed". Optional (unit tests run without it).
+	 */
+	atomic?<T>(fn: () => Promise<T>): Promise<T>;
 	/** Stores a quarantined command for HQ review (never dropped, C4). false = this device's quarantine is full. */
 	quarantine(body: CommandBody, reason: string): Promise<boolean>;
 }
@@ -103,15 +109,22 @@ export async function processBatch(
 			results.push({ commandId: id, result: 'rejected', reason: e instanceof Error ? e.message : 'Ogiltigt kommando' });
 			continue;
 		}
+		const atomic = deps.atomic ?? (<T>(fn: () => Promise<T>) => fn());
+		const result = await atomic(() => processOne(body, ctx, deps, now, lastSeq));
+		results.push(result);
+		if (body.deviceSeq > lastSeq) lastSeq = body.deviceSeq;
+	}
+	return { results, lastSeq };
+}
+
+async function processOne(body: CommandBody, ctx: BatchContext, deps: BatchDeps, now: Date, lastSeq: number): Promise<CommandResult> {
+	{
 		const claim = await deps.claim(body);
 		if (!claim.fresh) {
 			const prev = claim.result;
-			results.push(
-				prev.result === 'accepted' || prev.result === 'duplicate'
-					? { commandId: body.commandId, result: 'duplicate', version: prev.version }
-					: { ...prev, commandId: body.commandId }
-			);
-			continue;
+			return prev.result === 'accepted' || prev.result === 'duplicate'
+				? { commandId: body.commandId, result: 'duplicate', version: prev.version }
+				: { ...prev, commandId: body.commandId };
 		}
 		const detail: Record<string, unknown> = {};
 		if (body.deviceSeq > lastSeq + 1) detail.gap = body.deviceSeq - lastSeq - 1;
@@ -150,8 +163,6 @@ export async function processBatch(
 			} else result = await deps.apply(body);
 		}
 		await deps.finish(body, result, detail);
-		results.push(result);
-		if (body.deviceSeq > lastSeq) lastSeq = body.deviceSeq;
+		return result;
 	}
-	return { results, lastSeq };
 }

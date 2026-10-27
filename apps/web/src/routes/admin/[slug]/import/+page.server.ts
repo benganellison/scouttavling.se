@@ -40,7 +40,7 @@ export const actions = {
 			}
 
 			const existing = await tx
-				.select({ id: schema.patrol.id, name: schema.patrol.name, contactMemberNo: schema.patrol.contactMemberNo })
+				.select({ id: schema.patrol.id, name: schema.patrol.name, troop: schema.patrol.troop, contactMemberNo: schema.patrol.contactMemberNo })
 				.from(schema.patrol)
 				.where(eq(schema.patrol.competitionId, comp.id));
 			const [top] = await tx.select({ n: max(schema.patrol.number) }).from(schema.patrol).where(eq(schema.patrol.competitionId, comp.id));
@@ -49,26 +49,40 @@ export const actions = {
 			let updated = 0;
 			const touched: string[] = [];
 			for (const r of rows) {
+				const trackId = r.trackText ? (byName.get(r.trackText.toLowerCase()) ?? null) : null;
 				const fields = {
 					name: r.patrolName,
-					trackId: r.trackText ? (byName.get(r.trackText.toLowerCase()) ?? null) : null,
 					troop: r.troop,
 					contactName: r.contactName || null,
 					contactPhone: r.contactPhone || null,
 					contactEmail: r.contactEmail ? r.contactEmail.toLowerCase() : null,
-					contactMemberNo: r.contactMemberNo || null,
-					paid: r.paid
+					contactMemberNo: r.contactMemberNo || null
 				};
+				// Only patrols that existed before this import, each matched at most once: a file with
+				// two "Vargarna" must not turn into one patrol overwritten by the second row.
 				const hit = matchExisting(r, existing);
 				let id: string;
 				if (hit) {
 					id = hit.id;
-					await tx.update(schema.patrol).set({ ...fields, paidAt: paidAtFor(fields.paid) }).where(eq(schema.patrol.id, id));
-					if (!touched.includes(id)) updated++;
+					existing.splice(existing.indexOf(hit), 1);
+					// An update never erases what the file does not say: no payment column keeps "Betald",
+					// an empty or unknown class keeps the patrol's class.
+					await tx
+						.update(schema.patrol)
+						.set({
+							...fields,
+							...(trackId ? { trackId } : {}),
+							...(r.paid === null ? {} : { paid: r.paid, paidAt: paidAtFor(r.paid) })
+						})
+						.where(eq(schema.patrol.id, id));
+					updated++;
 				} else {
-					const [p] = await tx.insert(schema.patrol).values({ ...fields, paidAt: paidAtNew(fields.paid), competitionId: comp.id, number: next++ }).returning({ id: schema.patrol.id });
+					const paid = r.paid ?? false;
+					const [p] = await tx
+						.insert(schema.patrol)
+						.values({ ...fields, trackId, paid, paidAt: paidAtNew(paid), competitionId: comp.id, number: next++ })
+						.returning({ id: schema.patrol.id });
 					id = p.id;
-					existing.push({ id, name: r.patrolName, contactMemberNo: fields.contactMemberNo });
 					created++;
 				}
 				touched.push(id);

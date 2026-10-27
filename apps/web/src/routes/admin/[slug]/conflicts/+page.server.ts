@@ -3,7 +3,7 @@ import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { recordChange } from '#lib/server/changes.ts';
-import { writeScore } from '#lib/server/scores.ts';
+import { voidScore, writeScore } from '#lib/server/scores.ts';
 import { formatTime, loadStations } from '#lib/server/live.ts';
 
 interface Side {
@@ -61,7 +61,7 @@ export async function load(event) {
 		comp: { slug: comp.slug, name: comp.name },
 		conflicts: rows.map(({ c, patrolNumber, patrolName }, i) => ({
 			id: c.id, kind: c.kind, time: formatTime(c.createdAt), patrol: `${patrolNumber} ${patrolName}`, patrolNumber,
-			where: where.get(c.itemId) ?? 'Okänd kontroll', existing: side({ ...(c.existing as Side), ...(authors[i] ? { deviceId: authors[i]!.deviceId, userId: authors[i]!.userId, origin: (c.existing as Side).origin ?? authors[i]!.origin } : {}) }), incoming: side(c.incoming as Side)
+			where: where.get(c.itemId) ?? 'Okänd kontroll', existing: side({ ...(c.existing as Side), ...(authors[i] ? { deviceId: authors[i]!.deviceId, userId: authors[i]!.userId, origin: (c.existing as Side).origin ?? authors[i]!.origin } : {}) }), incoming: side({ ...(c.incoming as Side), ...((c.incoming as { type?: string }).type === 'VoidScore' ? { state: 'void' } : {}) })
 		}))
 	};
 }
@@ -96,12 +96,16 @@ export const actions = {
 		const id = String((await event.request.formData()).get('id') ?? '');
 		const c = await openConflict(comp.id, id);
 		if (!c) return fail(404, { message: 'Konflikten är redan löst' });
-		const inc = c.incoming as Side;
+		const inc = c.incoming as Side & { type?: string };
+		const base = { competitionId: comp.id, patrolId: c.patrolId, itemId: c.itemId, baseVersion: null, origin: 'admin' as const, userId: user.id, deviceId: null, force: true };
+		// A quarantined undo ("Ångra" on the phone) carries no points: using it means removing the score.
+		if (inc.type === 'VoidScore') {
+			await voidScore({ ...base, reason: 'Konflikt löst: ångringen från kontrollen används' });
+			await markResolved(comp.id, id);
+			return { message: 'Poängen är borttagen, som funktionären ångrade.' };
+		}
 		const raw = inc.raw ?? { value: inc.points ?? 0, style: inc.stylePoints ?? null };
-		const res = await writeScore({
-			competitionId: comp.id, patrolId: c.patrolId, itemId: c.itemId, raw, baseVersion: null, origin: 'admin', userId: user.id,
-			deviceId: null, reason: 'Konflikt löst: ny rapport används', force: true
-		});
+		const res = await writeScore({ ...base, raw, reason: 'Konflikt löst: ny rapport används' });
 		if (res.result === 'rejected') return fail(400, { message: `Kunde inte spara: ${res.reason}` });
 		await markResolved(comp.id, id);
 		return { message: 'Den nya poängen används.' };

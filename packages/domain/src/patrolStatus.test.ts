@@ -54,4 +54,12 @@ describe('nextPatrolStatus', () => {
 		expect(nextPatrolStatus(f({ current: 'camp', stationDay: 0, campDay: null }))).toBe('active');
 		expect(nextPatrolStatus(f({ current: 'camp', stationDay: null, campDay: null }))).toBeNull();
 	});
+	it('ignores a late finish report from an earlier day than the patrol is on', () => {
+		expect(nextPatrolStatus(f({ current: 'active', finishTrigger: true, stationDay: 0, latestDay: 1 }))).toBeNull();
+		expect(nextPatrolStatus(f({ current: 'active', finishTrigger: true, stationDay: 0, latestDay: 0 }))).toBe('camp');
+	});
+	it('a finish station without a day counts as the day the patrol is on', () => {
+		expect(nextPatrolStatus(f({ current: 'active', finishTrigger: true, stationDay: null, latestDay: 1 }))).toBe('finished');
+		expect(nextPatrolStatus(f({ current: 'active', finishTrigger: true, stationDay: null, latestDay: 0 }))).toBe('camp');
+	});
 });

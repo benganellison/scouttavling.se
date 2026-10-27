@@ -31,6 +31,8 @@ const sw = globalThis as unknown as SWScope;
 const BUILD = `st-build-${version}`;
 const PAGES = 'st-pages';
 const MEDIA = 'st-media';
+/** Every content-hashed build file ever fetched (old and new versions), see the fetch handler. */
+const IMMUTABLE = 'st-immutable';
 const SHELL = '/f/_shell';
 const devMode = immutable.length === 0; // nothing to precache in `vite dev`
 
@@ -56,6 +58,10 @@ sw.addEventListener('activate', (event) => {
 			for (const key of await caches.keys()) if (key.startsWith('st-build-') && key !== BUILD) await caches.delete(key);
 			// Fonts are self-hosted now (in the build cache); drop the old Google Fonts cache.
 			await caches.delete('st-fonts');
+			// Older versions' build files: the current version is precached in BUILD, so start afresh
+			// now and then rather than growing without end.
+			const old = await caches.open(IMMUTABLE);
+			if ((await old.keys()).length > 400) await caches.delete(IMMUTABLE);
 			await sw.clients.claim();
 		})()
 	);
@@ -109,6 +115,24 @@ sw.addEventListener('fetch', (event) => {
 	}
 	if (precache.includes(url.pathname)) {
 		event.respondWith(caches.match(request).then((hit) => hit ?? fetch(request)));
+		return;
+	}
+	// Build files of ANOTHER version (content-hashed, never change): after a deploy, this (older) worker
+	// may hand out the new shell before the new worker is installed. Its files are kept here when first
+	// fetched, so the app still starts offline; an open old page keeps its lazy chunks the same way.
+	if (url.pathname.startsWith('/_app/immutable/')) {
+		event.respondWith(
+			(async () => {
+				const hit = await caches.match(request);
+				if (hit) return hit;
+				const res = await fetch(request);
+				if (res.ok) {
+					const copy = res.clone(); // before the page reads the body
+					void caches.open(IMMUTABLE).then((c) => c.put(request, copy));
+				}
+				return res;
+			})()
+		);
 		return;
 	}
 	if (request.mode === 'navigate' && (url.pathname.startsWith('/f/') || url.pathname.startsWith('/j/'))) {

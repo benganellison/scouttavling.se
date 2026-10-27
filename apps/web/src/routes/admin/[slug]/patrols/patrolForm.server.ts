@@ -59,8 +59,9 @@ export async function nextPatrolNumber(competitionId: string): Promise<number> {
 }
 
 /** Validates and saves; returns a `fail` on errors or the saved patrol number. */
-export async function savePatrol(competitionId: string, patrolId: string | null, form: FormData) {
+export async function savePatrol(competitionId: string, patrolId: string | null, form: FormData, userId: string | null = null) {
 	const values = readPatrolForm(form);
+	const statusWas = String(form.get('statusWas') ?? '');
 	const parsed = v.safeParse(PatrolFormSchema, values);
 	const errors: Record<string, string> = {};
 	if (!parsed.success) {
@@ -92,17 +93,25 @@ export async function savePatrol(competitionId: string, patrolId: string | null,
 		contactPhone: data.contactPhone || null,
 		contactEmail: data.contactEmail ? data.contactEmail.toLowerCase() : null,
 		contactMemberNo: data.contactMemberNo || null,
-		paid: data.paid,
-		status: data.status
+		paid: data.paid
 	};
 	await db.transaction(async (tx) => {
 		let id = patrolId;
 		if (id) {
-			await tx.update(schema.patrol).set({ ...row, paidAt: paidAtFor(row.paid) }).where(and(eq(schema.patrol.id, id), eq(schema.patrol.competitionId, competitionId)));
+			// Patrol row first (same lock order as score writes). The status is live: phones and the desk
+			// change it while this form is open, so it is only written when the organiser changed it here.
+			const [cur] = await tx.select({ status: schema.patrol.status }).from(schema.patrol).where(and(eq(schema.patrol.id, id), eq(schema.patrol.competitionId, competitionId))).for('update');
+			const changed = !!cur && data.status !== statusWas && data.status !== cur.status;
+			await tx
+				.update(schema.patrol)
+				.set({ ...row, paidAt: paidAtFor(row.paid), ...(changed ? { status: data.status } : {}) })
+				.where(and(eq(schema.patrol.id, id), eq(schema.patrol.competitionId, competitionId)));
+			if (changed) await tx.insert(schema.statusEvent).values({ patrolId: id, status: data.status, userId });
 			await tx.delete(schema.member).where(eq(schema.member.patrolId, id));
 		} else {
-			const [created] = await tx.insert(schema.patrol).values({ ...row, paidAt: paidAtNew(row.paid), competitionId }).returning({ id: schema.patrol.id });
+			const [created] = await tx.insert(schema.patrol).values({ ...row, status: data.status, paidAt: paidAtNew(row.paid), competitionId }).returning({ id: schema.patrol.id });
 			id = created.id;
+			if (data.status !== 'registered') await tx.insert(schema.statusEvent).values({ patrolId: id, status: data.status, userId });
 		}
 		if (data.members.length) {
 			await tx.insert(schema.member).values(data.members.map((m) => ({ patrolId: id!, firstName: m.firstName, lastName: m.lastName, troopText: m.troopText })));

@@ -53,18 +53,27 @@ describe('parseImportPayload', () => {
 
 describe('matchExisting', () => {
 	const existing = [
-		{ id: 'a', name: 'Ekorrarna', contactMemberNo: '999' },
-		{ id: 'b', name: 'Ekorrarna', contactMemberNo: '1234567' },
-		{ id: 'c', name: 'Lodjuren', contactMemberNo: null }
+		{ id: 'a', name: 'Ekorrarna', troop: 'Granlidens scoutkår', contactMemberNo: '999' },
+		{ id: 'b', name: 'Ekorrarna', troop: 'Ekbackens scoutkår', contactMemberNo: '1234567' },
+		{ id: 'c', name: 'Lodjuren', troop: '', contactMemberNo: null },
+		{ id: 'd', name: 'Vargarna', troop: 'Granlidens scoutkår', contactMemberNo: null }
 	];
 	it('prefers member number + name', () => {
-		expect(matchExisting({ patrolName: 'ekorrarna', contactMemberNo: '1234567' }, existing)?.id).toBe('b');
+		expect(matchExisting({ patrolName: 'ekorrarna', contactMemberNo: '1234567', troop: '' }, existing)?.id).toBe('b');
 	});
-	it('falls back to the name', () => {
-		expect(matchExisting({ patrolName: 'Lodjuren ', contactMemberNo: '555' }, existing)?.id).toBe('c');
-		expect(matchExisting({ patrolName: 'Ekorrarna', contactMemberNo: '' }, existing)?.id).toBe('a');
+	it('then name + kår', () => {
+		expect(matchExisting({ patrolName: 'Ekorrarna', contactMemberNo: '', troop: 'granlidens scoutkår' }, existing)?.id).toBe('a');
+		expect(matchExisting({ patrolName: 'Ekorrarna', contactMemberNo: '555', troop: 'Ekbackens scoutkår' }, existing)?.id).toBe('b');
+	});
+	it('the name alone only when there is one such patrol and the kår does not contradict', () => {
+		expect(matchExisting({ patrolName: 'Lodjuren ', contactMemberNo: '555', troop: 'Sjöviks scoutkår' }, existing)?.id).toBe('c');
+		expect(matchExisting({ patrolName: 'Vargarna', contactMemberNo: '', troop: '' }, existing)?.id).toBe('d');
+		// Same name, another kår: a different patrol.
+		expect(matchExisting({ patrolName: 'Vargarna', contactMemberNo: '', troop: 'Tallbergets scoutkår' }, existing)).toBeNull();
+		// Two patrols with the name and no way to tell which: new.
+		expect(matchExisting({ patrolName: 'Ekorrarna', contactMemberNo: '', troop: '' }, existing)).toBeNull();
 	});
 	it('returns null for new patrols', () => {
-		expect(matchExisting({ patrolName: 'Nya', contactMemberNo: '' }, existing)).toBeNull();
+		expect(matchExisting({ patrolName: 'Bävrarna', contactMemberNo: '', troop: '' }, existing)).toBeNull();
 	});
 });

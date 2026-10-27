@@ -37,7 +37,7 @@
 		<div class="auth" role="alert">{app.authProblem}</div>
 	{/if}
 	{#if app.closed}
-		<div class="closed" role="alert" data-testid="closed-banner">Tävlingen är avslutad — rapporter tas inte emot</div>
+		<div class="closed" role="alert" data-testid="closed-banner">Tävlingen är avslutad — nya rapporter granskas av tävlingsledningen</div>
 	{/if}
 	<!-- Event accent variables for every field screen (older cached packs have no branding). -->
 	<div class="brandvars" style={app.pack.competition.branding ? accentStyle(app.pack.competition.branding) : '--event-stripe: var(--orange)'}>

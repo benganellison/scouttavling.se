@@ -45,9 +45,11 @@ export function rank(patrols: RankPatrol[], items: ScoreItemDef[]): RankedPatrol
 		let stylePoints = 0;
 		const rankVector = new Array<number>(TIEBREAK_DEPTH + 1).fill(0);
 		for (const s of p.scores) {
-			scorePoints += s.points;
-			stylePoints += s.stylePoints;
 			const item = byId.get(s.itemId);
+			scorePoints += s.points;
+			// Style switched off (for the competition or the item) after scores were saved: stored style
+			// points no longer count, so early and late patrols are ranked alike.
+			if (item?.styleEnabled !== false) stylePoints += s.stylePoints;
 			if (!item || s.points <= 0) continue;
 			const r = rankOfValue(item, s.points);
 			if (r >= 0 && r <= TIEBREAK_DEPTH) rankVector[r]++;

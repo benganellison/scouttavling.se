@@ -46,9 +46,9 @@ export async function load(event) {
 
 export const actions = {
 	save: async (event) => {
-		const { comp } = await requireCompetition(event, event.params.slug);
+		const { comp, user } = await requireCompetition(event, event.params.slug);
 		const p = await findPatrol(comp.id, event.params.nr);
-		const res = await savePatrol(comp.id, p.id, await event.request.formData());
+		const res = await savePatrol(comp.id, p.id, await event.request.formData(), user.id);
 		if (res.error) return res.error;
 		redirect(303, `/admin/${comp.slug}/patrols?saved=${res.number}`);
 	},

@@ -30,12 +30,11 @@ export async function GET({ params, request, url, locals, getClientAddress }) {
 		const emit = async () => {
 			timer = null;
 			lastEmit = Date.now();
-			const [fresh] = await db
-				.select({ publicResults: schema.competition.publicResults, status: schema.competition.status, stationResultsLive: schema.competition.stationResultsLive })
-				.from(schema.competition)
-				.where(eq(schema.competition.id, comp.id));
+			// Fresh settings every time: results are cached per change number, so computing with the row
+			// from when the stream opened (e.g. style switched off since) would poison the cache.
+			const [fresh] = await db.select().from(schema.competition).where(eq(schema.competition.id, comp.id));
 			if (!fresh?.publicResults) return send(frame('closed', pendingSeq, {}));
-			const res = await getResults(comp, 0);
+			const res = await getResults(fresh, 0);
 			send(frame('results', pendingSeq, { seq: res.seq, tracks: publicTracks(res.tracks, showStationResults(fresh)) }));
 		};
 		timer = setTimeout(emit, Math.max(0, lastEmit + COALESCE_MS - Date.now()));

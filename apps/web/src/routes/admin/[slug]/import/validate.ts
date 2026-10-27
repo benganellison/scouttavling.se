@@ -28,7 +28,7 @@ export const ImportRowSchema = v.strictObject({
 	contactEmail: v.union([v.literal(''), v.pipe(v.string(), v.trim(), v.maxLength(160), v.email())]),
 	contactMemberNo: v.pipe(v.string(), v.regex(/^\d{0,10}$/, 'Ogiltigt medlemsnummer')),
 	members: v.pipe(v.array(ImportMemberSchema), v.maxLength(30)),
-	paid: v.boolean()
+	paid: v.nullable(v.boolean())
 });
 
 export const ImportPayloadSchema = v.strictObject({
@@ -64,14 +64,24 @@ export function parseImportPayload(raw: unknown): ParseResult {
 const norm = (s: string) => s.trim().toLowerCase();
 
 /**
- * Idempotent matching: (contactMemberNo + patrolName) first, else patrolName.
- * Returns the existing patrol id or null for a new patrol.
+ * Idempotent matching of a file row to a patrol that already exists (re-import):
+ * 1. the contact's member number + patrol name, 2. patrol name + kår, 3. the name alone, but only
+ * when exactly one patrol has it and the kår does not contradict. Two "Vargarna" from different
+ * kårer are two patrols. Returns the existing patrol or null for a new patrol.
  */
-export function matchExisting<E extends { id: string; name: string; contactMemberNo: string | null }>(row: Pick<ImportPayloadRow, 'patrolName' | 'contactMemberNo'>, existing: E[]): E | null {
+export function matchExisting<E extends { id: string; name: string; troop: string; contactMemberNo: string | null }>(
+	row: Pick<ImportPayloadRow, 'patrolName' | 'contactMemberNo' | 'troop'>,
+	existing: E[]
+): E | null {
 	const name = norm(row.patrolName);
+	const same = existing.filter((e) => norm(e.name) === name);
 	if (row.contactMemberNo) {
-		const both = existing.find((e) => e.contactMemberNo === row.contactMemberNo && norm(e.name) === name);
+		const both = same.find((e) => e.contactMemberNo === row.contactMemberNo);
 		if (both) return both;
 	}
-	return existing.find((e) => norm(e.name) === name) ?? null;
+	const troop = norm(row.troop);
+	const withTroop = same.filter((e) => norm(e.troop) === troop);
+	if (withTroop.length === 1) return withTroop[0];
+	if (same.length === 1 && (!troop || !norm(same[0].troop))) return same[0];
+	return null;
 }

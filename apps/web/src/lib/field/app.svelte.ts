@@ -402,7 +402,8 @@ export class FieldApp {
 			}
 		};
 		const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
-		if (locks?.request) await locks.request(`st-sync-${this.slug}`, { ifAvailable: true }, async (lock) => (lock ? run() : undefined));
+		// Another tab is syncing: try again shortly (its outbox is the same IndexedDB), never just stop.
+		if (locks?.request) await locks.request(`st-sync-${this.slug}`, { ifAvailable: true }, async (lock) => (lock ? run() : this.schedule(TICK_MS)));
 		else await run();
 	}
 
@@ -433,7 +434,10 @@ export class FieldApp {
 					if (row.baseFrom) {
 						const ref = await db.outbox.get(row.baseFrom);
 						const r = ref?.result;
-						if (ref && !r) break; // wait for the earlier command's result
+						// Wait for the earlier command's result, but only for THIS row: with a clock that stepped back
+						// the earlier one can sort after this one, and stopping here would block it (and all later
+						// reports) forever. It is signed and sent in this round; this row follows in the next one.
+						if (ref && !r) continue;
 						if (r && (r.result === 'accepted' || r.result === 'duplicate') && r.version !== undefined) baseVersion = r.version;
 						else if (r?.result === 'conflict') baseVersion = r.server.version;
 					}
@@ -578,7 +582,17 @@ export async function storeJoin(input: {
 	const old = await db.grants.get(input.slug);
 	await db.grants.put({ ...input, nextSeq: 1, lastHash: null, joinedAt: Date.now(), stationId: input.stations.length === 1 ? input.stations[0] : null });
 	if (old && old.deviceId !== input.deviceId) {
-		// Re-join: commands signed by the old key are sent as-is; unsigned ones will be signed by the new key.
+		// Re-join (expired grant, new code): reports still waiting were maybe signed by the OLD key. The
+		// server checks signatures against the new device and would reject them for good, so drop the
+		// old signature: they are signed again by the new key and sent. Reports made well before this
+		// join end up in HQ's review (clock check), never lost.
+		await db.outbox
+			.where('[slug+state]')
+			.equals([input.slug, 'pending'])
+			.modify((row) => {
+				delete row.jws;
+				delete row.deviceSeq;
+			});
 	}
 	await db.packs.delete(input.slug);
 }

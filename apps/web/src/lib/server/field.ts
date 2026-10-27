@@ -20,6 +20,7 @@ import { itemDef, writeScore, voidScore } from '#lib/server/scores.ts';
 import { recordChange } from '#lib/server/changes.ts';
 import { classColorTemplate, loadBranding } from '#lib/server/assets.ts';
 import { trackColors } from '#lib/brand/colors.ts';
+import { fromWallClock } from '@scouttavling/domain';
 import { GRANT_TYP, uuidv7, type CommandBody, type CommandResult, type GrantClaims, type PatrolStatus } from '#lib/field/protocol.ts';
 import { processBatch, type BatchDeps } from '#lib/field/verify.ts';
 
@@ -128,8 +129,8 @@ const MAX_OPEN_QUARANTINE = 200;
 const MAX_DEVICES_PER_INVITE = 25;
 
 function grantExpiry(comp: CompRow): number {
-	// Event end (end of the last day, Swedish time) + 24 h; never less than 24 h from now.
-	const end = Date.parse(`${comp.endDate}T23:59:59+02:00`) + 24 * 3600_000;
+	// Event end (end of the last day, Swedish time, summer or winter) + 24 h; never less than 24 h from now.
+	const end = (fromWallClock(`${comp.endDate} 23:59:59`)?.getTime() ?? Date.now()) + 24 * 3600_000;
 	return Math.floor(Math.max(end, Date.now() + 24 * 3600_000) / 1000);
 }
 
@@ -429,10 +430,25 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 		.where(eq(schema.station.competitionId, comp.id));
 	for (const i of items) compItems.set(i.id, i);
 
+	// The transaction of the command being processed (see deps.atomic); plain db outside one.
+	type Q = Parameters<Parameters<typeof db.transaction>[0]>[0];
+	let q: Q | typeof db = db;
+	const inTx = () => (q === db ? undefined : (q as Q));
+
 	const deps: BatchDeps = {
+		atomic: (fn) =>
+			db.transaction(async (tx) => {
+				q = tx;
+				try {
+					return await fn();
+				} finally {
+					q = db;
+				}
+			}),
 		async claim(body) {
-			// Placeholder row reserves the id; a crash mid-way leaves `pending`, which is retried after 60 s.
-			const inserted = await db
+			// Placeholder row reserves the id. A concurrent copy of the same command waits here (unique key)
+			// until the first one's transaction ends, then reads its result.
+			const inserted = await q
 				.insert(schema.command)
 				.values({
 					id: body.commandId, competitionId: comp.id, deviceId: device.id, deviceSeq: body.deviceSeq, type: body.type, payload: body,
@@ -441,25 +457,26 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 				.onConflictDoNothing({ target: schema.command.id })
 				.returning({ id: schema.command.id });
 			if (inserted.length) return { fresh: true };
-			const [row] = await db.select().from(schema.command).where(eq(schema.command.id, body.commandId)).limit(1);
+			const [row] = await q.select().from(schema.command).where(eq(schema.command.id, body.commandId)).limit(1);
 			if (row.competitionId !== comp.id || row.deviceId !== device.id) return { fresh: false, result: { commandId: body.commandId, result: 'rejected', reason: 'Kommandot finns redan' } };
-			const pending = (row.resultDetail as { pending?: boolean } | null)?.pending;
-			if (pending && Date.now() - row.receivedAt.getTime() > 60_000) {
-				await db.update(schema.command).set({ receivedAt: new Date() }).where(eq(schema.command.id, body.commandId));
+			// The placeholder is committed together with the result (deps.atomic), so a committed
+			// `pending` row can only be left by a crash outside that: process it again. Never answer
+			// "already being processed" as a rejection: the phone would drop the report for good.
+			if ((row.resultDetail as { pending?: boolean } | null)?.pending) {
+				await q.update(schema.command).set({ receivedAt: new Date() }).where(eq(schema.command.id, body.commandId));
 				return { fresh: true };
 			}
-			if (pending) return { fresh: false, result: { commandId: body.commandId, result: 'rejected', reason: 'Behandlas redan, försök igen' } };
 			return { fresh: false, result: resultFromRow(body.commandId, row) };
 		},
 		async finish(body, result, detail) {
 			const { commandId: _id, result: r, ...rest } = result;
-			await db
+			await q
 				.update(schema.command)
 				.set({ result: r, resultDetail: { ...rest, ...detail } })
 				.where(eq(schema.command.id, body.commandId));
 		},
 		async lookup(body) {
-			const [p] = await db
+			const [p] = await q
 				.select({ id: schema.patrol.id })
 				.from(schema.patrol)
 				.where(and(eq(schema.patrol.id, body.payload.patrolId), eq(schema.patrol.competitionId, comp.id)))
@@ -468,17 +485,23 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 			return { stationId, patrolOk: !!p };
 		},
 		async apply(body) {
-			// The overview promises "Resultaten är låsta för funktionärer" once the competition is closed.
-			if (comp.status === 'closed') return { commandId: body.commandId, result: 'rejected', reason: 'Tävlingen är avslutad. Kontakta tävlingsledningen.' };
-			if (body.type === 'SetStatus') return setStatus(ctx, body);
+			// Closed: results are locked for volunteers, but a late report (a phone that was offline at the
+			// prize ceremony) is kept for HQ instead of being dropped (C4).
+			if (comp.status === 'closed') {
+				const kept = await deps.quarantine(body, 'Tävlingen är avslutad');
+				return kept
+					? { commandId: body.commandId, result: 'quarantined', reason: 'Tävlingen är avslutad' }
+					: { commandId: body.commandId, result: 'rejected', reason: 'Tävlingen är avslutad. Kontakta tävlingsledningen.' };
+			}
+			if (body.type === 'SetStatus') return setStatus(ctx, body, inTx());
 			const base = {
 				competitionId: comp.id, patrolId: body.payload.patrolId, itemId: body.payload.itemId, baseVersion: body.baseVersion,
 				origin: 'device' as const, deviceId: device.id, commandId: body.commandId, at: clientDate(body)
 			};
 			const r =
 				body.type === 'SetScore'
-					? await writeScore({ ...base, raw: { value: body.payload.value, style: body.payload.style }, note: body.payload.note ?? null })
-					: await voidScore({ ...base, reason: 'Ångrad på kontrollen' });
+					? await writeScore({ ...base, raw: { value: body.payload.value, style: body.payload.style }, note: body.payload.note ?? null }, inTx())
+					: await voidScore({ ...base, reason: 'Ångrad på kontrollen' }, inTx());
 			// Status (På banan / I läger / I mål, incl. C10 AUTO_ON_SCAN) follows in writeScore.
 			switch (r.result) {
 				case 'accepted':
@@ -494,12 +517,12 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 		async quarantine(body, reason) {
 			if (body.type === 'SetStatus' || !compItems.has(body.payload.itemId)) return true; // kept in the command ledger only
 			// One phone cannot flood HQ's review list (a stolen or broken device).
-			const [{ open }] = await db
+			const [{ open }] = await q
 				.select({ open: sql<number>`count(*)::int` })
 				.from(schema.scoreConflict)
 				.where(and(eq(schema.scoreConflict.competitionId, comp.id), eq(schema.scoreConflict.kind, 'quarantine'), eq(schema.scoreConflict.status, 'open'), sql`${schema.scoreConflict.incoming}->>'deviceId' = ${device.id}`));
 			if (open >= MAX_OPEN_QUARANTINE) return false;
-			await db.transaction(async (tx) => {
+			await q.transaction(async (tx) => {
 				const [ex] = await tx
 					.select()
 					.from(schema.score)
@@ -534,8 +557,8 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 	return { results: out.results, serverTime: new Date().toISOString() };
 }
 
-async function setStatus(ctx: DeviceContext, body: Extract<CommandBody, { type: 'SetStatus' }>): Promise<CommandResult> {
-	return db.transaction(async (tx) => {
+async function setStatus(ctx: DeviceContext, body: Extract<CommandBody, { type: 'SetStatus' }>, outer?: Parameters<Parameters<typeof db.transaction>[0]>[0]): Promise<CommandResult> {
+	return (outer ?? db).transaction(async (tx) => {
 		const [p] = await tx.select().from(schema.patrol).where(eq(schema.patrol.id, body.payload.patrolId)).for('update').limit(1);
 		if (p.status === body.payload.status) return { commandId: body.commandId, result: 'duplicate' } as const;
 		await tx.update(schema.patrol).set({ status: body.payload.status }).where(eq(schema.patrol.id, p.id));

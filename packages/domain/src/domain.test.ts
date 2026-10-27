@@ -224,3 +224,17 @@ describe('import', () => {
 		expect(parseMembers('Anna Berg\tGranliden 2010')[0]).toMatchObject({ firstName: 'Anna', lastName: 'Berg Granliden' });
 	});
 });
+
+describe('style switched off after scores were saved', () => {
+	it('stored style points no longer count in the ranking', () => {
+		const items: ScoreItemDef[] = [{ id: 'k1', name: 'K1', mode: 'RANGE', min: 0, max: 20, styleEnabled: false, styleMin: 0, styleMax: 5, countsForTiebreak: true }];
+		const r = rank(
+			[
+				{ id: 'early', number: 1, scores: [{ itemId: 'k1', points: 5, stylePoints: 3 }] },
+				{ id: 'late', number: 2, scores: [{ itemId: 'k1', points: 6, stylePoints: 0 }] }
+			],
+			items
+		);
+		expect(r.map((x) => [x.id, x.total, x.stylePoints])).toEqual([['late', 6, 0], ['early', 5, 0]]);
+	});
+});

@@ -17,6 +17,8 @@ export interface PrepStation {
 	dayId: string | null;
 	code: string;
 	startable: boolean;
+	/** The day's start or finish (never a start station for distribution). */
+	role: 'start' | 'finish' | null;
 	/** null = all tracks */
 	trackIds: string[] | null;
 	items: ItemRow[];
@@ -56,6 +58,7 @@ export async function loadStations(competitionId: string): Promise<{ days: PrepD
 			dayId: r.dayId,
 			code: codes.get(r.id) ?? '?',
 			startable: r.startable,
+			role: r.role,
 			trackIds: r.allTracks ? null : links.filter((l) => l.stationId === r.id).map((l) => l.trackId),
 			items: items.filter((i) => i.stationId === r.id)
 		}))

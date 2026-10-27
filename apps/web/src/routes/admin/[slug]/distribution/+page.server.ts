@@ -9,9 +9,13 @@ import { loadPatrols, loadStations, loadTracks } from '../print/prep.server.ts';
 const STRATEGIES: Strategy[] = ['BALANCED', 'ALL', 'PER_TRACK'];
 
 async function inputs(competitionId: string) {
-	const [tracks, { stations }, all] = await Promise.all([loadTracks(competitionId), loadStations(competitionId), loadPatrols(competitionId)]);
+	const [tracks, { stations: allStations, days }, all] = await Promise.all([loadTracks(competitionId), loadStations(competitionId), loadPatrols(competitionId)]);
 	const patrols = all.filter((p) => p.status !== 'resigned');
-	const distStations: DistStation[] = stations.map((s, i) => ({ id: s.id, order: i, trackIds: s.trackIds, startable: s.startable }));
+	// Patrols start on the first day (later days start from that day's start), never at a start or
+	// finish desk: only the first day's ordinary stations can be a start station.
+	const firstDay = [...days].sort((a, b) => a.sort - b.sort || a.date.localeCompare(b.date))[0]?.id ?? null;
+	const stations = allStations.filter((s) => days.length <= 1 || s.dayId === firstDay);
+	const distStations: DistStation[] = stations.map((s, i) => ({ id: s.id, order: i, trackIds: s.trackIds, startable: s.startable && !s.role }));
 	const distPatrols: DistPatrol[] = patrols.map((p) => ({ id: p.id, trackId: p.trackId ?? '', lockedStationId: p.startLocked ? p.startStationId : null }));
 	return { tracks, stations, patrols, distStations, distPatrols };
 }
@@ -22,7 +26,7 @@ export async function load(event) {
 	return {
 		competition: { slug: comp.slug, name: comp.name },
 		tracks: tracks.map((t) => ({ id: t.id, name: t.name })),
-		stations: stations.filter((s) => s.startable).map((s) => ({ id: s.id, code: s.code, name: s.name, trackIds: s.trackIds })),
+		stations: stations.filter((s) => s.startable && !s.role).map((s) => ({ id: s.id, code: s.code, name: s.name, trackIds: s.trackIds })),
 		allStations: stations.length,
 		distStations,
 		distPatrols,

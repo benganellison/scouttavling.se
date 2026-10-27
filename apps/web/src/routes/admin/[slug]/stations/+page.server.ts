@@ -135,6 +135,8 @@ function validate(s: StationInput, ctx: { dayIds: string[]; trackIds: string[]; 
 	return e;
 }
 
+class ScoresArrived extends Error {}
+
 function normaliseItem(it: StationInput['items'][number], sort: number, stationId: string) {
 	const scorable = it.mode === 'RANGE' || it.mode === 'DISTINCT' || it.mode === 'COUNT';
 	const values = [...it.distinctValues]
@@ -223,45 +225,82 @@ export const actions = {
 		}
 		if (input.items.some((i) => i.id && !existingItems.some((e) => e.id === i.id))) errors.form = 'En del hör inte till den här kontrollen. Ladda om sidan.';
 
+		// Stored points were evaluated under the item's rules when they were saved. Changes that would make
+		// them wrong (or invalid) are refused while the item has scores; name, labels, style and a wider
+		// range are fine.
+		const scored = input.items.filter((i) => i.id);
+		if (scored.length) {
+			const withScores = new Set(
+				(await db.selectDistinct({ id: schema.score.itemId }).from(schema.score).where(inArray(schema.score.itemId, scored.map((i) => i.id!)))).map((r) => r.id)
+			);
+			const before = await db.select().from(schema.scoreItem).where(inArray(schema.scoreItem.id, [...withScores]));
+			const locked: string[] = [];
+			for (const [i, it] of input.items.entries()) {
+				const old = before.find((b) => b.id === it.id);
+				if (!old) continue;
+				const next = normaliseItem(it, i + 1, input.id);
+				const values = (x: { distinctValues: { value: number }[] | null }) => (x.distinctValues ?? []).map((d) => d.value).join(',');
+				if (next.mode !== old.mode || (next.countMultiplier ?? null) !== (old.countMultiplier ?? null) || values(next) !== values(old) || next.min > old.min || next.max < old.max) {
+					locked.push(old.name);
+				}
+			}
+			if (locked.length) {
+				errors.items = `${locked.join(', ')} har redan poäng: sättet att räkna (typ, värden, multiplikator eller ett snävare intervall) kan inte ändras nu. Namn, stil och ett större intervall går bra.`;
+			}
+		}
+
 		if (Object.keys(errors).length) return fail(400, { stationId: input.id, errors });
 
-		await db.transaction(async (tx) => {
-			const dayChanged = comp.multiDay && current.dayId !== input.dayId;
-			await tx
-				.update(schema.station)
-				.set({
-					name: input.name.trim(),
-					customCode: code || null,
-					dayId: comp.multiDay ? input.dayId : null,
-					...(input.role !== undefined ? { role: input.role } : {}),
-					allTracks: input.allTracks,
-					startable: input.startable
-				})
-				.where(eq(schema.station.id, input.id));
-			await tx.delete(schema.stationTrack).where(eq(schema.stationTrack.stationId, input.id));
-			if (!input.allTracks && input.trackIds.length) {
-				await tx.insert(schema.stationTrack).values([...new Set(input.trackIds)].map((trackId) => ({ stationId: input.id, trackId })));
-			}
-			if (removed.length) await tx.delete(schema.scoreItem).where(inArray(schema.scoreItem.id, removed.map((r) => r.id)));
-			for (const [i, it] of input.items.entries()) {
-				const row = normaliseItem(it, i + 1, input.id);
-				if (it.id) await tx.update(schema.scoreItem).set(row).where(eq(schema.scoreItem.id, it.id));
-				else await tx.insert(schema.scoreItem).values(row);
-			}
-			if (dayChanged) {
-				// Moving to another day: place it last on that day, before its finish station.
-				const stations = await tx.select().from(schema.station).where(eq(schema.station.competitionId, comp.id));
-				const ordered = displayOrder(stations, ctx.days).filter((s) => s.id !== input.id);
-				const moved = stations.find((s) => s.id === input.id)!;
-				const sameDay = ordered.filter((s) => s.dayId === input.dayId);
-				const mal = moved.role === 'finish' ? undefined : sameDay.find((s) => s.role === 'finish');
-				const anchor = mal ?? sameDay.at(-1);
-				const at = anchor ? ordered.indexOf(anchor) + (mal ? 0 : 1) : ordered.length;
-				ordered.splice(at, 0, moved);
-				await renumber(tx, ordered);
-			}
-			await recordChange(tx, comp.id, 'station', input.id);
-		});
+		try {
+			await db.transaction(async (tx) => {
+				const dayChanged = comp.multiDay && current.dayId !== input.dayId;
+				await tx
+					.update(schema.station)
+					.set({
+						name: input.name.trim(),
+						customCode: code || null,
+						dayId: comp.multiDay ? input.dayId : null,
+						...(input.role !== undefined ? { role: input.role } : {}),
+						allTracks: input.allTracks,
+						startable: input.startable
+					})
+					.where(eq(schema.station.id, input.id));
+				await tx.delete(schema.stationTrack).where(eq(schema.stationTrack.stationId, input.id));
+				if (!input.allTracks && input.trackIds.length) {
+					await tx.insert(schema.stationTrack).values([...new Set(input.trackIds)].map((trackId) => ({ stationId: input.id, trackId })));
+				}
+				if (removed.length) {
+					// Checked again inside the transaction (items locked): a phone may have reported meanwhile,
+					// and deleting the item would delete that score with it.
+					const ids = removed.map((r) => r.id);
+					await tx.select({ id: schema.scoreItem.id }).from(schema.scoreItem).where(inArray(schema.scoreItem.id, ids)).for('update');
+					const [{ n }] = await tx.select({ n: sql<number>`count(*)::int` }).from(schema.score).where(inArray(schema.score.itemId, ids));
+					if (n > 0) throw new ScoresArrived();
+					await tx.delete(schema.scoreItem).where(inArray(schema.scoreItem.id, ids));
+				}
+				for (const [i, it] of input.items.entries()) {
+					const row = normaliseItem(it, i + 1, input.id);
+					if (it.id) await tx.update(schema.scoreItem).set(row).where(eq(schema.scoreItem.id, it.id));
+					else await tx.insert(schema.scoreItem).values(row);
+				}
+				if (dayChanged) {
+					// Moving to another day: place it last on that day, before its finish station.
+					const stations = await tx.select().from(schema.station).where(eq(schema.station.competitionId, comp.id));
+					const ordered = displayOrder(stations, ctx.days).filter((s) => s.id !== input.id);
+					const moved = stations.find((s) => s.id === input.id)!;
+					const sameDay = ordered.filter((s) => s.dayId === input.dayId);
+					const mal = moved.role === 'finish' ? undefined : sameDay.find((s) => s.role === 'finish');
+					const anchor = mal ?? sameDay.at(-1);
+					const at = anchor ? ordered.indexOf(anchor) + (mal ? 0 : 1) : ordered.length;
+					ordered.splice(at, 0, moved);
+					await renumber(tx, ordered);
+				}
+				await recordChange(tx, comp.id, 'station', input.id);
+			});
+		} catch (e) {
+			if (e instanceof ScoresArrived) return fail(409, { stationId: input.id, errors: { items: 'En del fick precis poäng och kan inte tas bort. Ladda om sidan.' } });
+			throw e;
+		}
 		return { saved: input.id, at: Date.now() };
 	},
 
