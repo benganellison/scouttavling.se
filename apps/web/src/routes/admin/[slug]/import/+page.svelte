@@ -273,7 +273,7 @@
 	<header class="prep-head">
 		<div>
 			<h1>Importera patruller</h1>
-			<p>När anmälan skett någon annanstans — Scoutnet, ett formulär eller ett kalkylark.</p>
+			<p>När anmälan skett någon annanstans — Scoutnet, ett formulär eller ett kalkylark. Bara patrull, namn och kontaktuppgifter läses in: personnummer, födelsedatum, hälsa och adresser stannar i filen. <a href="/personuppgifter?t={data.competition.slug}">Så hanterar vi personuppgifter</a></p>
 		</div>
 		<ol class="steps" aria-label="Steg">
 			{#each STEPS as s (s.n)}

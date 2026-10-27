@@ -45,10 +45,10 @@
 <section class="card confirm" aria-labelledby="cf-h">
 	<h2 id="cf-h">Bekräfta</h2>
 	<p class="warn" role="note">
-		<strong>Det går inte att ångra.</strong> Appen kan inte ta en egen säkerhetskopia innan, och borttagna uppgifter går inte att få tillbaka här. Exportera resultaten först om du vill ha dem som fil.
+		<strong>Det går inte att ångra.</strong> Appen kan inte ta en egen säkerhetskopia innan, och borttagna uppgifter går inte att få tillbaka här. Exportera resultaten först om du vill ha dem som fil. Behöver du lämna ut eller spara personuppgifterna (till exempel för en begäran från en förälder), <a href="/admin/{c.slug}/personuppgifter.json" download data-testid="export-personal">exportera dem som fil</a> innan.
 	</p>
 	<p class="muted backups" data-testid="backup-note">
-		<strong>Säkerhetskopior och telefoner:</strong> borttagningen rör inte serverns schemalagda säkerhetskopior. Där finns uppgifterna kvar tills kopiorna roteras bort: kopiorna på servern efter ett dygn, externa kopior enligt driftansvarigs rutin. Funktionärernas telefoner glömmer tävlingen när behörigheten kopplas från eller går ut, senast en vecka efter tävlingen.
+		<strong>Säkerhetskopior och telefoner:</strong> borttagningen rör inte serverns schemalagda säkerhetskopior. Där finns uppgifterna kvar tills kopiorna roteras bort: kopiorna på servern efter ett dygn och de externa kopiorna efter högst åtta veckor. Funktionärernas telefoner glömmer tävlingen när behörigheten kopplas från eller går ut, senast en vecka efter tävlingen.
 	</p>
 	<form
 		method="POST"

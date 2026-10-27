@@ -223,3 +223,27 @@ export async function search(qRaw: string) {
 		.limit(20);
 	return { competitions, series, users };
 }
+
+/** Days after the last competition day before an edition that still holds personal data is listed. */
+export const PERSONAL_DATA_FOLLOW_UP_DAYS = 30;
+
+/**
+ * Editions that ended more than PERSONAL_DATA_FOLLOW_UP_DAYS ago and still hold personal data
+ * (members, patrol contacts or patrol links), oldest first. Removal stays manual and owner-only
+ * (docs/architecture/05 §4); this list is for the operator to follow up. One query.
+ */
+export async function personalDataOverdue() {
+	const rows = await db.execute(sql`
+		select c.slug, c.name, c.status, c.end_date as "endDate",
+			(select count(*)::int from patrol p where p.competition_id = c.id and (
+				p.contact_name is not null or p.contact_phone is not null or p.contact_email is not null or p.contact_member_no is not null
+				or p.manage_token_hash is not null or p.follow_token_hash is not null
+				or exists (select 1 from member m where m.patrol_id = p.id))) as patrols,
+			(select string_agg(u.name, ', ' order by u.name) from competition_member cm join app_user u on u.id = cm.user_id
+				where cm.competition_id = c.id and cm.role = 'owner') as owners
+		from competition c
+		where c.anonymised_at is null and c.end_date < (now() at time zone 'Europe/Stockholm')::date - ${PERSONAL_DATA_FOLLOW_UP_DAYS}::int
+		order by c.end_date asc
+	`);
+	return (rows as unknown as { slug: string; name: string; status: string; endDate: string; patrols: number; owners: string | null }[]).filter((r) => r.patrols > 0);
+}

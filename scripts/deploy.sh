@@ -26,6 +26,7 @@ envval() { grep -E "^$1=" "$ENV_FILE" | tail -1 | cut -d= -f2- | sed -E 's/^["'"
 if [[ " ${FILES[*]} " == *" compose.prod.yaml "* ]]; then
 	pw="$(envval POSTGRES_PASSWORD)"
 	[ "${#pw}" -ge 20 ] && [ "$pw" != "scout" ] || fail "POSTGRES_PASSWORD in $ENV_FILE must be a long random password (≥ 20 characters), not the example value"
+	[ -n "$(envval OPERATOR_NAME)" ] && [ -n "$(envval OPERATOR_EMAIL)" ] || fail "OPERATOR_NAME and OPERATOR_EMAIL in $ENV_FILE are required: /personuppgifter names who operates the service"
 	[ "$(envval DEV_LOGIN)" != "1" ] || fail "DEV_LOGIN=1 in $ENV_FILE: the developer login must never run in production"
 fi
 

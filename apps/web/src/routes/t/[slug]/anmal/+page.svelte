@@ -234,6 +234,7 @@
 					<button class="btn btn-accent grow" disabled={sending}>{sending ? 'Skickar…' : 'Skicka anmälan'}</button>
 				{/if}
 			</div>
+			<p class="muted small privacy">Uppgifterna sparas av {data.comp.organiser ?? 'arrangören'}. <a href="/personuppgifter?t={data.comp.slug}">Så hanterar vi personuppgifter</a></p>
 		</form>
 		{#if data.window.spotsLeft !== null}<p class="muted center small">{data.window.spotsLeft} {data.window.spotsLeft === 1 ? 'plats kvar' : 'platser kvar'}</p>{/if}
 	{/if}

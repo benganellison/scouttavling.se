@@ -6,7 +6,7 @@
  */
 export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
 	// top-level routes
-	'admin', 'api', 'arkiverad', 'auth', 'f', 'folj', 'healthz', 'j', 'login', 'm', 'media', 'p', 'r', 'site-admin', 't',
+	'admin', 'api', 'arkiverad', 'auth', 'f', 'folj', 'healthz', 'j', 'login', 'm', 'media', 'p', 'personuppgifter', 'r', 'site-admin', 't',
 	// kept free
 	'new', 'ny', 'series', 'serie', 'statistik', 'om', 'hjalp', 'help', 'www', 'static', 'favicon.ico', 'robots.txt'
 ]);

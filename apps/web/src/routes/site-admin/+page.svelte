@@ -16,6 +16,23 @@
 	<button class="btn btn-primary">Sök</button>
 </form>
 
+{#if data.overdue.length}
+	<section aria-labelledby="h-overdue" class="stack" data-testid="overdue">
+		<h2 id="h-overdue" class="h2">Personuppgifter kvar <span class="muted n">{data.overdue.length}</span></h2>
+		<p class="muted small">Tävlingar som slutade för mer än {data.overdueDays} dagar sedan men fortfarande har namn, kontaktuppgifter eller patrullänkar. Påminn ägarna, eller ta bort uppgifterna åt dem från tävlingens sida här (avslutade tävlingar).</p>
+		<ul class="cards">
+			{#each data.overdue as c (c.slug)}
+				<li>
+					<a class="card hit" href="/site-admin/c/{c.slug}" data-testid="overdue-{c.slug}">
+						<div class="top"><strong class="name">{c.name}</strong><StatusPill status={c.status as 'draft' | 'live' | 'closed'} /></div>
+						<span class="muted small">Slutade {when(c.endDate)} · {c.patrols} {c.patrols === 1 ? 'patrull' : 'patruller'} med personuppgifter · ägare {c.owners ?? 'saknas'}</span>
+					</a>
+				</li>
+			{/each}
+		</ul>
+	</section>
+{/if}
+
 <section aria-labelledby="h-comps" class="stack">
 	<h2 id="h-comps" class="h2">{data.q ? 'Tävlingar' : 'Senaste tävlingarna'} <span class="muted n">{data.competitions.length}</span></h2>
 	{#if data.competitions.length === 0}<p class="muted">Inga tävlingar matchar.</p>{/if}

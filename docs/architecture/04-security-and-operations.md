@@ -596,11 +596,11 @@ Fixed in the same PR:
 | Texts promised more than the code does ("syns bara för arrangören", "utan personuppgifter", backups "borta överallt") | Rewritten to what is true; hints added for patrol names, images, notes and the volunteer's name (first name is enough). |
 | Expired sessions kept for ever; ScoutID `phone` scope requested but unused | Expired sessions deleted at every login; `app_user.last_login_at` instead; `phone` scope dropped. |
 
-**Open decisions for the owner** (nothing implemented yet):
-1. A privacy notice (`/personuppgifter`): controller (the owning kår), operator/processor, purposes, retention, rights; linked at registration, joining, login and import.
-2. Retention: keep removal manual only, or add reminders/automation (e.g. remind owners N days after close; flag never-closed editions; delete organiser accounts unused for N months).
-3. Export of an edition's personal data (JSON) and "Erase person".
-4. Organiser e-mail from ScoutID: keep (site admins can contact owners) or stop storing.
-5. Offsite backups: implement restic with a retention that matches the promise, or state the operator's routine.
-6. Patrol contacts' phones on start/finish phones and printed start lists: keep (call a patrol out on the course) or limit.
+**Decided by the owner (2026-10-27) and built:**
+1. **Privacy notice** `/personuppgifter` (`?t=<slug>` names the competition and its kår): the kår that owns the competition is controller, the operator is processor (`OPERATOR_NAME`/`OPERATOR_EMAIL`, required by `scripts/deploy.sh` in production). Linked at registration, joining, login and import. The legal basis wording ("berättigat intresse") should be confirmed by the operator.
+2. **Retention stays manual**, with follow-up: owners keep the reminder on the overview; site admins get "Personuppgifter kvar", editions that ended more than 30 days ago and still hold personal data (`personalDataOverdue`).
+3. **Export**: owners download `/admin/<slug>/personuppgifter.json` (patrols with contacts and members, station contacts, volunteers, messages, organisers); each export is audited. Erasing a person = editing or deleting the patrol.
+4. **Offsite backups**: `offsite-backup` (restic 0.19.1) in `compose.prod.yaml`, encrypted to an S3-compatible bucket, 14 daily + 8 weekly, pruned each run. Required variables: `RESTIC_REPOSITORY`, `RESTIC_PASSWORD` (+ keys).
+
+**Still open:** organiser e-mail from ScoutID (kept: site admins can contact owners); patrol contacts' phones on start/finish phones and printed start lists (kept: needed to call a patrol out on the course).
 

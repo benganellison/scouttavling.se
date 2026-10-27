@@ -42,6 +42,8 @@ export const AUDIT_ACTIONS: Record<string, string> = {
 	'competition.suspend': 'Stängde av tävlingen',
 	'competition.unsuspend': 'Öppnade tävlingen igen',
 	'competition.anonymise': 'Tog bort personuppgifter',
+	'competition.export_personal_data': 'Exporterade personuppgifter',
+	'competition.import_gokapp': 'Importerade år från gokapp',
 	'user.suspend': 'Stängde av användaren',
 	'user.unsuspend': 'Öppnade användaren igen',
 	'access.grant': 'Tog tillfällig åtkomst',

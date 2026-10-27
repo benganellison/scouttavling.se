@@ -116,6 +116,33 @@ services:
           sleep "$$BACKUP_INTERVAL"
         done
 
+  # Offsite copies of the dumps: encrypted (restic) to an S3-compatible bucket (EU), every
+  # OFFSITE_INTERVAL seconds. Retention 14 daily + 8 weekly snapshots, pruned each run, so data removed
+  # with "Ta bort personuppgifter" is gone from every copy within ~8 weeks (docs/architecture/05 §4).
+  offsite-backup:
+    image: restic/restic:0.19.1@sha256:136600b6ff6843d61d355f7f71f460a166429f35de6fd11b568fece3c9a4d510
+    restart: unless-stopped
+    depends_on:
+      - backup
+    environment:
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:?Set RESTIC_REPOSITORY, e.g. s3:https://s3.example.eu/bucket/scouttavling}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:?Set RESTIC_PASSWORD (long random; keep a copy outside the server)}
+      AWS_ACCESS_KEY_ID: ${RESTIC_AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${RESTIC_AWS_SECRET_ACCESS_KEY:-}
+      OFFSITE_INTERVAL: ${OFFSITE_INTERVAL:-21600}
+    volumes:
+      - backups:/backups:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        restic cat config >/dev/null 2>&1 || restic init
+        while true; do
+          restic backup --host scouttavling --tag dumps /backups &&
+            restic forget --host scouttavling --keep-daily 14 --keep-weekly 8 --prune ||
+            echo "offsite backup failed" >&2
+          sleep "$${OFFSITE_INTERVAL}"
+        done
+
 volumes:
   letsencrypt:
   backups:

@@ -21,7 +21,7 @@ export async function load({ params, locals, setHeaders }) {
 	setHeaders({ 'cache-control': 'private, no-store' });
 	return {
 		branding,
-		comp: { slug: comp.slug, name: comp.name, startDate: comp.startDate, endDate: comp.endDate, location: comp.location },
+		comp: { slug: comp.slug, name: comp.name, startDate: comp.startDate, endDate: comp.endDate, location: comp.location, organiser: comp.ownerGroupName },
 		tracks: tracks.map((t) => ({ id: t.id, name: t.name, color: t.color, patrols: t.patrols })),
 		window: { state: w.state, spotsLeft: w.spotsLeft, text: windowText(w, w.today) }
 	};

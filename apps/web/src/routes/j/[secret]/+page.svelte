@@ -97,6 +97,7 @@
 			<li><span class="ck"><Icon name="check" size={18} stroke={2.8} /></span>Fungerar utan täckning — synkar själv</li>
 			<li><span class="ck"><Icon name="check" size={18} stroke={2.8} /></span>Lägg till på hemskärmen med ett tryck</li>
 		</ul>
+		<p class="privacy"><a href="/personuppgifter?t={inv.competition.slug}">Så hanterar vi personuppgifter</a></p>
 
 		<div class="bottom">
 			{#if err}<p class="error-text" role="alert">{err}</p>{/if}
