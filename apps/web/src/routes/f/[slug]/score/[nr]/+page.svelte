@@ -218,7 +218,8 @@
 			{#if showNote}
 				<label class="note">
 					<span class="label">Anteckning</span>
-					<textarea bind:value={note} rows="2" maxlength="500"></textarea>
+					<textarea bind:value={note} rows="2" maxlength="500" aria-describedby="note-help"></textarea>
+					<span class="help" id="note-help">Bara om poängen behöver förklaras. Skriv inte namn eller något om hälsa.</span>
 				</label>
 			{/if}
 		</main>

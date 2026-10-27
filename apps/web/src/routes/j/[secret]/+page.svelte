@@ -88,8 +88,8 @@
 
 		<div class="field">
 			<label for="nm">Vad heter du?</label>
-			<input id="nm" name="name" bind:value={name} autocomplete="name" maxlength="60" required placeholder="T.ex. Anna Berg" />
-			<span class="help">Så vet tävlingsledningen vem som står på kontrollen.</span>
+			<input id="nm" name="name" bind:value={name} autocomplete="name" maxlength="60" required placeholder="T.ex. Anna" />
+			<span class="help">Förnamn räcker. Så vet tävlingsledningen vem som står på kontrollen.</span>
 		</div>
 
 		<ul class="perks">

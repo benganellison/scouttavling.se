@@ -34,7 +34,8 @@ export const FIELD_LABELS: Record<TargetField, string> = {
 };
 
 /** Columns that must never be read in, whatever the organiser picks. */
-const DENY = /^personnummer|^födelse|^kön$|(?<!e-?post)adress|^postnummer|^postort|anhörig|registerutdrag|belastning|^trygga möten|allergi|^kost|sjukdom|medicin/i;
+// Anywhere in the column name: health, diet, needs, age, photo consent, guardians, free-text "övrigt".
+const DENY = /^personnummer|^födelse|^kön$|(?<!e-?post)adress|^postnummer|^postort|anhörig|registerutdrag|belastning|^trygga möten|allergi|kost|sjukdom|medicin|hälsa|ålder|särskild|behov|foto|bild|övrigt|kommentar|meddelande|vårdnadshavare|förälder|målsman/i;
 
 /** Tested on the column's own name (the part after "Anmälan till X - "), so a
  *  free-text member column that merely mentions "födelseår" is still mappable;
@@ -182,24 +183,41 @@ export interface ParsedMember {
 }
 
 /**
- * Parses free-text member lists like "Elsa Ek, 2008, Granliden" one per line.
- * Birth years (and any 4-digit year) are stripped and never kept.
+ * Parses free-text member lists like "Elsa Ek, 2008, Granliden" one per line, keeping only the name
+ * and a kår. No birth data may be stored (decision 2026-10-15), and people answer "födelseår" with
+ * full dates, ages or personnummer, so every date/age shape is removed first. Anything after the name
+ * that is not a plain kår name (digits, health or diet notes, addresses) is dropped and the row is
+ * marked uncertain so the organiser looks at it.
  */
+const DATE_LIKE = [
+	/\b(?:19|20)?\d{2}[-./]?\d{2}[-./]?\d{2}(?:[-+]?\d{4})?\b/g, // 2012-05-03, 20120503, 120503, 03.05.12, personnummer
+	/\b\d{1,2}[./]\d{1,2}(?:[./ ]+(?:19|20)?\d{2})?\b/g, // 3/5, 3/5 2012, 03.05
+	/\b(?:19|20)\d{2}\b/g, // 2012
+	/(?:^|\s)[-'’]\d{2}\b/g, // -12, '12
+	/\(?\b\d{1,2}\s*(?:år|åå|years?)\b\)?/gi, // 12 år, (12 år)
+	/\bf(?:ödd|\.)\s*/gi // "f." / "född" left over
+];
+const NOT_A_TROOP = /\d|allergi|kost|laktos|gluten|vegan|vegetar|nöt|jordnöt|diabet|astma|epileps|medicin|sjuk|adhd|autism|diagnos|behov|gata|gatan|vägen|väg\b|box\b/i;
+
 export function parseMembers(text: string): ParsedMember[] {
 	return text
 		.split(/\n+/)
 		.map((l) => l.replace(/\t/g, ' ').trim())
 		.filter((l) => l.length > 1)
 		.map((line) => {
-			const noYear = line.replace(/\b(19|20)\d{2}\b/g, ' ').replace(/\s{2,}/g, ' ');
-			const parts = noYear.split(/[,;]/).map((p) => p.trim()).filter(Boolean);
-			const nameParts = (parts[0] ?? '').split(/\s+/).filter(Boolean);
+			let clean = line;
+			for (const re of DATE_LIKE) clean = clean.replace(re, ' ');
+			clean = clean.replace(/[()]/g, ' ').replace(/\s{2,}/g, ' ');
+			const parts = clean.split(/[,;]/).map((p) => p.trim()).filter(Boolean);
+			const nameParts = (parts[0] ?? '').split(/\s+/).filter((w) => w && !/\d/.test(w));
+			const rest = parts.slice(1);
+			const troopParts = rest.filter((p) => !NOT_A_TROOP.test(p));
 			const looksLikeNote = /^[+(]|ev\.|kanske|\?/i.test(line);
 			return {
 				firstName: nameParts[0] ?? '',
 				lastName: nameParts.slice(1).join(' '),
-				troopText: parts.slice(1).join(', '),
-				uncertain: looksLikeNote || nameParts.length < 2
+				troopText: troopParts.join(', '),
+				uncertain: looksLikeNote || nameParts.length < 2 || troopParts.length !== rest.length || clean.trim() !== line.trim().replace(/\s{2,}/g, ' ')
 			};
 		});
 }

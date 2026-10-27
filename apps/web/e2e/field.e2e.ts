@@ -230,3 +230,41 @@ test('7: HQ disconnects a phone, and a new code disconnects the phones that join
 	for (const x of [lisa, olle]) await x.c.close();
 	await hqCtx.close();
 });
+
+test('8: "Ta bort tävlingen från telefonen" leaves nothing about the competition on the phone', async ({ browser }) => {
+	const c = await browser.newContext({ viewport: { width: 390, height: 844 } });
+	const p = await c.newPage();
+	await join(p, await createInvite('Första hjälpen'), 'Kim');
+	await expect(p.getByTestId('sync-pill')).toContainText('Synkad', { timeout: 15_000 });
+	const counts = () =>
+		p.evaluate(
+			(slug) =>
+				new Promise<Record<string, number>>((resolve) => {
+					const req = indexedDB.open('st-field');
+					req.onsuccess = () => {
+						const db = req.result;
+						const stores = ['grants', 'packs', 'outbox', 'scores', 'statuses', 'reads'];
+						const tx = db.transaction(stores, 'readonly');
+						const out: Record<string, number> = {};
+						let left = stores.length;
+						for (const s of stores) {
+							const all = tx.objectStore(s).getAll();
+							all.onsuccess = () => {
+								out[s] = (all.result as { slug?: string }[]).filter((r) => r.slug === slug).length;
+								if (--left === 0) resolve(out);
+							};
+						}
+					};
+				}),
+			SLUG
+		);
+	expect((await counts()).packs).toBe(1);
+	await p.getByRole('link', { name: 'Logg' }).click();
+	await p.getByRole('button', { name: 'Ta bort tävlingen från telefonen' }).click();
+	await expect(p.getByText('Allt är skickat.')).toBeVisible();
+	await shot(p, 'forget');
+	await p.getByRole('button', { name: 'Ja, ta bort' }).click();
+	await p.waitForURL((u) => u.pathname === '/');
+	expect(await counts()).toEqual({ grants: 0, packs: 0, outbox: 0, scores: 0, statuses: 0, reads: 0 });
+	await c.close();
+});

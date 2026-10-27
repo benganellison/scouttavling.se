@@ -215,7 +215,7 @@ export async function search(qRaw: string) {
 			id: schema.appUser.id, name: schema.appUser.name, memberNo: schema.appUser.memberNo, suspended: sql<boolean>`${schema.appUser.suspendedAt} is not null`,
 			siteAdmin: sql<boolean>`exists (select 1 from site_admin a where a.user_id = ${schema.appUser.id})`,
 			competitions: sql<number>`(select count(distinct m.competition_id)::int from competition_member m where m.user_id = ${schema.appUser.id})`,
-			lastLogin: sql<string | null>`(select max(s.created_at) from session s where s.user_id = ${schema.appUser.id})`
+			lastLogin: schema.appUser.lastLoginAt
 		})
 		.from(schema.appUser)
 		.where(or(ilike(schema.appUser.name, p), ilike(schema.appUser.memberNo, p)))

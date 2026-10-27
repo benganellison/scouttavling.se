@@ -37,6 +37,8 @@ export const appUser = pgTable('app_user', {
 	groups: jsonb('groups').$type<{ groupNo: string; name: string }[]>().notNull().default([]),
 	/** Suspended by a site admin: cannot log in, sessions revoked (see #lib/server/siteAdmin.ts). */
 	suspendedAt: timestamp('suspended_at', { withTimezone: true }),
+	/** Latest login (expired sessions are deleted, so this is the only record of it). */
+	lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
 	createdAt: createdAt()
 });
 

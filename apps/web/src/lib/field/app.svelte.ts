@@ -103,6 +103,11 @@ export class FieldApp {
 			liveQuery(() => db.packs.get(slug)).subscribe((v) => (this.packRow = v ?? null)),
 			liveQuery(() => db.grants.get(slug)).subscribe((v) => (this.grant = v ?? null))
 		);
+		// Personal data must not stay on volunteers' phones after the competition: a week after the
+		// permission expired, everything about it goes, also on phones that never synced again.
+		if (this.grant && this.grant.exp * 1000 < Date.now() - FORGET_AFTER_MS) {
+			await forgetCompetition(slug, { keepUnsent: false });
+		}
 		this.ready = true;
 		if (!this.grant) return;
 
@@ -389,7 +394,12 @@ export class FieldApp {
 				this.lastFailedAt = null;
 				this.online = true;
 			} catch (e) {
-				if (e instanceof AuthError) this.authProblem = e.message;
+				if (e instanceof AuthError) {
+					this.authProblem = e.message;
+					// No longer connected (expired, disconnected, new code): drop the patrol list, contact
+					// phones, messages and sent reports. Unsent reports stay for a re-join.
+					await forgetCompetition(this.slug, { keepUnsent: true });
+				}
 				else {
 					this.failures++;
 					this.lastFailedAt = Date.now();
@@ -570,6 +580,31 @@ function authMessage(raw: string): string {
 	if (raw.startsWith('grant_expired')) return 'Behörigheten har gått ut. Skanna inbjudan igen. Osända rapporter finns kvar i telefonen.';
 	if (raw.startsWith('grant_')) return 'Telefonen är inte längre kopplad till kontrollen. Skanna inbjudan igen.';
 	return raw || 'Behörigheten fungerar inte';
+}
+
+// ---------- forgetting ----------
+
+/** A week after the grant expired the phone forgets the competition on its own. */
+const FORGET_AFTER_MS = 7 * 86400_000;
+
+/**
+ * Removes what the phone holds about a competition: patrol list (with contact phones on the desk),
+ * scores, statuses, messages, sent reports. `keepUnsent`: reports not yet accepted stay (and the
+ * grant, so the volunteer can re-join and send them); otherwise everything, grant included, goes.
+ */
+export async function forgetCompetition(slug: string, { keepUnsent }: { keepUnsent: boolean }) {
+	const db = fieldDb();
+	await db.transaction('rw', [db.packs, db.scores, db.statuses, db.reads, db.outbox, db.grants], async () => {
+		await db.packs.delete(slug);
+		await db.scores.where('slug').equals(slug).delete();
+		await db.statuses.where('slug').equals(slug).delete();
+		await db.reads.where('slug').equals(slug).delete();
+		if (keepUnsent) await db.outbox.where('slug').equals(slug).and((r) => r.state !== 'pending').delete();
+		else {
+			await db.outbox.where('slug').equals(slug).delete();
+			await db.grants.delete(slug);
+		}
+	});
 }
 
 // ---------- joining ----------

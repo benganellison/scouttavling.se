@@ -1,5 +1,5 @@
 import { error, redirect, type Cookies, type RequestEvent } from '@sveltejs/kit';
-import { and, desc, eq, gt, isNull } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, lt } from 'drizzle-orm';
 import { db, schema } from './db';
 
 /**
@@ -53,6 +53,9 @@ export async function createSession(cookies: Cookies, url: URL, userId: string) 
 	const [u] = await db.select({ suspendedAt: schema.appUser.suspendedAt }).from(schema.appUser).where(eq(schema.appUser.id, userId)).limit(1);
 	if (u?.suspendedAt) error(403, 'Ditt konto är tillfälligt avstängt. Kontakta den som arrangerar tävlingen eller info@scouttavling.se.');
 	const token = randomToken();
+	// Expired sessions are useless and say who logged in when: cleared on every login.
+	await db.delete(schema.session).where(lt(schema.session.expiresAt, new Date()));
+	await db.update(schema.appUser).set({ lastLoginAt: new Date() }).where(eq(schema.appUser.id, userId));
 	await db.insert(schema.session).values({
 		idHash: await sha256(token),
 		userId,

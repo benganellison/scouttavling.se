@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { useField, hhmm, shortTroop } from '#lib/field/app.svelte.ts';
+	import { forgetCompetition, useField, hhmm, shortTroop } from '#lib/field/app.svelte.ts';
 	import Icon from '#lib/field/ui/Icon.svelte';
 	import SyncPill from '#lib/field/ui/SyncPill.svelte';
 	import TabBar from '#lib/field/ui/TabBar.svelte';
@@ -10,6 +10,13 @@
 	const base = `/f/${app.slug}`;
 	let q = $state('');
 	let open = $state<string | null>(null);
+	let confirmForget = $state(false);
+
+	/** The volunteer is done: the competition (patrol list, contacts, reports) leaves this phone. */
+	async function forget() {
+		await forgetCompetition(app.slug, { keepUnsent: false });
+		location.href = '/';
+	}
 
 	const styleOn = $derived(app.items.some((i) => i.styleEnabled));
 	const checkin = $derived(app.items.length > 0 && app.items.every((i) => i.mode === 'CHECKIN' || i.mode === 'AUTO_ON_SCAN'));
@@ -119,6 +126,23 @@
 		{:else}
 			<p class="empty">{q ? 'Ingen träff.' : 'Inga rapporter ännu. Skanna första patrullen från Kontroll.'}</p>
 		{/if}
+
+		<section class="forget" aria-labelledby="forget-h">
+			<h2 id="forget-h">Klar med tävlingen?</h2>
+			<p>Telefonen glömmer tävlingen av sig själv en vecka efter att den är slut. Du kan också ta bort den nu: patrullerna, meddelandena och dina rapporter försvinner från telefonen (de som är skickade finns kvar hos tävlingsledningen).</p>
+			{#if !confirmForget}
+				<button type="button" class="btn-forget" onclick={() => (confirmForget = true)}>Ta bort tävlingen från telefonen</button>
+			{:else}
+				<div class="confirm" role="alertdialog" aria-labelledby="forget-q">
+					<p id="forget-q">
+						{#if app.pendingCount}<strong>{app.pendingCount} {app.pendingCount === 1 ? 'rapport är' : 'rapporter är'} inte skickade och försvinner.</strong> Vänta på täckning först om de ska med.{:else}Allt är skickat.{/if}
+						Ta bort tävlingen från telefonen?
+					</p>
+					<button type="button" class="btn-forget danger" onclick={forget}>Ja, ta bort</button>
+					<button type="button" class="btn-forget" onclick={() => (confirmForget = false)}>Avbryt</button>
+				</div>
+			{/if}
+		</section>
 	</main>
 
 	<TabBar current="log" />
@@ -298,6 +322,44 @@
 	.actions {
 		display: flex;
 		gap: 8px;
+	}
+	.forget {
+		margin: 28px 0 8px;
+		padding-top: 16px;
+		border-top: 1px solid var(--line);
+		display: grid;
+		gap: 10px;
+	}
+	.forget h2 {
+		margin: 0;
+		font-size: 17px;
+	}
+	.forget p {
+		margin: 0;
+		color: var(--ink-2);
+		font-size: 14px;
+	}
+	.forget .confirm {
+		display: grid;
+		gap: 8px;
+	}
+	.forget .confirm p {
+		color: var(--ink);
+	}
+	.btn-forget {
+		min-height: var(--tap, 48px);
+		border-radius: 12px;
+		border: 1.5px solid var(--line-strong);
+		background: var(--surface);
+		color: var(--ink);
+		font: inherit;
+		font-weight: 800;
+		cursor: pointer;
+	}
+	.btn-forget.danger {
+		background: var(--danger, #b42318);
+		border-color: var(--danger, #b42318);
+		color: #fff;
 	}
 	.expand {
 		padding: 0 0 12px 56px;

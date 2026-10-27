@@ -115,7 +115,7 @@
 
 		<section class="card" aria-labelledby="h-follow">
 			<h2 id="h-follow">Följ patrullen</h2>
-			<p class="muted">Dela den här länken med ledare och föräldrar. Den visar hur det går för patrullen under tävlingsdagen, utan personuppgifter.</p>
+			<p class="muted">Dela den här länken med ledare och föräldrar. Den visar var patrullen är och hur det går under tävlingsdagen, men inga namn på scouterna eller kontaktuppgifter. Dela den bara med dem som ska följa patrullen.</p>
 			<CopyLink url={done.followUrl} label="Följ-länk" testid="follow-link" />
 			{#if !done.followEnabled}<p class="muted small">Arrangören slår på Följ patrullen närmare tävlingen. Länken fungerar då.</p>{/if}
 		</section>
@@ -171,8 +171,8 @@
 				<legend><h1 id={step === 1 ? 'step-title' : undefined} tabindex="-1">Patrullen</h1></legend>
 				<div class="field">
 					<label for="patrolName">Patrullens namn</label>
-					<input id="patrolName" name="patrolName" bind:value={patrolName} autocomplete="off" maxlength="40" aria-invalid={errors.patrolName ? 'true' : undefined} aria-describedby={errors.patrolName ? 'e-patrolName' : undefined} />
-					{#if errors.patrolName}<span id="e-patrolName" class="error-text">{errors.patrolName}</span>{/if}
+					<input id="patrolName" name="patrolName" bind:value={patrolName} autocomplete="off" maxlength="40" aria-invalid={errors.patrolName ? 'true' : undefined} aria-describedby={errors.patrolName ? 'e-patrolName' : 'h-patrolName'} />
+					{#if errors.patrolName}<span id="e-patrolName" class="error-text">{errors.patrolName}</span>{:else}<span id="h-patrolName" class="muted small">Visas i resultaten och arkivet. Använd inte scouternas namn.</span>{/if}
 				</div>
 				<div class="field">
 					<label for="troop">Kår</label>
@@ -202,7 +202,7 @@
 
 			<fieldset class="step" hidden={js && step !== 3}>
 				<legend><h1 id={step === 3 ? 'step-title' : undefined} tabindex="-1">Kontaktperson</h1></legend>
-				<p class="muted lead">Ledaren som arrangören kan nå under tävlingen. Uppgifterna syns bara för arrangören.</p>
+				<p class="muted lead">Ledaren som arrangören kan nå under tävlingen. Namn och telefon syns för arrangören och för funktionärerna vid start och mål, så att de kan ringa om något händer på banan.</p>
 				<div class="field">
 					<label for="contactName">Namn</label>
 					<input id="contactName" name="contactName" bind:value={contactName} autocomplete="name" aria-invalid={errors.contactName ? 'true' : undefined} />

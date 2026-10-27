@@ -75,7 +75,7 @@
 	{#if data.followUrl}
 		<section class="card stack-s" aria-labelledby="h-follow">
 			<h2 id="h-follow">Följ patrullen</h2>
-			<p class="muted">Dela med föräldrar och ledare. Visar patrullens framsteg under dagen, inga personuppgifter.</p>
+			<p class="muted">Dela med föräldrar och ledare. Visar var patrullen är och hur det går under dagen, men inga namn på scouterna eller kontaktuppgifter.</p>
 			<CopyLink url={data.followUrl} label="Följ-länk" testid="follow-link" />
 		</section>
 	{/if}

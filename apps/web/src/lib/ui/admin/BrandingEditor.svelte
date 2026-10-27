@@ -130,7 +130,7 @@
 			</div>
 		</div>
 	{/each}
-	<p class="muted small">PNG, JPEG eller WebP, högst 2 MB. SVG går inte (av säkerhetsskäl). Bildinformation som plats och kamera tas bort vid uppladdning.</p>
+	<p class="muted small">PNG, JPEG eller WebP, högst 2 MB. SVG går inte (av säkerhetsskäl). Bildinformation som plats och kamera tas bort vid uppladdning. Bilderna är publika och sparas i arkivet: använd inte bilder där scouter går att känna igen.</p>
 </div>
 
 <div class="previews" aria-label="Förhandsvisning">

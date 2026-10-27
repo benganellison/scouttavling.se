@@ -21,7 +21,7 @@ export async function load(event) {
 			.where(and(eq(schema.competitionMember.userId, u.id), inArray(schema.competitionMember.role, ['owner', 'organiser', 'hq', 'startfinish'])))
 			.orderBy(desc(schema.competition.startDate)),
 		db.select().from(schema.siteAdmin).where(eq(schema.siteAdmin.userId, u.id)).then((r) => r[0] ?? null),
-		db.select({ at: sql<string | null>`max(${schema.session.createdAt})` }).from(schema.session).where(eq(schema.session.userId, u.id)).then((r) => r[0]?.at ?? null),
+		Promise.resolve(u.lastLoginAt),
 		listAudit({ actorUserId: u.id, limit: 50 })
 	]);
 	return {

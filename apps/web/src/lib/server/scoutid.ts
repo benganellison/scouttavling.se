@@ -5,7 +5,8 @@ import { SCOUTID_ISSUER, SCOUTID_CLIENT_ID, SCOUTID_CLIENT_SECRET } from '$app/e
  * ScoutID (Scouterna's Keycloak) as a confidential OIDC client with PKCE.
  * Scopes per 04 §2: openid profile email phone scoutnet-memberships.
  */
-export const SCOPES = 'openid profile email phone scoutnet-memberships';
+// Only what is used: name and member number (profile), e-mail, kår memberships. No phone (never used).
+export const SCOPES = 'openid profile email scoutnet-memberships';
 
 let configPromise: Promise<oidc.Configuration> | null = null;
 

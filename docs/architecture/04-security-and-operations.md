@@ -313,6 +313,8 @@ Every write records `actor` (member_no or device_id plus display name), `via` (s
 
 ### 6.4 Retention schedule
 
+> **Status v0.1 (2026-10-27):** this table is the original proposal. **No automatic retention job exists.** Removal of personal data is **manual and owner-only** per edition ("Ta bort personuppgifter", product decision, 05 §4). Implemented: expired sessions are deleted at every login, phones forget a competition when disconnected and a week after their permission expired (§12). Everything else in this table is an open decision (§12).
+
 | Data | Retention | Mechanism |
 |---|---|---|
 | Participant and contact personal data | **90 days after the competition is closed** (or 13 months after the event date if never closed) | Nightly job pseudonymises: names become "Patrull 12 – medlem 3", and contacts are deleted. Results stay, keyed by patrol name and kår. |
@@ -326,6 +328,8 @@ Every write records `actor` (member_no or device_id plus display name), `via` (s
 | Public results (patrol name, kår, points) | Kept as an archive unless the owner deletes them | — |
 
 ### 6.5 Data subject rights, logging, hosting location
+
+> **Status v0.1:** no per-competition export of personal data and no "Erase person" yet (a patrol can be deleted by an organiser); no structured logger (pino) or log-scan test (the app logs no request data; Traefik has no access log); no gitleaks/personnummer CI check. See §12.
 
 - **Export / erasure:** the owner gets "Export all personal data (JSON/CSV)" and "Erase person" per competition. Requests to the operator are forwarded to the controlling kår. Site admins can run "Ta bort personuppgifter" on the owners' behalf from `/site-admin` (closed editions only, typed confirmation, reason required, audited; §10). The target turnaround is under 30 days.
 - **Logging without PII:** logs carry internal UUIDv7 ids (user, device, competition) and request ids. They contain no names, phone numbers, emails, member numbers, tokens or invite secrets. pino `redact` paths plus a test that scans captured logs for names, emails and personnummer shapes enforce this. Secrets in `/j/`, `/f/`, `/m/` paths are masked in the app's request log. Platform access logs are configured not to keep them (Traefik `accesslog.fields.names.RequestPath=drop` on a VPS; on serverless platforms, request-path logging is excluded or the log bucket is kept to the 14-day, maintainer-only retention).
@@ -579,3 +583,24 @@ A read-only review of the whole branch against this document. Fixed in the same 
 - Series rights follow any edition's owners/organisers even after removal from `series_member`.
 - Import and registration refuse personnummer-shaped values, not plain birth dates (§6.3).
 - Local backups in the `backups` volume are not encrypted (§7.10): encrypt the offsite copies (restic does).
+
+## 12. Privacy review 2026-10-27 (before v0.1.0)
+
+Fixed in the same PR:
+
+| Finding | Fix |
+|---|---|
+| Birth dates, ages and health notes in the import's free-text member column were stored ("Elsa Ek 2012-05-03", "(12 år)", "nötallergi") | `parseMembers` removes every date/age shape and keeps only name + a plain kår; anything else after the name is dropped and the row is marked uncertain. The server refuses any digit in member fields. Tests with each shape. |
+| Sensitive Scoutnet columns (specialkost, ålder, övrigt, särskilda behov, foto, vårdnadshavare/förälder) could be mapped | Deny-list matches anywhere in the column name. |
+| Personal data stayed on volunteers' phones for ever (desk phones: every contact phone) | Phones forget the competition when the server says the permission is gone (unsent reports kept for a re-join), a week after the permission expired, or with "Ta bort tävlingen från telefonen" in the log. |
+| Texts promised more than the code does ("syns bara för arrangören", "utan personuppgifter", backups "borta överallt") | Rewritten to what is true; hints added for patrol names, images, notes and the volunteer's name (first name is enough). |
+| Expired sessions kept for ever; ScoutID `phone` scope requested but unused | Expired sessions deleted at every login; `app_user.last_login_at` instead; `phone` scope dropped. |
+
+**Open decisions for the owner** (nothing implemented yet):
+1. A privacy notice (`/personuppgifter`): controller (the owning kår), operator/processor, purposes, retention, rights; linked at registration, joining, login and import.
+2. Retention: keep removal manual only, or add reminders/automation (e.g. remind owners N days after close; flag never-closed editions; delete organiser accounts unused for N months).
+3. Export of an edition's personal data (JSON) and "Erase person".
+4. Organiser e-mail from ScoutID: keep (site admins can contact owners) or stop storing.
+5. Offsite backups: implement restic with a retention that matches the promise, or state the operator's routine.
+6. Patrol contacts' phones on start/finish phones and printed start lists: keep (call a patrol out on the course) or limit.
+

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import {
 	buildImport, daysBetween, distribute, evaluate, guessColumns, InvalidScoreError, isScoutnetExport,
-	normalizePhone, parseCsv, parseHtmlTable, parseMembers, parsePatrolCode, patrolCodeUrl, rank,
+	isSensitiveHeader, normalizePhone, parseCsv, parseHtmlTable, parseMembers, parsePatrolCode, patrolCodeUrl, rank,
 	rankOfValue, roleFromName, stationCodes, verifyPatrolCode, type ScoreItemDef
 } from './index.ts';
 
@@ -236,5 +236,37 @@ describe('style switched off after scores were saved', () => {
 			items
 		);
 		expect(r.map((x) => [x.id, x.total, x.stylePoints])).toEqual([['late', 6, 0], ['early', 5, 0]]);
+	});
+});
+
+describe('parseMembers never keeps birth data, health notes or addresses', () => {
+	const cases: [string, { firstName: string; lastName: string; troopText: string }][] = [
+		['Elsa Ek 2012-05-03, Granliden', { firstName: 'Elsa', lastName: 'Ek', troopText: 'Granliden' }],
+		['Elsa Ek, 20120503', { firstName: 'Elsa', lastName: 'Ek', troopText: '' }],
+		['Elsa Ek, 120503', { firstName: 'Elsa', lastName: 'Ek', troopText: '' }],
+		['Elsa Ek, 03.05.12', { firstName: 'Elsa', lastName: 'Ek', troopText: '' }],
+		['Elsa Ek, f. 3/5 2012', { firstName: 'Elsa', lastName: 'Ek', troopText: '' }],
+		['Elsa Ek -12', { firstName: 'Elsa', lastName: 'Ek', troopText: '' }],
+		['Elsa Ek (12 år)', { firstName: 'Elsa', lastName: 'Ek', troopText: '' }],
+		['Elsa Ek, 20120503-1234', { firstName: 'Elsa', lastName: 'Ek', troopText: '' }],
+		['Elsa Ek, nötallergi', { firstName: 'Elsa', lastName: 'Ek', troopText: '' }],
+		['Elsa Ek, Storgatan 5, 12345 Ort', { firstName: 'Elsa', lastName: 'Ek', troopText: '' }],
+		['Elsa Ek, 2008, Granliden', { firstName: 'Elsa', lastName: 'Ek', troopText: 'Granliden' }]
+	];
+	for (const [line, want] of cases) {
+		it(JSON.stringify(line), () => {
+			const [m] = parseMembers(line);
+			expect({ firstName: m.firstName, lastName: m.lastName, troopText: m.troopText }).toEqual(want);
+			expect(`${m.firstName} ${m.lastName} ${m.troopText}`).not.toMatch(/\d|allergi|gatan/i);
+		});
+	}
+	it('marks rows where something was removed as uncertain', () => {
+		expect(parseMembers('Elsa Ek, nötallergi')[0].uncertain).toBe(true);
+		expect(parseMembers('Elsa Ek, Granliden')[0].uncertain).toBe(false);
+	});
+	it('refuses sensitive Scoutnet columns wherever the word appears', () => {
+		for (const h of ['Anmälan - Specialkost', 'Ålder', 'Anmälan - Övrigt', 'Särskilda behov', 'Fotografering', 'Vårdnadshavare telefon', 'Telefon förälder'])
+			expect(isSensitiveHeader(h), h).toBe(true);
+		for (const h of ['Patrullnamn', 'Kår', 'E-postadress', 'Mobiltelefon']) expect(isSensitiveHeader(h), h).toBe(false);
 	});
 });

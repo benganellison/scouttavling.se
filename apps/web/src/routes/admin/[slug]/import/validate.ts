@@ -12,10 +12,12 @@ const noPnr = v.check<string, string>((s) => !PNR.test(s.replace(/\s/g, '')), 'P
 
 const text = (max: number) => v.pipe(v.string(), v.trim(), v.maxLength(max), noPnr);
 
+// Names and kår never contain digits: a digit here is a birth date, an age or a personnummer.
+const noDigits = v.check<string, string>((s) => !/\d/.test(s), 'Födelsedata får inte importeras');
 export const ImportMemberSchema = v.strictObject({
-	firstName: text(80),
-	lastName: text(80),
-	troopText: text(120)
+	firstName: v.pipe(text(80), noDigits),
+	lastName: v.pipe(text(80), noDigits),
+	troopText: v.pipe(text(120), noDigits)
 });
 
 export const ImportRowSchema = v.strictObject({
