@@ -46,7 +46,7 @@ flowchart LR
 
 | Area | Decision | Main alternative rejected | Section |
 |---|---|---|---|
-| Stack | **TypeScript end-to-end**: SvelteKit 3.1.0 serves UI *and* API on Node.js 24.22.0 LTS, as one OCI container. This is the language the maintainer knows, with one codebase and a lean, scale-to-zero-friendly runtime. | Spring Boot/Java (maintainer doesn't know Java; two codebases); Rust/Axum (second language, slower feature work); Python; BaaS | 02 §1 |
+| Stack | **TypeScript end-to-end**: SvelteKit 3.1.0 serves UI *and* API on Node.js 24.22.1 LTS, as one OCI container. This is the language the maintainer knows, with one codebase and a lean, scale-to-zero-friendly runtime. | Spring Boot/Java (maintainer doesn't know Java; two codebases); Rust/Axum (second language, slower feature work); Python; BaaS | 02 §1 |
 | Shared code | `packages/domain` (pure TS) + `packages/schema` (Valibot 1.5.0) used by client and server. OpenAPI only if external integrations need it. | OpenAPI codegen between two languages | 02 §1, 03 §14 |
 | Database | PostgreSQL 18.6 via **Drizzle ORM 0.45.4** + postgres.js 3.4.9, migrations with **drizzle-kit 0.31.11**. Pooled + direct URLs, so serverless and normal Postgres both work. | Kysely (good, but types and migrations by hand); MySQL (gokapp today) | 02 §1 |
 | Domain | Competition → Day → Station → **ScoreItem**. A "kontrollgrupp" such as Mål is one station with several items. Item modes: RANGE, DISTINCT (labelled values), COUNT, CHECKIN, AUTO_ON_SCAN. Style points can be turned off per competition and per item. | Separate stations per finish item, as gokapp does | 02 §2 |
@@ -88,7 +88,7 @@ Every version below was verified against the npm registry, nodejs.org, postgresq
 
 | Layer | Pinned versions |
 |---|---|
-| Runtime | Node.js 24.22.0 LTS (`node:24.22.0-trixie-slim`), npm workspaces, TypeScript 6.0.3 |
+| Runtime | Node.js 24.22.1 LTS (`node:24.22.1-trixie-slim`), npm workspaces, TypeScript 6.0.3 |
 | Server | SvelteKit 3.1.0 + `@sveltejs/adapter-node` 6.0.0, openid-client 6.8.8, jose 6.2.12, pg-boss 12.38.0, rate-limiter-flexible 11.2.2, `@aws-sdk/client-s3` 3.1152.0, nodemailer 10.1.1, pino 10.4.0, uuid 14.0.3 |
 | Data | PostgreSQL 18.6, Drizzle ORM 0.45.4, drizzle-kit 0.31.11, postgres.js 3.4.9, restic 0.19.1 (offsite dumps / VPS) |
 | Shared | Valibot 1.5.0 (`@valibot/to-json-schema` 1.8.0 only if OpenAPI is needed) |
@@ -97,7 +97,7 @@ Every version below was verified against the npm registry, nodejs.org, postgresq
 | Testing | Vitest 5.0.5, fast-check 4.10.2 + `@fast-check/vitest` 0.5.0, `@testcontainers/postgresql` 12.2.1, Playwright 1.64.1, axe-core 4.14.0, MSW 3.0.3, dependency-cruiser 18.6.0 |
 | Tools | mysql2 3.24.6 (gokapp import) |
 | CI | actions/checkout v7.0.1, actions/setup-node v7.1.0, docker/setup-buildx-action v4.4.1, docker/metadata-action v6.2.0, docker/build-push-action v7.4.0, docker/login-action v4.6.0, trivy-action v0.36.0, attest-build-provenance v4.2.2 |
-| Ops (by option) | Traefik v3.7.15 (VPS only), Uptime Kuma 2.5.6, GlitchTip 6.1.8, Prometheus 3.15.0 / Grafana 13.2.4 (VPS, optional), Keycloak 26.8.1 (local dev only) + scoutid-keycloak-provider v0.14.0 |
+| Ops (by option) | Traefik v3.7.16 (VPS only), Uptime Kuma 2.5.6, GlitchTip 6.1.8, Prometheus 3.15.0 / Grafana 13.2.4 (VPS, optional), Keycloak 26.8.1 (local dev only) + scoutid-keycloak-provider v0.14.0 |
 
 **Known freshness risks and pairing constraints:**
 

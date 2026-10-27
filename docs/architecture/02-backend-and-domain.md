@@ -16,7 +16,7 @@ Version numbers were checked against the npm registry, nodejs.org and postgresql
 
 | Concern | Choice (version) | Notes |
 |---|---|---|
-| Runtime | **Node.js 24.22.0 LTS** ("Krypton") | Node 26.12.0 is "Current" and becomes LTS at the end of October 2026. Move at the first 26.x LTS release. |
+| Runtime | **Node.js 24.22.1 LTS** ("Krypton") | Node 26.12.0 is "Current" and becomes LTS at the end of October 2026. Move at the first 26.x LTS release. |
 | Language | **TypeScript 6.0.3** | SvelteKit 3.1.0's peer range is `typescript ^6.0.0`, so TypeScript 7.0.2 (native compiler) cannot be used yet, in the app or the packages. Move everything together when the peer range allows it. |
 | Framework | **SvelteKit 3.1.0** + `@sveltejs/adapter-node` **6.0.0** | API under `src/routes/api/v1/**/+server.ts`. Session, CSRF, rate limits and security headers live in `hooks.server.ts`. Server-only code lives in `src/lib/server/` (SvelteKit refuses to bundle it into the client). |
 | Monorepo | **npm workspaces** | `apps/web`, `packages/domain`, `packages/schema`, `packages/ui` (03 §14). The gokapp import is a CLI in `apps/web/scripts` (§9). |

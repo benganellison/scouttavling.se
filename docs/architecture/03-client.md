@@ -33,8 +33,8 @@ The current app (Spring Boot + Thymeleaf, ~270 lines of plain JS) works, but the
 - SvelteKit **3.1.0**, Svelte **5.57.2** (runes), `@sveltejs/vite-plugin-svelte` **7.3.1**, Vite **8.3.4**
 - `@sveltejs/adapter-node` **6.0.0**. One Node server renders SSR pages and serves the API, BFF, sync and SSE (02 §1), shipped as one container.
 - TypeScript **6.0.3**. SvelteKit 3's peer range is `typescript ^6.0.0`, so we cannot use TypeScript 7.0.2 (the native compiler) yet. We move when the peer range allows it.
-- Node.js **24.22.0 LTS "Krypton"** for build and the server. Node 26.12.0 is "Current" and becomes LTS at the end of October 2026. We switch at the first 26.x LTS release.
-- npm workspaces (the npm bundled with Node 24.22.0)
+- Node.js **24.22.1 LTS "Krypton"** for build and the server. Node 26.12.0 is "Current" and becomes LTS at the end of October 2026. We switch at the first 26.x LTS release.
+- npm workspaces (the npm bundled with Node 24.22.1)
 
 SvelteKit 3.0.0 shipped on 2026-10-01. If the first spike hits a blocking 3.x bug, the fallback is SvelteKit 2.70.3 with the same architecture. The route design does not depend on anything that is new in 3.x.
 

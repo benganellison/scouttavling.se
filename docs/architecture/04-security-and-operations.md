@@ -357,7 +357,7 @@ Peak for a single competition: about 60 patrols, about 30 volunteer devices, 2â€
 
 ### 7.3 Options compared
 
-| | **A. Google Cloud Run** (europe-north1, Finland) + **Neon** (Frankfurt) | **B. Scaleway** Serverless Containers + Serverless SQL (fr-par / nl-ams) | **C. VPS fallback**: e.g. Hetzner Cloud (hel1/fsn1), Docker Compose + Traefik v3.7.15 + self-hosted Postgres |
+| | **A. Google Cloud Run** (europe-north1, Finland) + **Neon** (Frankfurt) | **B. Scaleway** Serverless Containers + Serverless SQL (fr-par / nl-ams) | **C. VPS fallback**: e.g. Hetzner Cloud (hel1/fsn1), Docker Compose + Traefik v3.7.16 + self-hosted Postgres |
 |---|---|---|---|
 | Scale to zero / min-instances | Yes / yes (`--min-instances`) | Yes (after 15 min idle) / yes (`min_scale`) | No (always on) / n/a |
 | SSE (H3) | 60-min request timeout max | 60-min request timeout max | Unlimited |
@@ -375,10 +375,10 @@ Peak for a single competition: about 60 patrols, about 30 volunteer devices, 2â€
 
 | Component | Version |
 |---|---|
-| Base image | `node:24.22.0-trixie-slim`, pinned by digest, non-root user |
+| Base image | `node:24.22.1-trixie-slim`, pinned by digest, non-root user |
 | App | SvelteKit 3.1.0 + adapter-node 6.0.0 (02 Â§1); openid-client 6.8.8, jose 6.2.12, Drizzle ORM 0.45.4, postgres.js 3.4.9, pg-boss 12.38.0 |
 | Database | **PostgreSQL 18.6** (managed or `postgres:18.6` image), migrations with **drizzle-kit 0.31.11** |
-| Reverse proxy (option C only) | **Traefik v3.7.15**, Let's Encrypt, HSTS, rate-limit middleware. Serverless platforms terminate TLS themselves. |
+| Reverse proxy (option C only) | **Traefik v3.7.16**, Let's Encrypt, HSTS, rate-limit middleware. Serverless platforms terminate TLS themselves. |
 | Backups (option C, and the offsite dump for A/B) | **restic 0.19.1** |
 | Uptime monitoring | **Uptime Kuma 2.5.6** or any EU hosted monitor |
 | Error tracking | **GlitchTip 6.1.8** (self-hosted on C, or GlitchTip's hosted service) or Sentry SaaS EU region, via `@sentry/sveltekit` 11.8.0 |
@@ -396,7 +396,7 @@ Changes from gokapp: no `ddl-auto=update` (drizzle-kit migrations); no `:latest`
 
 GitHub Actions in the new repo:
 
-1. `ci.yml` on PR: `actions/checkout@v7.0.1`, `actions/setup-node@v7.1.0` (Node 24.22.0, npm cache), `npm ci`, typecheck, lint, dependency-cruiser, Vitest (unit + property), integration tests (Testcontainers `postgres:18.6`), Playwright e2e against the built container, `gitleaks`, personnummer-pattern check, CodeQL for JS/TS (`github/codeql-action`, current bundle v2.27.2).
+1. `ci.yml` on PR: `actions/checkout@v7.0.1`, `actions/setup-node@v7.1.0` (Node 24.22.1, npm cache), `npm ci`, typecheck, lint, dependency-cruiser, Vitest (unit + property), integration tests (Testcontainers `postgres:18.6`), Playwright e2e against the built container, `gitleaks`, personnummer-pattern check, CodeQL for JS/TS (`github/codeql-action`, current bundle v2.27.2).
 2. `release.yml` on push to `main`: `docker/setup-buildx-action@v4.4.1`, `docker/metadata-action@v6.2.0`, `docker/build-push-action@v7.4.0` with a multi-stage Dockerfile (build, then `npm prune --omit=dev` into the slim runtime stage), `provenance: mode=max` and `sbom: true`. It pushes to `ghcr.io/<org>/scouttavling:<git-sha>` and `:<semver>` (immutable; never deploy `:latest`), scans with `aquasecurity/trivy-action@v0.36.0` (fail on HIGH/CRITICAL with a fix available), and attests with `actions/attest-build-provenance@v4.2.2`. All actions are pinned to commit SHAs with the version in a comment, and Renovate updates them. Cloud credentials use OIDC workload identity federation where the platform supports it, otherwise an Environment-scoped API key.
 3. **Deploy** (staging automatic, prod via `workflow_dispatch` behind a GitHub Environment with a required reviewer), always **by image digest**:
    1. Run migrations as a one-shot job with the same image (`drizzle-kit migrate` on `DATABASE_URL_DIRECT`). Migrations are expand/contract, so the previous revision and N-1 clients keep working.

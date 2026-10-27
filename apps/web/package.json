@@ -35,13 +35,13 @@
 		"@sveltejs/vite-plugin-svelte": "7.3.1",
 		"@types/node": "24.19.2",
 		"@types/qrcode": "1.5.6",
-		"barcode-detector": "3.2.2",
-		"dexie": "4.4.6",
+		"barcode-detector": "3.2.3",
+		"dexie": "4.4.7",
 		"drizzle-kit": "0.31.11",
 		"svelte": "5.57.2",
-		"svelte-check": "4.7.6",
+		"svelte-check": "4.7.7",
 		"typescript": "6.0.3",
-		"vite": "8.3.4"
+		"vite": "8.3.5"
 	},
 	"imports": {
 		"#lib": "./src/lib/index.js",
@@ -50,7 +50,7 @@
 	"dependencies": {
 		"@scouttavling/domain": "0.1.0",
 		"drizzle-orm": "0.45.4",
-		"jose": "6.2.12",
+		"jose": "6.2.13",
 		"mysql2": "3.24.6",
 		"openid-client": "6.8.8",
 		"postgres": "3.4.9",

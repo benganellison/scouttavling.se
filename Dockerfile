@@ -5,7 +5,7 @@
 # from the build), so build one image per public domain:
 #   docker build --build-arg ORIGIN=https://scouttavling.se -t scouttavling .
 
-ARG NODE_IMAGE=node:24.22.0-bookworm-slim
+ARG NODE_IMAGE=node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea
 
 # ---------- deps: install all workspaces from the lockfile ----------
 FROM ${NODE_IMAGE} AS deps
