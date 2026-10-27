@@ -21,6 +21,14 @@ fail() { printf '\n✗ %s\n  The previously running app was not touched.\n' "$*"
 
 [ -f "$ENV_FILE" ] || fail "missing $ENV_FILE"
 
+# Production guard rails (only when the production overlay is used). Values are read, never sourced.
+envval() { grep -E "^$1=" "$ENV_FILE" | tail -1 | cut -d= -f2- | sed -E 's/^["'"'"']|["'"'"']$//g'; }
+if [[ " ${FILES[*]} " == *" compose.prod.yaml "* ]]; then
+	pw="$(envval POSTGRES_PASSWORD)"
+	[ "${#pw}" -ge 20 ] && [ "$pw" != "scout" ] || fail "POSTGRES_PASSWORD in $ENV_FILE must be a long random password (≥ 20 characters), not the example value"
+	[ "$(envval DEV_LOGIN)" != "1" ] || fail "DEV_LOGIN=1 in $ENV_FILE: the developer login must never run in production"
+fi
+
 step "Pulling images"
 "${C[@]}" pull --ignore-buildable --quiet || fail "could not pull images (is APP_IMAGE a published release?)"
 

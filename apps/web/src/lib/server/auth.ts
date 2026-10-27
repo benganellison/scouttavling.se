@@ -7,12 +7,23 @@ import { db, schema } from './db';
  * opaque httpOnly cookie. ScoutID tokens never reach the client.
  * Cookie is `__Host-sid` on https; plain `sid` on http://localhost in dev.
  */
-const SESSION_DAYS = 14;
+const SESSION_DAYS = 7;
 
-/** Only same-origin paths: rejects "//host", "/\host" and absolute URLs (open-redirect guard). */
+/**
+ * Only same-origin paths (open-redirect guard). Browsers drop tabs/newlines and read "\" as "/",
+ * so "/\t/evil.example" or "/\\evil" would leave the site: any control character or backslash
+ * is refused, and the result must parse to a path on our own origin.
+ */
 export function safeNext(next: string | null | undefined, fallback = '/admin'): string {
-	if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) return fallback;
-	return next;
+	if (!next || !next.startsWith('/') || /[\u0000-\u001f\u007f\\]/.test(next)) return fallback;
+	try {
+		const base = 'https://scouttavling.invalid';
+		const u = new URL(next, base);
+		if (u.origin !== base) return fallback;
+		return u.pathname + u.search + u.hash;
+	} catch {
+		return fallback;
+	}
 }
 
 export function cookieName(url: URL) {

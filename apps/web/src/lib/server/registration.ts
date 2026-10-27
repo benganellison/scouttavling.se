@@ -16,6 +16,7 @@ import { registrationWindow, type ManageData, type RegistrationData } from '#lib
 import { todayIso } from '#lib/ui/admin/format.ts';
 import { trackColors } from '#lib/brand/colors.ts';
 import { classColorTemplate } from './assets.ts';
+import { dataKey } from './dataKey.ts';
 
 type CompRow = typeof schema.competition.$inferSelect;
 export type PatrolRow = typeof schema.patrol.$inferSelect;
@@ -36,10 +37,8 @@ export async function qrSvg(text: string): Promise<string> {
 
 // ---------- crypto ----------
 
-async function key(patrolCodeKey: string, usage: KeyUsage[]) {
-	const raw = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${patrolCodeKey}|${FOLLOW_KEY_CONTEXT}`));
-	return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, usage);
-}
+// Key from a server secret, not only from data in the same row (#lib/server/dataKey.ts).
+const key = (patrolCodeKey: string, usage: KeyUsage[]) => dataKey(patrolCodeKey, FOLLOW_KEY_CONTEXT, usage);
 
 export async function encryptToken(patrolCodeKey: string, token: string): Promise<string> {
 	const iv = crypto.getRandomValues(new Uint8Array(12));

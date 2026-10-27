@@ -4,7 +4,7 @@
  */
 import { refuseIfSuspended } from './suspended.ts';
 import { error } from '@sveltejs/kit';
-import { and, desc, eq, inArray, max, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm';
 import {
 	calculateJwkThumbprint, compactVerify, decodeProtectedHeader, exportJWK, exportPKCS8, generateKeyPair, importJWK, importPKCS8,
 	SignJWT, type JWK
@@ -35,7 +35,7 @@ interface SigningKey {
 }
 let keyPromise: Promise<SigningKey> | null = null;
 
-async function loadPem(): Promise<string> {
+export async function loadPem(): Promise<string> {
 	if (GRANT_SIGNING_KEY) return GRANT_SIGNING_KEY.replace(/\\n/g, '\n');
 	if (!dev) throw new Error('GRANT_SIGNING_KEY must be set outside development');
 	// Dev only: persist a generated key so restarts keep issued grants valid (gitignored).
@@ -122,6 +122,11 @@ export async function inviteInfo(secret: string) {
 	};
 }
 
+/** Open quarantined reports per device before further ones are refused (HQ has to review them first). */
+const MAX_OPEN_QUARANTINE = 200;
+/** Phones per invite (a station rarely has more than a handful of volunteers). */
+const MAX_DEVICES_PER_INVITE = 25;
+
 function grantExpiry(comp: CompRow): number {
 	// Event end (end of the last day, Swedish time) + 24 h; never less than 24 h from now.
 	const end = Date.parse(`${comp.endDate}T23:59:59+02:00`) + 24 * 3600_000;
@@ -158,6 +163,12 @@ export async function redeemInvite(input: { secret: unknown; displayName: unknow
 	const { invite, comp } = row;
 	if (comp.status === 'closed') error(410, 'Tävlingen är avslutad');
 	refuseIfSuspended(comp);
+	// A leaked code must not mint phones without end.
+	const [{ joined }] = await db
+		.select({ joined: sql<number>`count(*)::int` })
+		.from(schema.device)
+		.where(and(eq(schema.device.inviteId, invite.id), isNull(schema.device.revokedAt)));
+	if (joined >= MAX_DEVICES_PER_INVITE) error(429, 'Många telefoner har redan gått med med den här koden. Be tävlingsledningen om en ny kod.');
 
 	const stationIds = invite.stationId
 		? [invite.stationId]
@@ -235,7 +246,8 @@ export async function authenticateDevice(request: Request, slug: string): Promis
 		device: row.device,
 		claims,
 		expired: claims.exp * 1000 < Date.now(),
-		superseded: claims.gen < row.invite.generation,
+		// "Skapa ny kod" revokes the old invite: every phone that joined with it is superseded.
+		superseded: !!row.invite.revokedAt || claims.gen < row.invite.generation,
 		revoked: !!row.device.revokedAt
 	};
 }
@@ -480,7 +492,13 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 			}
 		},
 		async quarantine(body, reason) {
-			if (body.type === 'SetStatus' || !compItems.has(body.payload.itemId)) return; // kept in the command ledger only
+			if (body.type === 'SetStatus' || !compItems.has(body.payload.itemId)) return true; // kept in the command ledger only
+			// One phone cannot flood HQ's review list (a stolen or broken device).
+			const [{ open }] = await db
+				.select({ open: sql<number>`count(*)::int` })
+				.from(schema.scoreConflict)
+				.where(and(eq(schema.scoreConflict.competitionId, comp.id), eq(schema.scoreConflict.kind, 'quarantine'), eq(schema.scoreConflict.status, 'open'), sql`${schema.scoreConflict.incoming}->>'deviceId' = ${device.id}`));
+			if (open >= MAX_OPEN_QUARANTINE) return false;
 			await db.transaction(async (tx) => {
 				const [ex] = await tx
 					.select()
@@ -497,6 +515,7 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 				});
 				await recordChange(tx, comp.id, 'conflict', null);
 			});
+			return true;
 		}
 	};
 
@@ -504,7 +523,7 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 		jwsList,
 		{
 			deviceId: device.id, publicJwk: device.publicJwk, role: device.role, stations: device.stationIds.filter((s) => ctx.claims.stations.includes(s)),
-			revoked: ctx.revoked, superseded: ctx.superseded, grantExp: ctx.claims.exp, lastSeq: device.lastSeq
+			revoked: ctx.revoked, superseded: ctx.superseded, grantExp: ctx.claims.exp, grantIat: ctx.claims.iat, lastSeq: device.lastSeq
 		},
 		deps
 	);

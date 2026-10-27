@@ -43,10 +43,12 @@ export interface BatchContext {
 	/** Stations in the grant (intersected with the device row). */
 	stations: string[];
 	revoked: boolean;
-	/** grant.gen < invite.generation ("Skapa ny kod" was used). */
+	/** The device's invite was replaced ("Skapa ny kod") after it joined. */
 	superseded: boolean;
 	/** Grant expiry, unix seconds. */
 	grantExp: number;
+	/** Grant issue time, unix seconds (no command can be older than the device's join). */
+	grantIat: number;
 	lastSeq: number;
 	now?: Date;
 }
@@ -60,11 +62,13 @@ export interface BatchDeps {
 	lookup(body: CommandBody): Promise<{ stationId: string | null; patrolOk: boolean }>;
 	/** Applies an authorised command (writeScore / voidScore / status). */
 	apply(body: CommandBody): Promise<CommandResult>;
-	/** Stores a quarantined command for HQ review (never dropped, C4). */
-	quarantine(body: CommandBody, reason: string): Promise<void>;
+	/** Stores a quarantined command for HQ review (never dropped, C4). false = this device's quarantine is full. */
+	quarantine(body: CommandBody, reason: string): Promise<boolean>;
 }
 
 const MAX_AHEAD_MS = 10 * 60_000;
+/** Phones join a few minutes before use; a command dated well before the join was not made then. */
+const MAX_BEFORE_JOIN_MS = 10 * 60_000;
 
 export async function processBatch(
 	jwsList: string[],
@@ -112,30 +116,38 @@ export async function processBatch(
 		const detail: Record<string, unknown> = {};
 		if (body.deviceSeq > lastSeq + 1) detail.gap = body.deviceSeq - lastSeq - 1;
 
-		const quarantineReason = ctx.revoked
-			? 'Enheten är avstängd'
-			: ctx.superseded
-				? 'Inbjudan har ersatts av en ny kod'
-				: Date.parse(body.clientNow) > ctx.grantExp * 1000
-					? 'Behörigheten hade gått ut'
-					: Date.parse(body.clientNow) > now.getTime() + MAX_AHEAD_MS
-						? 'Telefonens klocka går fel'
-						: body.deviceSeq <= ctx.lastSeq
-							? 'Kommandot kom i fel ordning'
-							: null;
+		// 1. Scope first, for every command (also those that end up in quarantine): the patrol must
+		//    belong to the competition, the item to one of the device's stations, and only the
+		//    start & finish desk changes status, which in turn never records station scores.
+		const scope = await deps.lookup(body);
+		let result: CommandResult | null = null;
+		if (!scope.patrolOk) result = { commandId: body.commandId, result: 'rejected', reason: 'Okänd patrull' };
+		else if (body.type === 'SetStatus' && ctx.role !== 'startfinish')
+			result = { commandId: body.commandId, result: 'rejected', reason: 'Bara start & mål kan ändra status' };
+		else if (body.type !== 'SetStatus' && ctx.role === 'startfinish')
+			result = { commandId: body.commandId, result: 'rejected', reason: 'Start & mål rapporterar inte poäng' };
+		else if (body.type !== 'SetStatus' && (!scope.stationId || !ctx.stations.includes(scope.stationId)))
+			result = { commandId: body.commandId, result: 'rejected', reason: 'Kontrollen ingår inte i din behörighet' };
 
-		let result: CommandResult;
-		if (quarantineReason) {
-			await deps.quarantine(body, quarantineReason);
-			result = { commandId: body.commandId, result: 'quarantined', reason: quarantineReason };
-		} else {
-			const scope = await deps.lookup(body);
-			if (!scope.patrolOk) result = { commandId: body.commandId, result: 'rejected', reason: 'Okänd patrull' };
-			else if (body.type === 'SetStatus' && ctx.role !== 'startfinish')
-				result = { commandId: body.commandId, result: 'rejected', reason: 'Bara start & mål kan ändra status' };
-			else if (body.type !== 'SetStatus' && (!scope.stationId || !ctx.stations.includes(scope.stationId)))
-				result = { commandId: body.commandId, result: 'rejected', reason: 'Kontrollen ingår inte i din behörighet' };
-			else result = await deps.apply(body);
+		// 2. Authorised but doubtful: kept for HQ to decide (never dropped, C4).
+		if (!result) {
+			const at = Date.parse(body.clientNow);
+			const quarantineReason = ctx.revoked
+				? 'Enheten är avstängd'
+				: ctx.superseded
+					? 'Inbjudan har ersatts av en ny kod'
+					: at > ctx.grantExp * 1000 || now.getTime() > ctx.grantExp * 1000
+						? 'Behörigheten hade gått ut'
+						: at > now.getTime() + MAX_AHEAD_MS || at < ctx.grantIat * 1000 - MAX_BEFORE_JOIN_MS
+							? 'Telefonens klocka går fel'
+							: body.deviceSeq <= ctx.lastSeq
+								? 'Kommandot kom i fel ordning'
+								: null;
+			if (quarantineReason) {
+				result = (await deps.quarantine(body, quarantineReason))
+					? { commandId: body.commandId, result: 'quarantined', reason: quarantineReason }
+					: { commandId: body.commandId, result: 'rejected', reason: 'För många rapporter väntar på granskning. Kontakta tävlingsledningen.' };
+			} else result = await deps.apply(body);
 		}
 		await deps.finish(body, result, detail);
 		results.push(result);

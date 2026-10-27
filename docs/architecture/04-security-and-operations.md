@@ -550,3 +550,32 @@ Built in v0.1 (2026-10-26), decided with the product owner. Code: `apps/web/src/
 - **Personal data:** rows store **ids only**; names are looked up when the log is read ("Borttagen användare" when the account is gone). Removing a competition's personal data therefore never needs to touch the log. The free-text **reason must not contain patrol member names**; every reason field says so. This replaces the "pseudonymise the audit log" job in §6.4 for these rows.
 - Read: `/site-admin/audit` (filter by event type, site-admin only, competition/series address, date range); owners see their competition's (and series') entries read-only in Inställningar → Händelselogg.
 
+
+## 11. Security review 2026-10-27 (before v0.1.0)
+
+A read-only review of the whole branch against this document. Fixed in the same PR, each with a test:
+
+| Finding | Fix |
+|---|---|
+| "Skapa ny kod" did not cut off phones that had already joined; no way to disconnect one phone | A device whose invite is revoked is *superseded*: no snapshot (401 `grant_revoked`), its commands go to quarantine. HQ sees every phone per station (also those on an old code) and can "Koppla från" one. `field.e2e.ts` test 7. |
+| Quarantine skipped the station/patrol scope checks; start & finish could send station scores; quarantine could be flooded | Scope is checked first for every command (out of scope = rejected, never quarantined); start & finish never record scores; ≤ 200 open quarantined reports per device; `writeScore`/`voidScore` refuse a patrol or item of another competition. `verify.test.ts`. |
+| Expiry and clock judged only by the phone's own `clientNow` | Also by server time; commands dated before the phone joined are quarantined; `deviceSeq`/`baseVersion` bounded. |
+| Rate limits keyed on Traefik's address (one client could block everyone) | `ADDRESS_HEADER=X-Forwarded-For`, `XFF_DEPTH=1` in `compose.prod.yaml` (verified: Traefik replaces a forged header). New per-client limits on joining (60/10 min, ≤ 25 phones per invite) and patrol passes. |
+| Open redirect after login (`/login?next=/%09/evil.example`) | `safeNext` refuses control characters and backslashes and requires the same origin. `safeNext.test.ts`. |
+| Login without a real member number could merge accounts | Refused unless the member number is digits (`userFromClaims`). |
+| Developer login only behind a runtime variable | Off whenever `ORIGIN` is https; the server refuses to start with `DEV_LOGIN=1` and an https origin; `scripts/deploy.sh` refuses `DEV_LOGIN=1` and the example DB password. |
+| No Content-Security-Policy | `kit.csp` in `vite.config.ts` (nonces for SvelteKit's scripts, `wasm-unsafe-eval` for the QR scanner, `frame-ancestors 'none'`, `base-uri 'none'`, `object-src 'none'`). No violations on public, admin or field pages. |
+| Public live-results stream: unlimited connections, one computation per connection | ≤ 8 streams per client, 4000 in total; results computed once per change (single flight). |
+| Invite secrets and follow links encrypted with a key derived from the same database row | Key also derived from the server's signing key (`#lib/server/dataKey.ts`): a dump or backup alone yields no working link. Rotating `GRANT_SIGNING_KEY` means organisers create new codes. |
+| Drafts readable on `/r`, `/r/…/statistik` and the live stream | 404 unless the visitor is a member. |
+| CSV formula guard missed tab/CR | Also neutralised. |
+| Sessions 14 days | 7 days (absolute). |
+| Traefik had the raw Docker socket; actions pinned by tag; `ORIGIN` not tied to `DOMAIN` | Read-only socket proxy (containers only, no POST, internal network; verified); all actions pinned by commit SHA; `ORIGIN=https://${DOMAIN}` in the prod overlay. |
+
+**Known gaps, accepted for v0.1** (tracked for later):
+- No idle timeout and no ScoutID end-session on logout (§2.2, §2.5): needs a session column and the issuer's end-session endpoint.
+- The command hash chain (`prev`) is not verified (§3.3); idempotency, signatures and per-device order are.
+- The `hq` role is granted nowhere yet, but where it exists it may edit patrols, payments, results and messages: narrow it when hq invites are built.
+- Series rights follow any edition's owners/organisers even after removal from `series_member`.
+- Import and registration refuse personnummer-shaped values, not plain birth dates (§6.3).
+- Local backups in the `backups` volume are not encrypted (§7.10): encrypt the offsite copies (restic does).

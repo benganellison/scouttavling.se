@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
+import { recordChange } from '#lib/server/changes.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { loadStations } from '../print/prep.server.ts';
 import { activeInvites, decryptSecret, inviteUrl, publicOrigin, qrSvg, rotateInvite } from './inviteCrypto.server.ts';
@@ -38,11 +39,29 @@ export async function load(event) {
 			qr = await qrSvg(link);
 		}
 	}
+	// Every connected phone for this station, also those that joined with an older code: HQ must
+	// be able to see and disconnect them (a code that leaked, a lost phone).
+	const phones = await db
+		.select({
+			id: schema.device.id, name: schema.device.displayName, joinedAt: schema.device.createdAt, lastSeenAt: schema.device.lastSeenAt,
+			oldCode: schema.invite.revokedAt
+		})
+		.from(schema.device)
+		.innerJoin(schema.invite, eq(schema.invite.id, schema.device.inviteId))
+		.where(
+			and(
+				eq(schema.device.competitionId, comp.id),
+				isNull(schema.device.revokedAt),
+				target.id === SF ? and(isNull(schema.invite.stationId), eq(schema.invite.role, 'startfinish')) : eq(schema.invite.stationId, target.id)
+			)
+		)
+		.orderBy(desc(schema.device.createdAt));
 	return {
 		competition: { slug: comp.slug, name: comp.name },
 		rows,
 		startFinish: sf,
-		selected: { ...target, hasInvite: !!inv, link, qr }
+		selected: { ...target, hasInvite: !!inv, link, qr },
+		phones: phones.map((p) => ({ ...p, oldCode: !!p.oldCode }))
 	};
 }
 
@@ -66,5 +85,22 @@ export const actions = {
 		if (stationId === undefined) return fail(400, { message: 'Okänd kontroll' });
 		await db.transaction((tx) => rotateInvite(tx, comp, stationId));
 		return { rotated: true };
+	},
+
+	/** Disconnects one phone: no more patrol list or messages, and its reports go to HQ's review. */
+	disconnect: async (event) => {
+		const { comp } = await requireCompetition(event, event.params.slug, ['owner', 'organiser']);
+		const id = String((await event.request.formData()).get('device') ?? '');
+		if (!/^[0-9a-f-]{36}$/.test(id)) return fail(400, { message: 'Okänd telefon' });
+		const done = await db.transaction(async (tx) => {
+			const [d] = await tx
+				.update(schema.device)
+				.set({ revokedAt: new Date() })
+				.where(and(eq(schema.device.id, id), eq(schema.device.competitionId, comp.id), isNull(schema.device.revokedAt)))
+				.returning({ id: schema.device.id });
+			if (d) await recordChange(tx, comp.id, 'device', d.id);
+			return !!d;
+		});
+		return done ? { disconnected: true } : fail(404, { message: 'Telefonen finns inte eller är redan frånkopplad' });
 	}
 };

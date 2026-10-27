@@ -22,7 +22,7 @@ function cmd(over: Partial<CommandBody> = {}): CommandBody {
 	} as CommandBody;
 }
 
-function fakeDeps() {
+function fakeDeps({ patrolOk = true, quarantineCap = Infinity }: { patrolOk?: boolean; quarantineCap?: number } = {}) {
 	const store = new Map<string, CommandResult | null>();
 	const applied: CommandBody[] = [];
 	const quarantined: { body: CommandBody; reason: string }[] = [];
@@ -36,14 +36,16 @@ function fakeDeps() {
 			store.set(body.commandId, result);
 		},
 		async lookup() {
-			return { stationId: STATION, patrolOk: true };
+			return { stationId: STATION, patrolOk };
 		},
 		async apply(body) {
 			applied.push(body);
 			return { commandId: body.commandId, result: 'accepted', version: applied.length };
 		},
 		async quarantine(body, reason) {
+			if (quarantined.length >= quarantineCap) return false;
 			quarantined.push({ body, reason });
+			return true;
 		}
 	};
 	return { deps, applied, quarantined, store };
@@ -59,6 +61,7 @@ async function setup(over: Partial<BatchContext> = {}) {
 		revoked: false,
 		superseded: false,
 		grantExp: Math.floor(Date.now() / 1000) + 3600,
+		grantIat: Math.floor(Date.now() / 1000) - 3600,
 		lastSeq: 0,
 		...over
 	};
@@ -137,14 +140,52 @@ describe('processBatch', () => {
 		expect(f.applied).toHaveLength(0);
 	});
 
-	it('quarantines commands made after the grant expired, accepts those made before', async () => {
+	it('judges expiry by server time: once the grant has expired, HQ decides about everything', async () => {
 		const exp = Math.floor(Date.now() / 1000) - 60;
-		const { key, ctx } = await setup({ grantExp: exp, lastSeq: seq });
+		const { key, ctx } = await setup({ grantExp: exp, grantIat: exp - 7200, lastSeq: seq });
 		const f = fakeDeps();
+		// "Before" by the phone's clock is not enough: the phone sets clientNow itself.
 		const before = cmd({ clientNow: new Date((exp - 600) * 1000).toISOString() });
 		const after = cmd({ clientNow: new Date().toISOString() });
 		const out = await processBatch([await signCommand(key.privateKey, before), await signCommand(key.privateKey, after)], ctx, f.deps);
-		expect(out.results.map((r) => r.result)).toEqual(['accepted', 'quarantined']);
+		expect(out.results.map((r) => r.result)).toEqual(['quarantined', 'quarantined']);
+		expect(f.applied).toHaveLength(0);
+	});
+
+	it('quarantines a command dated before the phone joined (a backdated clock)', async () => {
+		const { key, ctx } = await setup({ lastSeq: seq });
+		const f = fakeDeps();
+		const old = cmd({ clientNow: new Date((ctx.grantIat - 3600) * 1000).toISOString() });
+		const out = await processBatch([await signCommand(key.privateKey, old)], ctx, f.deps);
+		expect(out.results[0]).toMatchObject({ result: 'quarantined', reason: 'Telefonens klocka går fel' });
+	});
+
+	it('checks scope before quarantine: a revoked device cannot park reports for other stations or patrols', async () => {
+		const { key, ctx } = await setup({ revoked: true, stations: [uuidv7()], lastSeq: seq });
+		const f = fakeDeps();
+		const out = await processBatch([await signCommand(key.privateKey, cmd())], ctx, f.deps);
+		expect(out.results[0]).toMatchObject({ result: 'rejected', reason: 'Kontrollen ingår inte i din behörighet' });
+		expect(f.quarantined).toHaveLength(0);
+		const g = fakeDeps({ patrolOk: false });
+		const { key: k2, ctx: c2 } = await setup({ superseded: true, lastSeq: seq });
+		const out2 = await processBatch([await signCommand(k2.privateKey, cmd())], c2, g.deps);
+		expect(out2.results[0]).toMatchObject({ result: 'rejected', reason: 'Okänd patrull' });
+		expect(g.quarantined).toHaveLength(0);
+	});
+
+	it('refuses station scores from the start & finish desk', async () => {
+		const { key, ctx } = await setup({ role: 'startfinish', lastSeq: seq });
+		const f = fakeDeps();
+		const out = await processBatch([await signCommand(key.privateKey, cmd())], ctx, f.deps);
+		expect(out.results[0]).toMatchObject({ result: 'rejected', reason: 'Start & mål rapporterar inte poäng' });
+		expect(f.applied).toHaveLength(0);
+	});
+
+	it('stops quarantining when the device has too many reports waiting for HQ', async () => {
+		const { key, ctx } = await setup({ superseded: true, lastSeq: seq });
+		const f = fakeDeps({ quarantineCap: 1 });
+		const out = await processBatch([await signCommand(key.privateKey, cmd()), await signCommand(key.privateKey, cmd())], ctx, f.deps);
+		expect(out.results.map((r) => r.result)).toEqual(['quarantined', 'rejected']);
 	});
 
 	it('rejects scores for stations outside the grant and status changes from volunteers', async () => {

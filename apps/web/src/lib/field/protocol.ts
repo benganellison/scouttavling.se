@@ -39,8 +39,9 @@ const SetStatus = v.object({
 const Envelope = v.object({
 	commandId: uuid,
 	deviceId: uuid,
-	deviceSeq: v.pipe(int, v.minValue(1)),
-	baseVersion: v.nullable(v.pipe(int, v.minValue(0))),
+	// Stored in an integer column: larger values would fail the whole device's sync.
+	deviceSeq: v.pipe(int, v.minValue(1), v.maxValue(2_147_483_647)),
+	baseVersion: v.nullable(v.pipe(int, v.minValue(0), v.maxValue(2_147_483_647))),
 	/** Server-estimated time when the volunteer acted (device clock + last known offset). */
 	clientNow: v.pipe(v.string(), v.isoTimestamp()),
 	/** base64url SHA-256 of the previous command JWS from this device (hash chain), null for the first. */

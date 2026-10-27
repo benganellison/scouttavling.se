@@ -35,3 +35,4 @@ export class RateLimiter {
 		for (const [k, list] of this.hits) if (!list.some((t) => t > from)) this.hits.delete(k);
 	}
 }
+

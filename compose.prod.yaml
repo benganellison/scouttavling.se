@@ -14,6 +14,8 @@ services:
     command:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
+      # Read-only, filtered Docker API (container list/inspect only) instead of the raw socket.
+      - --providers.docker.endpoint=tcp://socket-proxy:2375
       - --entrypoints.web.address=:80
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
@@ -26,9 +28,26 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    depends_on:
+      - socket-proxy
+    networks:
+      - default
+      - socket
+    volumes:
+      - letsencrypt:/letsencrypt
+
+  # The Docker socket is root on the host: only this proxy sees it, and it answers nothing but
+  # GET requests for containers (what Traefik needs to find the app). Not reachable from the app.
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:v0.5.0@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      POST: 0
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - letsencrypt:/letsencrypt
+    networks:
+      - socket
 
   app:
     # Production runs the released image; never build on the server.
@@ -36,6 +55,13 @@ services:
     ports: !reset []
     environment:
       DEV_LOGIN: ""
+      # Links, QR codes and shown addresses follow the domain (must match the ORIGIN baked into the image).
+      ORIGIN: https://${DOMAIN:?Set DOMAIN}
+      # Client address for rate limits: Traefik replaces any X-Forwarded-For a client sends with the
+      # real address (verified), so the last entry is the client. Without this every request
+      # appears to come from Traefik and one client could exhaust the limits for everyone.
+      ADDRESS_HEADER: X-Forwarded-For
+      XFF_DEPTH: "1"
     labels:
       - traefik.enable=true
       - traefik.http.routers.scouttavling.rule=Host(`${DOMAIN:?Set DOMAIN}`)
@@ -93,3 +119,8 @@ services:
 volumes:
   letsencrypt:
   backups:
+
+networks:
+  # Only Traefik and the socket proxy are on it.
+  socket:
+    internal: true

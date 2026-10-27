@@ -30,7 +30,6 @@ const sw = globalThis as unknown as SWScope;
 
 const BUILD = `st-build-${version}`;
 const PAGES = 'st-pages';
-const FONTS = 'st-fonts';
 const MEDIA = 'st-media';
 const SHELL = '/f/_shell';
 const devMode = immutable.length === 0; // nothing to precache in `vite dev`
@@ -55,6 +54,8 @@ sw.addEventListener('activate', (event) => {
 	event.waitUntil(
 		(async () => {
 			for (const key of await caches.keys()) if (key.startsWith('st-build-') && key !== BUILD) await caches.delete(key);
+			// Fonts are self-hosted now (in the build cache); drop the old Google Fonts cache.
+			await caches.delete('st-fonts');
 			await sw.clients.claim();
 		})()
 	);
@@ -88,20 +89,6 @@ sw.addEventListener('fetch', (event) => {
 	if (request.method !== 'GET' || devMode) return;
 	const url = new URL(request.url);
 
-	// Google Fonts: cache-first so the field UI keeps its typography offline.
-	if (url.origin === 'https://fonts.gstatic.com' || url.origin === 'https://fonts.googleapis.com') {
-		event.respondWith(
-			(async () => {
-				const cache = await caches.open(FONTS);
-				const hit = await cache.match(request);
-				if (hit) return hit;
-				const res = await fetch(request);
-				if (res.ok || res.type === 'opaque') void cache.put(request, res.clone());
-				return res;
-			})()
-		);
-		return;
-	}
 	if (url.origin !== sw.location.origin) return;
 	if (url.pathname.startsWith('/api/')) return; // never cache API responses
 

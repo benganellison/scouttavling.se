@@ -16,6 +16,9 @@
 	const isSF = $derived(sel.id === 'startfinish');
 	const joinedCount = $derived(data.rows.filter((r) => r.status === 'joined').length);
 
+	const fmt = (d: Date | string) =>
+		new Date(d).toLocaleString('sv-SE', { weekday: 'short', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+
 	async function copy() {
 		if (!sel.link) return;
 		try {
@@ -89,7 +92,7 @@
 				{:else}
 					<form method="POST" action="?s={sel.id}&/rotate" class="confirm" use:enhance={() => async ({ update }) => { await update(); confirmRotate = false; }}>
 						<input type="hidden" name="target" value={sel.id} />
-						<span>Den gamla QR-koden och länken slutar fungera. Utskrivna skyltar måste skrivas ut igen.</span>
+						<span>Den gamla QR-koden och länken slutar fungera, och telefoner som redan gått med kopplas från: de måste skanna den nya koden. Utskrivna skyltar måste skrivas ut igen. Vill du bara stänga ute en telefon? Koppla från den under Telefoner.</span>
 						<div class="row">
 							<button class="btn btn-accent btn-sm">Ja, skapa ny kod</button>
 							<button type="button" class="btn btn-onforest btn-sm" onclick={() => (confirmRotate = false)}>Avbryt</button>
@@ -107,10 +110,72 @@
 			{/if}
 			{#if form?.message}<p class="error-text" role="alert">{form.message}</p>{/if}
 		</section>
+
+		<section class="phones card" aria-labelledby="ph-h" data-testid="phones">
+			<h2 id="ph-h">Telefoner · {isSF ? 'Start & mål' : sel.code}</h2>
+			{#if data.phones.length === 0}
+				<p class="muted small">Ingen telefon har gått med ännu.</p>
+			{:else}
+				<p class="muted small">Koppla från en telefon som har kommit bort eller inte ska vara med. Den får inga fler patruller eller meddelanden, och det den skickar hamnar hos tävlingsledningen för granskning.</p>
+				<ul>
+					{#each data.phones as ph (ph.id)}
+						<li data-testid="phone">
+							<div class="who">
+								<strong>{ph.name}</strong>
+								<span class="muted small">
+									Med sedan {fmt(ph.joinedAt)}{#if ph.lastSeenAt} · senast hörd {fmt(ph.lastSeenAt)}{/if}
+								</span>
+								{#if ph.oldCode}<span class="pill pill-warn small">Gammal kod: får inga uppgifter längre</span>{/if}
+							</div>
+							<form method="POST" action="?s={sel.id}&/disconnect" use:enhance>
+								<input type="hidden" name="device" value={ph.id} />
+								<button class="btn btn-sm" aria-label="Koppla från {ph.name}">Koppla från</button>
+							</form>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
 	</div>
 </div>
 
 <style>
+	.phones {
+		flex: 1 1 320px;
+		display: grid;
+		gap: 10px;
+		align-content: start;
+	}
+	.phones h2 {
+		margin: 0;
+		font-size: 18px;
+	}
+	.phones ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 8px;
+	}
+	.phones li {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 12px;
+		padding: 10px 0;
+		border-top: 1px solid var(--line);
+	}
+	.phones li:first-child {
+		border-top: 0;
+	}
+	.phones .who {
+		display: grid;
+		gap: 2px;
+		min-width: 0;
+	}
+	.phones form {
+		margin: 0;
+	}
 	.tabs {
 		display: flex;
 		gap: 6px;

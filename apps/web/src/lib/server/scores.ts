@@ -122,6 +122,15 @@ export async function writeScore(w: WriteScore): Promise<WriteResult> {
 		const [item] = await tx.select().from(schema.scoreItem).where(eq(schema.scoreItem.id, w.itemId)).limit(1);
 		const [comp] = await tx.select().from(schema.competition).where(eq(schema.competition.id, w.competitionId)).limit(1);
 		if (!item || !comp) return { result: 'rejected', reason: 'Okänd kontroll' } as const;
+		// Every caller (phones, HQ, paper, conflict resolution) gets the same guarantee: the patrol and
+		// the item both belong to this competition, so no write can reach another competition's data.
+		const [owner] = await tx
+			.select({ station: schema.station.competitionId, patrol: schema.patrol.competitionId })
+			.from(schema.station)
+			.innerJoin(schema.patrol, eq(schema.patrol.id, w.patrolId))
+			.where(eq(schema.station.id, item.stationId))
+			.limit(1);
+		if (!owner || owner.station !== w.competitionId || owner.patrol !== w.competitionId) return { result: 'rejected', reason: 'Okänd kontroll' } as const;
 		let value: { points: number; stylePoints: number };
 		try {
 			value = evaluate(itemDef(item, comp), w.raw);
@@ -197,7 +206,7 @@ export async function voidScore(w: Omit<WriteScore, 'raw'>): Promise<WriteResult
 			await tx
 				.select()
 				.from(schema.score)
-				.where(and(eq(schema.score.patrolId, w.patrolId), eq(schema.score.itemId, w.itemId)))
+				.where(and(eq(schema.score.patrolId, w.patrolId), eq(schema.score.itemId, w.itemId), eq(schema.score.competitionId, w.competitionId)))
 				.for('update')
 				.limit(1)
 		)[0];

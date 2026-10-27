@@ -1,11 +1,14 @@
+import { error } from '@sveltejs/kit';
 import { eq, and } from 'drizzle-orm';
+import { passLimiter } from '#lib/server/limits.ts';
 import { refuseIfSuspended } from '#lib/server/suspended.ts';
 import { parsePatrolCode, verifyPatrolCode } from '@scouttavling/domain';
 import type { PageServerLoad } from './$types';
 import { db, schema } from '#lib/server/db/index.ts';
 
 /** Neutral landing for a patrol QR opened with a normal camera (C6): name only, no private data. */
-export const load: PageServerLoad = async ({ params, setHeaders }) => {
+export const load: PageServerLoad = async ({ params, setHeaders, getClientAddress }) => {
+	if (!passLimiter.hit(getClientAddress())) error(429, 'För många försök. Vänta en stund och försök igen.');
 	setHeaders({ 'x-robots-tag': 'noindex', 'referrer-policy': 'no-referrer' });
 	const code = parsePatrolCode(params.code);
 	if (!code) return { patrol: null };

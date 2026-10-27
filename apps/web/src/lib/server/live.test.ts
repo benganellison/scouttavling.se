@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('$app/env/private', () => ({ DATABASE_URL: 'postgres://unused' }));
 vi.mock('./db/index.ts', () => ({ db: {}, schema: {} }));
 
-const { computeResults, publicTracks, showStationResults, unseenAlarms } = await import('./live.ts');
+const { acquireStream, computeResults, publicTracks, showStationResults, STREAM_LIMITS, unseenAlarms } = await import('./live.ts');
 type Input = import('./live.ts').ResultsInput;
 
 /** Mirrors scripts/seed.ts for GökOpen 2027 (Upptäckare class and the first five RANGE stations). */
@@ -118,5 +118,21 @@ describe('unseenAlarms', () => {
 	});
 	it('stays quiet within 45 minutes', () => {
 		expect(unseenAlarms(patrols, new Map([['p1', new Date(now - 44 * 60_000)]]), now, 'hajk')).toEqual([]);
+	});
+});
+
+describe('public stream slots', () => {
+	it('limits open streams per client, and frees the slot exactly once on close', () => {
+		const held = Array.from({ length: STREAM_LIMITS.perClient }, () => acquireStream('1.2.3.4'));
+		expect(held.every(Boolean)).toBe(true);
+		expect(acquireStream('1.2.3.4')).toBeNull();
+		const other = acquireStream('5.6.7.8');
+		expect(other).not.toBeNull();
+		held[0]!();
+		held[0]!(); // a second release must not free a second slot
+		const again = acquireStream('1.2.3.4');
+		expect(again).not.toBeNull();
+		expect(acquireStream('1.2.3.4')).toBeNull();
+		for (const r of [...held.slice(1), again, other]) r!();
 	});
 });

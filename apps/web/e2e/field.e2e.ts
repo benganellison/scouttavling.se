@@ -188,3 +188,45 @@ test('6: start & mål desk advances a patrol to I mål', async ({ browser }) => 
 	await shot(p, 'desk');
 	await c.close();
 });
+
+test('7: HQ disconnects a phone, and a new code disconnects the phones that joined with the old one', async ({ browser }) => {
+	const [k6] = await sql`select s.id from station s join competition c on c.id = s.competition_id where c.slug = ${SLUG} and s.name = 'Första hjälpen'`;
+	const phone = async (name: string) => {
+		const c = await browser.newContext({ viewport: { width: 390, height: 844 } });
+		const p = await c.newPage();
+		await join(p, await createInvite('Första hjälpen'), name);
+		await expect(p.getByTestId('sync-pill')).toContainText('Synkad', { timeout: 15_000 });
+		return { c, p };
+	};
+	const cutOff = async (p: Page) => {
+		await p.reload();
+		await expect(p.getByText('Telefonen är inte längre kopplad till kontrollen. Skanna inbjudan igen.').first()).toBeVisible({ timeout: 15_000 });
+	};
+	const lisa = await phone('Lisa');
+	const hqCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+	const hq = await hqCtx.newPage();
+	await hq.goto('/login');
+	await hq.getByRole('button', { name: /Logga in som Bengt/ }).click();
+	await hq.waitForURL(/\/admin/);
+
+	// 1. One phone, from the Telefoner list.
+	await hq.goto(`/admin/${SLUG}/invites?s=${k6.id}`);
+	const row = hq.getByTestId('phone').filter({ hasText: 'Lisa' });
+	await expect(row).toBeVisible();
+	await shot(hq, 'phones');
+	await row.getByRole('button', { name: 'Koppla från Lisa' }).click();
+	await expect(hq.getByTestId('phone').filter({ hasText: 'Lisa' })).toHaveCount(0);
+	await cutOff(lisa.p);
+
+	// 2. "Skapa ny kod": every phone that joined with an older code is cut off.
+	const olle = await phone('Olle');
+	await hq.goto(`/admin/${SLUG}/invites?s=${k6.id}`);
+	await hq.getByRole('button', { name: /Skapa ny kod/ }).first().click();
+	const confirm = hq.getByRole('button', { name: 'Ja, skapa ny kod' });
+	if (await confirm.count()) await confirm.click();
+	await expect(hq.getByTestId('phone').filter({ hasText: 'Olle' })).toContainText('Gammal kod');
+	await cutOff(olle.p);
+
+	for (const x of [lisa, olle]) await x.c.close();
+	await hqCtx.close();
+});

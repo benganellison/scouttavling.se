@@ -4,7 +4,8 @@ import { getResults } from '#lib/server/live.ts';
 const cell = (v: string | number) => {
 	const s = String(v);
 	// Quote and neutralise spreadsheet formulas.
-	const safe = /^[=+\-@]/.test(s) ? `'${s}` : s;
+	// Spreadsheets run anything starting with = + - @ (and tab/CR, which they strip first) as a formula.
+	const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
 	return /[";\n]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
 };
 

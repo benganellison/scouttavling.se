@@ -2,6 +2,7 @@ import { and, desc, eq, isNull } from 'drizzle-orm';
 import QRCode from 'qrcode';
 import { db, schema } from '#lib/server/db/index.ts';
 import { randomToken, sha256 } from '#lib/server/auth.ts';
+import { dataKey } from '#lib/server/dataKey.ts';
 
 /**
  * Invite secrets (contract: /j/<secret>, 128-bit base64url, sha256 stored).
@@ -9,19 +10,16 @@ import { randomToken, sha256 } from '#lib/server/auth.ts';
  * The field agent only ever needs the hash. Organisers, however, must be able
  * to re-display the QR (invite panel, printed station signs) long after the
  * invite was created, so the secret is additionally stored encrypted in
- * `invite.secret_enc`: AES-256-GCM, random 96-bit IV, key = SHA-256 of
- * `${patrolCodeKey}|${KEY_CONTEXT}`. A database dump alone (without this
- * server constant) does not reveal working links; rotating a code revokes
- * the old row, so a leaked secret is cut off with one click.
+ * `invite.secret_enc`: AES-256-GCM, random 96-bit IV, key from a server secret
+ * that is not in the database (#lib/server/dataKey.ts). A database dump alone
+ * does not reveal working links; rotating a code revokes the old row and
+ * disconnects its phones, so a leaked secret is cut off with one click.
  */
 const KEY_CONTEXT = 'scouttavling.invite-secret.v1';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0] | typeof db;
 
-async function key(patrolCodeKey: string, usage: KeyUsage[]) {
-	const raw = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${patrolCodeKey}|${KEY_CONTEXT}`));
-	return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, usage);
-}
+const key = (patrolCodeKey: string, usage: KeyUsage[]) => dataKey(patrolCodeKey, KEY_CONTEXT, usage);
 
 export async function encryptSecret(patrolCodeKey: string, secret: string): Promise<string> {
 	const iv = crypto.getRandomValues(new Uint8Array(12));

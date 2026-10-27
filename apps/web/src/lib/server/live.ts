@@ -186,9 +186,46 @@ export async function getResults(comp: Pick<CompRow, 'id' | 'styleEnabled'>, max
 	const hit = resultsCache.get(comp.id);
 	const age = hit ? Date.now() - hit.at : Infinity;
 	if (hit && age < 60_000 && (hit.seq === seq || age < maxStaleMs)) return { seq: hit.seq, tracks: hit.data };
-	const data = computeResults(await loadResultsInput(comp));
-	resultsCache.set(comp.id, { seq, at: Date.now(), data });
-	return { seq, tracks: data };
+	// Single flight: many open result streams after one score share one computation.
+	const key = `${comp.id}:${seq}`;
+	let running = computing.get(key);
+	if (!running) {
+		running = (async () => {
+			try {
+				const data = computeResults(await loadResultsInput(comp));
+				resultsCache.set(comp.id, { seq, at: Date.now(), data });
+				return data;
+			} finally {
+				computing.delete(key);
+			}
+		})();
+		computing.set(key, running);
+	}
+	return { seq, tracks: await running };
+}
+const computing = new Map<string, Promise<TrackResults[]>>();
+
+/**
+ * Open public streams, per client address and in total. A stream costs a connection and work after
+ * every change, so one client cannot hold thousands open (the admin stream needs a login).
+ */
+const streams = { total: 0, byClient: new Map<string, number>() };
+export const STREAM_LIMITS = { perClient: 8, total: 4000 };
+/** Reserves a slot for a public stream; null when over a limit. Call the returned release on close. */
+export function acquireStream(client: string): (() => void) | null {
+	const mine = streams.byClient.get(client) ?? 0;
+	if (mine >= STREAM_LIMITS.perClient || streams.total >= STREAM_LIMITS.total) return null;
+	streams.byClient.set(client, mine + 1);
+	streams.total++;
+	let released = false;
+	return () => {
+		if (released) return;
+		released = true;
+		streams.total--;
+		const n = (streams.byClient.get(client) ?? 1) - 1;
+		if (n <= 0) streams.byClient.delete(client);
+		else streams.byClient.set(client, n);
+	};
 }
 
 export async function loadResultsInput(comp: Pick<CompRow, 'id' | 'styleEnabled'>): Promise<ResultsInput> {
@@ -610,7 +647,8 @@ export function sseResponse(
 	competitionId: string,
 	cursor: number,
 	onRows: (rows: ChangeRow[], send: (frame: string) => void) => void | Promise<void>,
-	onOpen?: (send: (frame: string) => void) => void
+	onOpen?: (send: (frame: string) => void) => void,
+	onClose?: () => void
 ): Response {
 	const enc = new TextEncoder();
 	let cleanup = () => {};
@@ -638,6 +676,7 @@ export function sseResponse(
 			cleanup = () => {
 				if (closed) return;
 				closed = true;
+				onClose?.();
 				clearInterval(beat);
 				clearTimeout(end);
 				unsubscribe();

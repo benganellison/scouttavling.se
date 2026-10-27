@@ -345,7 +345,7 @@ test('4 invites through the UI, then go live', async () => {
 	}
 	await shot(p, '12-invite-mal');
 	await p.getByRole('navigation', { name: 'Roll' }).getByRole('link', { name: 'Start & mål' }).click();
-	await expect(p.getByRole('heading', { name: 'Start & mål' })).toBeVisible();
+	await expect(p.getByRole('heading', { name: 'Start & mål', exact: true })).toBeVisible();
 	await p.getByRole('button', { name: 'Skapa inbjudan' }).click();
 	links.desk = await p.locator('#invlink').inputValue();
 	await shot(p, '13-invite-desk');

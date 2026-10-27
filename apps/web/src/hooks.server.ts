@@ -2,13 +2,17 @@ import type { Handle } from '@sveltejs/kit/hooks';
 import { readSession } from '#lib/server/auth.ts';
 import { closeDb } from '#lib/server/db/index.ts';
 import { hub } from '#lib/server/live.ts';
-import { GRANT_SIGNING_KEY } from '$app/env/private';
+import { DEV_LOGIN, GRANT_SIGNING_KEY, ORIGIN } from '$app/env/private';
 import { dev } from '$app/env';
 
 // Fail fast: without a stable signing key, volunteer devices cannot join and
 // every grant would break on restart. Generate one with `npm run gen:grant-key`.
 if (!dev && !GRANT_SIGNING_KEY) {
 	throw new Error('GRANT_SIGNING_KEY is not set. Generate one with `npm run gen:grant-key` and add it to the environment.');
+}
+// The developer login (fixed users, no ScoutID) must never be reachable on a real site.
+if (DEV_LOGIN === '1' && (ORIGIN ?? '').startsWith('https://')) {
+	throw new Error('DEV_LOGIN=1 with an https ORIGIN: refusing to start. The developer login is for local work only.');
 }
 
 // Graceful shutdown (docker stop, SIGTERM): adapter-node closes the HTTP server and then emits

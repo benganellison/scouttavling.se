@@ -22,9 +22,15 @@ interface Memberships {
 	groups?: Record<string, { name?: string; is_primary?: boolean }>;
 }
 
-/** Maps ScoutID claims to our user (keyed on scoutnet_member_no, never `sub`). */
+/**
+ * Maps ScoutID claims to our user (keyed on the Scoutnet member number, never `sub`), or null when the
+ * login carries no member number. Accounts are merged on it, so anything that is not a real number
+ * (an e-mail local part, an empty string) would let two different people share one account (04 §2.3).
+ */
 export function userFromClaims(claims: Record<string, unknown>) {
-	const memberNo = String(claims.scoutnet_member_no ?? String(claims.preferred_username ?? '').split('@')[0]);
+	const raw = claims.scoutnet_member_no ?? String(claims.preferred_username ?? '').split('@')[0];
+	const memberNo = String(raw ?? '').trim();
+	if (!/^\d{3,12}$/.test(memberNo)) return null;
 	const m = (claims.memberships ?? {}) as Memberships;
 	const groups = Object.entries(m.groups ?? {})
 		.sort(([, a], [, b]) => Number(!!b.is_primary) - Number(!!a.is_primary))

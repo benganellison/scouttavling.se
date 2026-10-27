@@ -1,15 +1,16 @@
 import { error } from '@sveltejs/kit';
-import { refuseIfSuspended } from '#lib/server/suspended.ts';
+import { refuseIfDraft, refuseIfSuspended } from '#lib/server/suspended.ts';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
 import { getResults, publicTracks, showStationResults } from '#lib/server/live.ts';
 import { loadBranding, loadTrackColors } from '#lib/server/assets.ts';
 
 /** Public, phone-first results. Only when publicResults; no personal data (patrol name + kår). */
-export async function load({ params, setHeaders }) {
+export async function load({ params, setHeaders, locals }) {
 	const [comp] = await db.select().from(schema.competition).where(eq(schema.competition.slug, params.slug)).limit(1);
 	if (!comp || !comp.publicResults) error(404, 'Resultaten är inte publicerade');
 	refuseIfSuspended(comp);
+	await refuseIfDraft(comp, locals.user?.id);
 	const res = await getResults(comp, 10_000);
 	setHeaders({ 'cache-control': 'public, max-age=5' });
 	const [branding, trackColors] = await Promise.all([loadBranding(comp), loadTrackColors(comp.id)]);

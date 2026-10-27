@@ -13,7 +13,9 @@ export async function GET({ url, cookies }) {
 	const claims = tokens.claims();
 	if (!claims) error(400, 'ScoutID skickade ingen identitet');
 	// Tokens are discarded here: only our own session cookie reaches the browser.
-	const user = await upsertUser(userFromClaims(claims as Record<string, unknown>));
+	const profile = userFromClaims(claims as Record<string, unknown>);
+	if (!profile) error(403, 'Inloggningen saknar medlemsnummer i Scoutnet. Logga in med ditt ScoutID-konto som är kopplat till ett medlemskap.');
+	const user = await upsertUser(profile);
 	await createSession(cookies, url, user.id);
 	redirect(303, next);
 }

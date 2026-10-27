@@ -1,8 +1,8 @@
 import { error } from '@sveltejs/kit';
-import { refuseIfSuspended } from '#lib/server/suspended.ts';
+import { refuseIfDraft, refuseIfSuspended } from '#lib/server/suspended.ts';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
-import { cursorFrom, frame, getResults, publicTracks, showStationResults, sseResponse } from '#lib/server/live.ts';
+import { acquireStream, cursorFrom, frame, getResults, publicTracks, showStationResults, sseResponse } from '#lib/server/live.ts';
 
 const PUBLIC_KINDS = new Set(['score', 'patrol', 'competition', 'station']);
 const COALESCE_MS = 10_000;
@@ -11,11 +11,15 @@ const COALESCE_MS = 10_000;
  * Public results stream. Not pushed per score: a coalescer emits the whole
  * (small) table at most every 10 s. No session needed, only publicResults.
  */
-export async function GET({ params, request, url }) {
+export async function GET({ params, request, url, locals, getClientAddress }) {
 	const [comp] = await db.select().from(schema.competition).where(eq(schema.competition.slug, params.slug)).limit(1);
 	if (!comp || !comp.publicResults) error(404, 'Resultaten är inte publicerade');
 	refuseIfSuspended(comp);
+	await refuseIfDraft(comp, locals.user?.id);
 	const cursor = await cursorFrom(request, url, comp.id);
+	// Limit open streams per client and in total (the page falls back to its own reconnect/poll).
+	const release = acquireStream(getClientAddress());
+	if (!release) return new Response('För många öppna anslutningar', { status: 429, headers: { 'retry-after': '30' } });
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let lastEmit = 0;
 	let pendingSeq = cursor;
@@ -35,5 +39,8 @@ export async function GET({ params, request, url }) {
 			send(frame('results', pendingSeq, { seq: res.seq, tracks: publicTracks(res.tracks, showStationResults(fresh)) }));
 		};
 		timer = setTimeout(emit, Math.max(0, lastEmit + COALESCE_MS - Date.now()));
+	}, undefined, () => {
+		if (timer) clearTimeout(timer);
+		release();
 	});
 }
