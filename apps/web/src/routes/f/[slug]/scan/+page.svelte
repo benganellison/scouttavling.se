@@ -54,8 +54,9 @@
 	const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'];
 </script>
 
+<svelte:window onkeydown={(e) => found && e.key === 'Escape' && (found = null)} />
 <div class="screen">
-	<header>
+	<header inert={!!found}>
 		<h1 class="sr-only">Välj patrull</h1>
 		<a class="round" href={base} aria-label="Stäng"><Icon name="close" /></a>
 		<div class="seg" role="tablist" aria-label="Sätt att välja patrull">
@@ -66,13 +67,13 @@
 	</header>
 
 	{#if mode === 'cam'}
-		<div class="cam-area">
+		<div class="cam-area" inert={!!found}>
 			<CameraView {onCode} active={mode === 'cam' && !found} />
 			{#if scanError}<p class="scan-error" role="alert">{scanError}</p>{/if}
 			<button type="button" class="to-pad" onclick={() => (mode = 'pad')}>Skriv numret i stället</button>
 		</div>
 	{:else}
-		<div class="pad-area">
+		<div class="pad-area" inert={!!found}>
 			<div class="display">
 				<span class="lbl">Patrullnummer</span>
 				<span class="typed" data-testid="typed">{typed}<span class="caret">_</span></span>
@@ -102,7 +103,7 @@
 
 	{#if found}
 		<div class="scrim" aria-hidden="true" onclick={() => (found = null)}></div>
-		<section class="sheet" aria-live="polite" aria-labelledby="found-name">
+		<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="found-name">
 			<span class="grab" aria-hidden="true"></span>
 			<div class="who">
 				<span class="bignr">{found.number}</span>
@@ -123,9 +124,10 @@
 					<span><strong>Redan rapporterad här</strong> {hhmm(result.at)}{result.by ? ` av ${result.by}` : ''} — {checkin ? 'incheckad' : styleOn ? `${result.points} + ${result.style} p` : `${result.total} p`}. Vill du ändra?</span>
 				</div>
 			{/if}
-			<button type="button" class="btn-go" onclick={() => goto(`${base}/score/${found!.number}`)}>{result ? 'Ändra poäng' : 'Ja, sätt poäng'}</button>
+			<!-- svelte-ignore a11y_autofocus -->
+			<button type="button" class="btn-go" autofocus onclick={() => goto(`${base}/score/${found!.number}`)}>{result ? 'Ändra poäng' : 'Ja, sätt poäng'}</button>
 			<button type="button" class="btn-wrong" onclick={() => ((found = null), (typed = ''))}>Fel patrull</button>
-		</section>
+		</div>
 	{/if}
 </div>
 
@@ -214,6 +216,8 @@
 		flex-direction: column;
 		padding: 0 16px 16px;
 		gap: 10px;
+		/* Landscape or large system text: scroll rather than cut off the bottom keys. */
+		overflow-y: auto;
 	}
 	.display {
 		display: flex;
@@ -296,7 +300,8 @@
 		flex: none;
 	}
 	.key {
-		height: 76px;
+		/* Big by default; smaller (never under 48px) when the screen is short. */
+		height: clamp(48px, 11dvh, 76px);
 		border-radius: 16px;
 		border: 0;
 		background: #1f252c;

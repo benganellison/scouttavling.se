@@ -68,7 +68,7 @@
 		width: 56px;
 		height: 32px;
 		border-radius: 999px;
-		background: var(--line-strong);
+		background: var(--line-input);
 		position: relative;
 		cursor: pointer;
 		margin: 0;

@@ -127,7 +127,7 @@
 				<span class="muted">
 					{#if data.locked}{data.locked} patruller du flyttat manuellt är låsta och behåller sin kontroll.{:else}Patruller som du låser behåller alltid sin kontroll.{/if}
 				</span>
-				{#if form?.message}<span class="error-text" role="alert">{form.message}</span>{/if}
+				{#if form?.message}<span class="error-text" role="alert" id="err-message">{form.message}</span>{/if}
 			</div>
 			<div class="row">
 				<button type="button" class="btn" onclick={() => (seed = (seed * 7 + 13) % 100000)}>Slumpa om</button>

@@ -33,7 +33,8 @@
 		{:else}
 			<form method="POST" action="?/delete" class="row">
 				<button class="btn btn-danger">Ja, ta bort {data.patrol.name}</button>
-				<button type="button" class="btn btn-ghost" onclick={() => (confirmOpen = false)}>Avbryt</button>
+				<!-- svelte-ignore a11y_autofocus -->
+				<button type="button" class="btn btn-ghost" autofocus onclick={() => (confirmOpen = false)}>Avbryt</button>
 			</form>
 		{/if}
 	</section>

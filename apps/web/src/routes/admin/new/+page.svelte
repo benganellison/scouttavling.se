@@ -139,7 +139,14 @@
 				return async ({ update, result }) => {
 					await update({ reset: false });
 					submitting = false;
-					if (result.type === 'failure') document.querySelector('[aria-invalid="true"], .form-error')?.scrollIntoView({ block: 'center' });
+					// Focus (not just scroll to) the first problem: keyboard and screen-reader users land on the
+					// field, and its linked error text is read out with it.
+					if (result.type === 'failure') {
+						const el = document.querySelector<HTMLElement>('[aria-invalid="true"], .form-error');
+						el?.scrollIntoView({ block: 'center' });
+						if (el && !el.matches('input, select, textarea, button')) el.tabIndex = -1;
+						el?.focus({ preventScroll: true });
+					}
 				};
 			}}
 		>
@@ -183,7 +190,7 @@
 							aria-invalid={errors.seriesName ? 'true' : undefined}
 							aria-describedby="series-help"
 						/>
-						{#if errors.seriesName}<span class="error-text">{errors.seriesName}</span>{/if}
+						{#if errors.seriesName}<span class="error-text" id="err-seriesName">{errors.seriesName}</span>{/if}
 						<span id="series-help" class="help">
 							Seriens sida blir <strong class="url">{page.data.siteHost}/{seriesSlug || '…'}</strong>
 							{#if !editSeriesSlug}<button type="button" class="linkish" onclick={() => { editSeriesSlug = true; seriesSlugTyped = seriesSlug; }}>Ändra adress</button>{/if}
@@ -193,10 +200,10 @@
 					{#if editSeriesSlug}
 						<div class="field">
 							<label for="seriesSlug">Seriens adress</label>
-							<div class="prefixed"><span aria-hidden="true">{page.data.siteHost}/</span><input id="seriesSlug" name="seriesSlug" bind:value={seriesSlugTyped} aria-invalid={errors.seriesSlug ? 'true' : undefined} /></div>
+							<div class="prefixed"><span aria-hidden="true">{page.data.siteHost}/</span><input id="seriesSlug" name="seriesSlug" bind:value={seriesSlugTyped} aria-invalid={errors.seriesSlug ? 'true' : undefined} aria-describedby={errors.seriesSlug ? 'err-seriesSlug' : undefined} /></div>
 						</div>
 					{/if}
-					{#if errors.seriesSlug}<span class="error-text">{errors.seriesSlug}</span>{/if}
+					{#if errors.seriesSlug}<span class="error-text" id="err-seriesSlug">{errors.seriesSlug}</span>{/if}
 				{:else if seriesMode === 'existing'}
 					<fieldset class="fs">
 						<legend class="label">Vilken serie?</legend>
@@ -210,7 +217,7 @@
 							{/each}
 						</div>
 					</fieldset>
-					{#if errors.seriesId}<span class="error-text">{errors.seriesId}</span>{/if}
+					{#if errors.seriesId}<span class="error-text" id="err-seriesId">{errors.seriesId}</span>{/if}
 					{#if picked}
 						<div class="summary" data-testid="series-summary" aria-live="polite">
 							<span class="ik">Sammanfattning</span>
@@ -241,7 +248,7 @@
 				<div class="field">
 					<label for="name">Namn</label>
 					<input id="name" name="name" bind:value={name} autocomplete="off" placeholder="t.ex. GökOpen 2027" aria-invalid={errors.name ? 'true' : undefined} aria-describedby="name-help" class="big" />
-					{#if errors.name}<span class="error-text">{errors.name}</span>{/if}
+					{#if errors.name}<span class="error-text" id="err-name">{errors.name}</span>{/if}
 					<span id="name-help" class="help">
 						Tävlingssidan blir <strong class="url">{page.data.siteHost}/{slug || '…'}</strong>
 						{#if !editSlug}<button type="button" class="linkish" onclick={() => { editSlug = true; slugTyped = slug; }}>Ändra adress</button>{/if}
@@ -250,10 +257,10 @@
 				{#if editSlug}
 					<div class="field">
 						<label for="slug">Adress</label>
-						<div class="prefixed"><span aria-hidden="true">{page.data.siteHost}/</span><input id="slug" name="slug" bind:value={slugTyped} aria-invalid={errors.slug ? 'true' : undefined} /></div>
+						<div class="prefixed"><span aria-hidden="true">{page.data.siteHost}/</span><input id="slug" name="slug" bind:value={slugTyped} aria-invalid={errors.slug ? 'true' : undefined} aria-describedby={errors.slug ? 'err-slug' : undefined} /></div>
 					</div>
 				{/if}
-				{#if errors.slug}<span class="error-text">{errors.slug}</span>{/if}
+				{#if errors.slug}<span class="error-text" id="err-slug">{errors.slug}</span>{/if}
 
 				<fieldset class="fs">
 					<legend class="label">Hur länge pågår tävlingen?</legend>
@@ -275,21 +282,21 @@
 					<div class="grid2">
 						<div class="field">
 							<label for="date">Datum</label>
-							<input id="date" name="date" type="date" bind:value={date} aria-invalid={errors.date ? 'true' : undefined} />
-							{#if errors.date}<span class="error-text">{errors.date}</span>{/if}
+							<input id="date" name="date" type="date" bind:value={date} aria-invalid={errors.date ? 'true' : undefined} aria-describedby={errors.date ? 'err-date' : undefined} />
+							{#if errors.date}<span class="error-text" id="err-date">{errors.date}</span>{/if}
 						</div>
 					</div>
 				{:else}
 					<div class="grid2">
 						<div class="field">
 							<label for="startDate">Första dagen</label>
-							<input id="startDate" name="startDate" type="date" bind:value={startDate} aria-invalid={errors.startDate ? 'true' : undefined} />
-							{#if errors.startDate}<span class="error-text">{errors.startDate}</span>{/if}
+							<input id="startDate" name="startDate" type="date" bind:value={startDate} aria-invalid={errors.startDate ? 'true' : undefined} aria-describedby={errors.startDate ? 'err-startDate' : undefined} />
+							{#if errors.startDate}<span class="error-text" id="err-startDate">{errors.startDate}</span>{/if}
 						</div>
 						<div class="field">
 							<label for="endDate">Sista dagen</label>
-							<input id="endDate" name="endDate" type="date" min={startDate || undefined} bind:value={endDate} aria-invalid={errors.endDate ? 'true' : undefined} />
-							{#if errors.endDate}<span class="error-text">{errors.endDate}</span>{/if}
+							<input id="endDate" name="endDate" type="date" min={startDate || undefined} bind:value={endDate} aria-invalid={errors.endDate ? 'true' : undefined} aria-describedby={errors.endDate ? 'err-endDate' : undefined} />
+							{#if errors.endDate}<span class="error-text" id="err-endDate">{errors.endDate}</span>{/if}
 						</div>
 					</div>
 					{#if days.length}
@@ -324,7 +331,7 @@
 				<div class="field">
 					<label for="hqPhone">Telefon till tävlingsledningen under dagen</label>
 					<input id="hqPhone" name="hqPhone" type="tel" bind:value={hqPhone} placeholder="070-123 45 67" aria-describedby="hq-help" aria-invalid={errors.hqPhone ? 'true' : undefined} />
-					{#if errors.hqPhone}<span class="error-text">{errors.hqPhone}</span>{/if}
+					{#if errors.hqPhone}<span class="error-text" id="err-hqPhone">{errors.hqPhone}</span>{/if}
 					<span id="hq-help" class="help">Visas för funktionärer och ledare som ”Ring HQ”.</span>
 				</div>
 				<div class="field">
@@ -337,7 +344,7 @@
 					{:else}
 						<p class="muted">Ditt konto är inte kopplat till någon kår i Scoutnet, så du kan inte välja arrangör.</p>
 					{/if}
-					{#if errors.owner}<span class="error-text">{errors.owner}</span>{/if}
+					{#if errors.owner}<span class="error-text" id="err-owner">{errors.owner}</span>{/if}
 				</div>
 			</section>
 
@@ -367,7 +374,7 @@
 					</div>
 				{/each}
 				<div><button type="button" class="btn dashed" onclick={() => (customTracks = [...customTracks, ''])}>+ Egen klass</button></div>
-				{#if errors.tracks}<span class="error-text">{errors.tracks}</span>{/if}
+				{#if errors.tracks}<span class="error-text" id="err-tracks">{errors.tracks}</span>{/if}
 			</section>
 
 			<section id="bana" class="card sec" aria-labelledby="h-bana">
@@ -377,11 +384,11 @@
 					<label for="stations" class="label lg">Antal kontroller</label>
 					<div class="counter">
 						<button type="button" aria-label="Färre kontroller" onclick={() => (stations = Math.max(0, stations - 1))}>−</button>
-						<input id="stations" name="stations" type="number" min="0" max="60" bind:value={stations} aria-invalid={errors.stations ? 'true' : undefined} />
+						<input id="stations" name="stations" type="number" min="0" max="60" bind:value={stations} aria-invalid={errors.stations ? 'true' : undefined} aria-describedby={errors.stations ? 'err-stations' : undefined} />
 						<button type="button" aria-label="Fler kontroller" onclick={() => (stations = Math.min(60, stations + 1))}>+</button>
 					</div>
 				</div>
-				{#if errors.stations}<span class="error-text">{errors.stations}</span>{/if}
+				{#if errors.stations}<span class="error-text" id="err-stations">{errors.stations}</span>{/if}
 				<div class="grid2">
 					<div class="info strong">
 						<span class="ik">Standard för alla kontroller</span>
@@ -574,7 +581,7 @@
 		font-weight: 800;
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		color: var(--ok);
+		color: var(--ink-2); /* green text on white is only 3.1:1 */
 		margin-bottom: -10px;
 	}
 	.sec h2 {

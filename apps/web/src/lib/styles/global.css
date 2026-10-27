@@ -15,6 +15,8 @@
 	--surface: #ffffff;
 	--line: #dde2e8;
 	--line-strong: #aab3be;
+	/* Borders that identify a control (inputs, switch track): at least 3:1 against white (WCAG 1.4.11). */
+	--line-input: #7d8794;
 	--tint: #edf0f4;
 
 	/* Scoutblå and interaction states (hover = slightly darker shade). */
@@ -78,6 +80,7 @@
 	--ink-3: #2b323b;
 	--line: #7d8794;
 	--line-strong: #0d1117;
+	--line-input: #0d1117;
 	--ground: #ffffff;
 	--tint: #e3e8ee;
 }
@@ -139,7 +142,7 @@ input:not([type]),
 select,
 textarea {
 	min-height: var(--tap);
-	border: 1.5px solid var(--line-strong);
+	border: 1.5px solid var(--line-input);
 	border-radius: var(--r-sm);
 	padding: 0 12px;
 	background: var(--surface);
@@ -241,6 +244,22 @@ textarea {
 	font-weight: 700;
 	font-size: 14px;
 }
+/* "Hoppa till innehållet": first in the tab order, visible only when focused. */
+.skip-link {
+	position: absolute;
+	left: 12px;
+	top: -100px;
+	z-index: 100;
+	background: var(--surface);
+	color: var(--brand);
+	font-weight: 800;
+	padding: 12px 18px;
+	border-radius: var(--r-md);
+	box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+}
+.skip-link:focus {
+	top: 12px;
+}
 .sr-only {
 	position: absolute;
 	width: 1px;
@@ -271,4 +290,7 @@ textarea {
 	font-family: var(--font-body);
 	font-size: 1.15rem;
 	line-height: 1.55;
+}
+#innehall:focus {
+	outline: none;
 }

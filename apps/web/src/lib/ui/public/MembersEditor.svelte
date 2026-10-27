@@ -22,13 +22,13 @@
 			<div class="names">
 				<div class="field">
 					<label for="m-first-{i}" class="sr-only">Förnamn scout {i + 1}</label>
-					<input id="m-first-{i}" name="firstName" placeholder="Förnamn" autocomplete="off" bind:value={m.firstName} aria-invalid={errors[`member_${i}_firstName`] ? 'true' : undefined} />
+					<input id="m-first-{i}" name="firstName" placeholder="Förnamn" autocomplete="off" bind:value={m.firstName} aria-invalid={errors[`member_${i}_firstName`] ? 'true' : undefined} aria-describedby={err ? `m-err-${i}` : undefined} />
 				</div>
 				<div class="field">
 					<label for="m-last-{i}" class="sr-only">Efternamn scout {i + 1}</label>
-					<input id="m-last-{i}" name="lastName" placeholder="Efternamn" autocomplete="off" bind:value={m.lastName} aria-invalid={errors[`member_${i}_lastName`] ? 'true' : undefined} />
+					<input id="m-last-{i}" name="lastName" placeholder="Efternamn" autocomplete="off" bind:value={m.lastName} aria-invalid={errors[`member_${i}_lastName`] ? 'true' : undefined} aria-describedby={err ? `m-err-${i}` : undefined} />
 				</div>
-				{#if err}<span class="error-text">{err}</span>{/if}
+				{#if err}<span class="error-text" id="m-err-{i}">{err}</span>{/if}
 			</div>
 			<button type="button" class="btn btn-ghost rm" onclick={() => remove(i)} aria-label="Ta bort scout {i + 1}{m.firstName ? ` (${m.firstName})` : ''}">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>

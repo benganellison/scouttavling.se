@@ -48,15 +48,15 @@
 		
 		<div class="field">
 			<label for="name">Namn</label>
-			<input id="name" name="name" value={c.name} aria-invalid={eB.name ? 'true' : undefined} />
-			{#if eB.name}<span class="error-text">{eB.name}</span>{/if}
+			<input id="name" name="name" value={c.name} aria-invalid={eB.name ? 'true' : undefined} aria-describedby={eB.name ? 'err-name' : undefined} />
+			{#if eB.name}<span class="error-text" id="err-name">{eB.name}</span>{/if}
 		</div>
 		<div class="grid2">
 			{#if !c.multiDay}
 				<div class="field">
 					<label for="date">Datum</label>
-					<input id="date" name="date" type="date" value={c.startDate} aria-invalid={eB.date ? 'true' : undefined} />
-					{#if eB.date}<span class="error-text">{eB.date}</span>{/if}
+					<input id="date" name="date" type="date" value={c.startDate} aria-invalid={eB.date ? 'true' : undefined} aria-describedby={eB.date ? 'err-date' : undefined} />
+					{#if eB.date}<span class="error-text" id="err-date">{eB.date}</span>{/if}
 				</div>
 			{/if}
 			<div class="field">
@@ -65,15 +65,15 @@
 			</div>
 			<div class="field">
 				<label for="hqPhone">Telefon till tävlingsledningen</label>
-				<input id="hqPhone" name="hqPhone" type="tel" value={c.hqPhone ?? ''} aria-invalid={eB.hqPhone ? 'true' : undefined} />
-				{#if eB.hqPhone}<span class="error-text">{eB.hqPhone}</span>{/if}
+				<input id="hqPhone" name="hqPhone" type="tel" value={c.hqPhone ?? ''} aria-invalid={eB.hqPhone ? 'true' : undefined} aria-describedby={eB.hqPhone ? 'err-hqPhone' : undefined} />
+				{#if eB.hqPhone}<span class="error-text" id="err-hqPhone">{eB.hqPhone}</span>{/if}
 			</div>
 			<div class="field">
 				<label for="owner">Arrangör</label>
-				<select id="owner" name="owner" value={c.ownerGroupNo ?? ''} aria-invalid={eB.owner ? 'true' : undefined}>
+				<select id="owner" name="owner" value={c.ownerGroupNo ?? ''} aria-invalid={eB.owner ? 'true' : undefined} aria-describedby={eB.owner ? 'err-owner' : undefined}>
 					{#each ownerOptions as g (g.groupNo)}<option value={g.groupNo}>{g.name}</option>{/each}
 				</select>
-				{#if eB.owner}<span class="error-text">{eB.owner}</span>{/if}
+				{#if eB.owner}<span class="error-text" id="err-owner">{eB.owner}</span>{/if}
 			</div>
 		</div>
 		<div class="toggles">
@@ -106,34 +106,34 @@
 		<div class="grid2">
 			<div class="field">
 				<label for="registrationOpensOn">Anmälan öppnar</label>
-				<input id="registrationOpensOn" name="registrationOpensOn" type="date" value={c.registrationOpensOn ?? ''} aria-invalid={eR.registrationOpensOn ? 'true' : undefined} />
-				{#if eR.registrationOpensOn}<span class="error-text">{eR.registrationOpensOn}</span>{:else}<span class="muted small">Tomt = direkt</span>{/if}
+				<input id="registrationOpensOn" name="registrationOpensOn" type="date" value={c.registrationOpensOn ?? ''} aria-invalid={eR.registrationOpensOn ? 'true' : undefined} aria-describedby={eR.registrationOpensOn ? 'err-registrationOpensOn' : undefined} />
+				{#if eR.registrationOpensOn}<span class="error-text" id="err-registrationOpensOn">{eR.registrationOpensOn}</span>{:else}<span class="muted small">Tomt = direkt</span>{/if}
 			</div>
 			<div class="field">
 				<label for="registrationClosesOn">Sista anmälningsdag</label>
-				<input id="registrationClosesOn" name="registrationClosesOn" type="date" value={c.registrationClosesOn ?? ''} aria-invalid={eR.registrationClosesOn ? 'true' : undefined} />
-				{#if eR.registrationClosesOn}<span class="error-text">{eR.registrationClosesOn}</span>{:else}<span class="muted small">Tomt = till och med tävlingsdagen</span>{/if}
+				<input id="registrationClosesOn" name="registrationClosesOn" type="date" value={c.registrationClosesOn ?? ''} aria-invalid={eR.registrationClosesOn ? 'true' : undefined} aria-describedby={eR.registrationClosesOn ? 'err-registrationClosesOn' : undefined} />
+				{#if eR.registrationClosesOn}<span class="error-text" id="err-registrationClosesOn">{eR.registrationClosesOn}</span>{:else}<span class="muted small">Tomt = till och med tävlingsdagen</span>{/if}
 			</div>
 			<div class="field">
 				<label for="maxPatrols">Max antal patruller</label>
-				<input id="maxPatrols" name="maxPatrols" inputmode="numeric" value={c.maxPatrols ?? ''} placeholder="Obegränsat" aria-invalid={eR.maxPatrols ? 'true' : undefined} />
-				{#if eR.maxPatrols}<span class="error-text">{eR.maxPatrols}</span>{/if}
+				<input id="maxPatrols" name="maxPatrols" inputmode="numeric" value={c.maxPatrols ?? ''} placeholder="Obegränsat" aria-invalid={eR.maxPatrols ? 'true' : undefined} aria-describedby={eR.maxPatrols ? 'err-maxPatrols' : undefined} />
+				{#if eR.maxPatrols}<span class="error-text" id="err-maxPatrols">{eR.maxPatrols}</span>{/if}
 			</div>
 			<div class="field">
 				<label for="feePerPatrol">Avgift per patrull (kr)</label>
 				<input id="feePerPatrol" name="feePerPatrol" inputmode="numeric" value={c.feePerPatrol ?? ''} placeholder="Ingen avgift" aria-invalid={eR.feePerPatrol ? 'true' : undefined} aria-describedby="feePerPatrol-help" />
-				{#if eR.feePerPatrol}<span class="error-text">{eR.feePerPatrol}</span>{:else}<span class="muted small" id="feePerPatrol-help">Bocka i "Betald" på Patruller när pengarna har kommit in.</span>{/if}
+				{#if eR.feePerPatrol}<span class="error-text" id="err-feePerPatrol">{eR.feePerPatrol}</span>{:else}<span class="muted small" id="feePerPatrol-help">Bocka i "Betald" på Patruller när pengarna har kommit in.</span>{/if}
 			</div>
 		</div>
 		<div class="field">
 			<label for="infoText">Information på tävlingssidan</label>
-			<textarea id="infoText" name="infoText" rows="5" maxlength="4000" placeholder="Samlingstid, vad patrullerna ska ta med, startavgift …" aria-invalid={eR.infoText ? 'true' : undefined}>{c.infoText ?? ''}</textarea>
-			{#if eR.infoText}<span class="error-text">{eR.infoText}</span>{/if}
+			<textarea id="infoText" name="infoText" rows="5" maxlength="4000" placeholder="Samlingstid, vad patrullerna ska ta med, startavgift …" aria-invalid={eR.infoText ? 'true' : undefined} aria-describedby={eR.infoText ? 'err-infoText' : undefined}>{c.infoText ?? ''}</textarea>
+			{#if eR.infoText}<span class="error-text" id="err-infoText">{eR.infoText}</span>{/if}
 		</div>
 		<div class="field">
 			<label for="confirmationText">Text i bekräftelsen</label>
-			<textarea id="confirmationText" name="confirmationText" rows="3" maxlength="1000" placeholder="Visas när en patrull har anmält sig, t.ex. hur avgiften betalas." aria-invalid={eR.confirmationText ? 'true' : undefined}>{c.confirmationText ?? ''}</textarea>
-			{#if eR.confirmationText}<span class="error-text">{eR.confirmationText}</span>{/if}
+			<textarea id="confirmationText" name="confirmationText" rows="3" maxlength="1000" placeholder="Visas när en patrull har anmält sig, t.ex. hur avgiften betalas." aria-invalid={eR.confirmationText ? 'true' : undefined} aria-describedby={eR.confirmationText ? 'err-confirmationText' : undefined}>{c.confirmationText ?? ''}</textarea>
+			{#if eR.confirmationText}<span class="error-text" id="err-confirmationText">{eR.confirmationText}</span>{/if}
 		</div>
 		<div class="toggles">
 			<Toggle name="followEnabled" checked={c.followEnabled} label="Följ patrullen" description="Ledare och föräldrar kan följa sin patrull live via patrullens egen länk." />
@@ -198,7 +198,7 @@
 					</li>
 				{/each}
 			</ul>
-			{#if eD.days}<span class="error-text" role="alert">{eD.days}</span>{/if}
+			{#if eD.days}<span class="error-text" role="alert" id="err-days">{eD.days}</span>{/if}
 			<div class="act">
 				<button class="btn btn-primary" disabled={!canEdit}>Spara dagar</button>
 				<button class="btn" formaction="?/addDay" disabled={!canEdit}>+ Lägg till dag</button>
@@ -232,10 +232,10 @@
 		</ul>
 		<div class="field">
 			<label for="newTrack">Ny klass</label>
-			<input id="newTrack" name="newTrack" placeholder="t.ex. Rover" aria-invalid={eT.newTrack ? 'true' : undefined} />
-			{#if eT.newTrack}<span class="error-text">{eT.newTrack}</span>{/if}
+			<input id="newTrack" name="newTrack" placeholder="t.ex. Rover" aria-invalid={eT.newTrack ? 'true' : undefined} aria-describedby={eT.newTrack ? 'err-newTrack' : undefined} />
+			{#if eT.newTrack}<span class="error-text" id="err-newTrack">{eT.newTrack}</span>{/if}
 		</div>
-		{#if eT.tracks}<span class="error-text" role="alert">{eT.tracks}</span>{/if}
+		{#if eT.tracks}<span class="error-text" role="alert" id="err-tracks">{eT.tracks}</span>{/if}
 		<div class="act">
 			<button class="btn btn-primary" disabled={!canEdit}>Spara klasser</button>
 			{#if ok('tracks')}<span class="pill pill-ok" role="status">Sparat</span>{/if}

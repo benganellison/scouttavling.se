@@ -205,18 +205,18 @@
 				<p class="muted lead">Ledaren som arrangören kan nå under tävlingen. Namn och telefon syns för arrangören och för funktionärerna vid start och mål, så att de kan ringa om något händer på banan.</p>
 				<div class="field">
 					<label for="contactName">Namn</label>
-					<input id="contactName" name="contactName" bind:value={contactName} autocomplete="name" aria-invalid={errors.contactName ? 'true' : undefined} />
-					{#if errors.contactName}<span class="error-text">{errors.contactName}</span>{/if}
+					<input id="contactName" name="contactName" bind:value={contactName} autocomplete="name" aria-invalid={errors.contactName ? 'true' : undefined} aria-describedby={errors.contactName ? 'err-contactName' : undefined} />
+					{#if errors.contactName}<span class="error-text" id="err-contactName">{errors.contactName}</span>{/if}
 				</div>
 				<div class="field">
 					<label for="contactPhone">Mobilnummer</label>
-					<input id="contactPhone" name="contactPhone" type="tel" inputmode="tel" bind:value={contactPhone} autocomplete="tel" placeholder="070-123 45 67" aria-invalid={errors.contactPhone ? 'true' : undefined} />
-					{#if errors.contactPhone}<span class="error-text">{errors.contactPhone}</span>{/if}
+					<input id="contactPhone" name="contactPhone" type="tel" inputmode="tel" bind:value={contactPhone} autocomplete="tel" placeholder="070-123 45 67" aria-invalid={errors.contactPhone ? 'true' : undefined} aria-describedby={errors.contactPhone ? 'err-contactPhone' : undefined} />
+					{#if errors.contactPhone}<span class="error-text" id="err-contactPhone">{errors.contactPhone}</span>{/if}
 				</div>
 				<div class="field">
 					<label for="contactEmail">E-post</label>
-					<input id="contactEmail" name="contactEmail" type="email" inputmode="email" bind:value={contactEmail} autocomplete="email" aria-invalid={errors.contactEmail ? 'true' : undefined} />
-					{#if errors.contactEmail}<span class="error-text">{errors.contactEmail}</span>{/if}
+					<input id="contactEmail" name="contactEmail" type="email" inputmode="email" bind:value={contactEmail} autocomplete="email" aria-invalid={errors.contactEmail ? 'true' : undefined} aria-describedby={errors.contactEmail ? 'err-contactEmail' : undefined} />
+					{#if errors.contactEmail}<span class="error-text" id="err-contactEmail">{errors.contactEmail}</span>{/if}
 				</div>
 				<div class="hp" aria-hidden="true">
 					<label for="website">Lämna tomt</label>

@@ -234,13 +234,13 @@
 		padding-bottom: 1px;
 	}
 	.fill .max {
-		font-size: 7.5pt;
+		font-size: 9pt;
 		white-space: nowrap;
 		align-self: flex-end;
 	}
 	.sign {
 		margin-top: auto;
-		font-size: 8pt;
+		font-size: 9pt;
 		border-top: 1px solid #7d8794;
 		padding-top: 1px;
 	}

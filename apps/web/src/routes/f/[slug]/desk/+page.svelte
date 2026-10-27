@@ -202,6 +202,7 @@
 	</aside>
 
 	<main>
+		<h1 class="sr-only">Start och mål</h1>
 		<div class="toolbar">
 			<div class="filters" role="tablist" aria-label="Filtrera">
 				{#each filters as f (f.k)}

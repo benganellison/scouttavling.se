@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { tick } from 'svelte';
 	import { forgetCompetition, useField, hhmm, shortTroop } from '#lib/field/app.svelte.ts';
+	import { applyContrast, readContrast } from '#lib/field/contrast.ts';
 	import Icon from '#lib/field/ui/Icon.svelte';
 	import SyncPill from '#lib/field/ui/SyncPill.svelte';
 	import TabBar from '#lib/field/ui/TabBar.svelte';
@@ -11,6 +13,15 @@
 	let q = $state('');
 	let open = $state<string | null>(null);
 	let confirmForget = $state(false);
+	let sun = $state(readContrast());
+	let forgetBtn = $state<HTMLButtonElement | null>(null);
+	async function cancelForget() {
+		confirmForget = false;
+		await tick();
+		forgetBtn?.focus();
+	}
+	/** A report to remove: one tap asks first ("Ta bort" sits right next to "Ändra poäng"). */
+	let confirmRemove = $state<string | null>(null);
 
 	/** The volunteer is done: the competition (patrol list, contacts, reports) leaves this phone. */
 	async function forget() {
@@ -46,7 +57,7 @@
 			.filter((r) => !needle || String(r.p.number).startsWith(needle) || r.p.name.toLowerCase().includes(needle))
 			.sort((a, b) => b.at - a.at);
 	});
-	const syncLabel = { synced: 'Skickad', pending: 'Väntar på täckning', conflict: 'Konflikt', problem: 'Nekad', review: 'Granskas av HQ' } as const;
+	const syncLabel = { synced: 'Skickad', pending: 'Väntar på täckning', conflict: 'Konflikt', problem: 'Nekad', review: 'Hos tävlingsledningen' } as const;
 	const offline = $derived(!app.online || (app.pendingCount > 0 && !!app.lastFailedAt));
 
 	function pts(r: (typeof rows)[number]) {
@@ -116,8 +127,15 @@
 						{/if}
 						{#if open === r.p.id && r.res}
 							<div class="actions expand">
-								<button type="button" class="act primary" onclick={() => goto(`${base}/score/${r.p.number}`)}>Ändra poäng</button>
-								<button type="button" class="act danger" onclick={async () => { await app.voidPatrol(r.p.id); open = null; }}>Ta bort</button>
+								{#if confirmRemove === r.p.id}
+									<p class="confirm-q" id="rm-q-{r.p.number}">Ta bort rapporten för {r.p.number} {r.p.name}?</p>
+									<!-- svelte-ignore a11y_autofocus -->
+									<button type="button" class="act danger" aria-describedby="rm-q-{r.p.number}" autofocus onclick={async () => { await app.voidPatrol(r.p.id); open = null; confirmRemove = null; }}>Ja, ta bort</button>
+									<button type="button" class="act ghost" onclick={() => (confirmRemove = null)}>Avbryt</button>
+								{:else}
+									<button type="button" class="act primary" onclick={() => goto(`${base}/score/${r.p.number}`)}>Ändra poäng</button>
+									<button type="button" class="act danger" onclick={() => (confirmRemove = r.p.id)}>Ta bort…</button>
+								{/if}
 							</div>
 						{/if}
 					</li>
@@ -127,11 +145,19 @@
 			<p class="empty">{q ? 'Ingen träff.' : 'Inga rapporter ännu. Skanna första patrullen från Kontroll.'}</p>
 		{/if}
 
+		<section class="phone-opts" aria-labelledby="opts-h">
+			<h2 id="opts-h">Den här telefonen</h2>
+			<label class="sun">
+				<input type="checkbox" role="switch" bind:checked={sun} onchange={() => applyContrast(sun)} />
+				<span><strong>Stark kontrast</strong><br /><span class="muted-s">Lättare att läsa i starkt solljus.</span></span>
+			</label>
+		</section>
+
 		<section class="forget" aria-labelledby="forget-h">
 			<h2 id="forget-h">Klar med tävlingen?</h2>
 			<p>Telefonen glömmer tävlingen av sig själv en vecka efter att den är slut. Du kan också ta bort den nu: patrullerna, meddelandena och dina rapporter försvinner från telefonen (de som är skickade finns kvar hos tävlingsledningen).</p>
 			{#if !confirmForget}
-				<button type="button" class="btn-forget" onclick={() => (confirmForget = true)}>Ta bort tävlingen från telefonen</button>
+				<button type="button" class="btn-forget" bind:this={forgetBtn} onclick={() => (confirmForget = true)}>Ta bort tävlingen från telefonen</button>
 			{:else}
 				<div class="confirm" role="alertdialog" aria-labelledby="forget-q">
 					<p id="forget-q">
@@ -139,7 +165,8 @@
 						Ta bort tävlingen från telefonen?
 					</p>
 					<button type="button" class="btn-forget danger" onclick={forget}>Ja, ta bort</button>
-					<button type="button" class="btn-forget" onclick={() => (confirmForget = false)}>Avbryt</button>
+					<!-- svelte-ignore a11y_autofocus -->
+					<button type="button" class="btn-forget" autofocus onclick={cancelForget}>Avbryt</button>
 				</div>
 			{/if}
 		</section>
@@ -321,7 +348,40 @@
 	}
 	.actions {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 8px;
+	}
+	.confirm-q {
+		flex-basis: 100%;
+		margin: 0 0 4px;
+		font-weight: 700;
+	}
+	.phone-opts {
+		margin: 28px 0 0;
+		padding-top: 16px;
+		border-top: 1px solid var(--line);
+		display: grid;
+		gap: 10px;
+	}
+	.phone-opts h2 {
+		margin: 0;
+		font-size: 17px;
+	}
+	.sun {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		min-height: var(--tap, 48px);
+		font-size: 15px;
+	}
+	.sun input {
+		width: 28px;
+		height: 28px;
+		flex: none;
+	}
+	.muted-s {
+		color: var(--ink-2);
+		font-size: 13px;
 	}
 	.forget {
 		margin: 28px 0 8px;

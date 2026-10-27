@@ -11,6 +11,7 @@
 	const roleText = $derived(data.access ? 'Plattformsadmin (tillfällig)' : ROLE_TEXT[data.roles.includes('owner') ? 'owner' : (data.roles[0] ?? 'organiser')] ?? 'Arrangör');
 </script>
 
+<a class="skip-link" href="#innehall">Hoppa till innehållet</a>
 <div class="shell">
 	<Sidebar
 		slug={data.competition.slug}
@@ -22,7 +23,7 @@
 		{roleText}
 		eventLogo={data.branding.eventLogo}
 	/>
-	<main class="content">
+	<main class="content" id="innehall" tabindex="-1">
 		{#if data.access}
 			<div class="banner banner-admin" role="status" data-testid="access-banner">
 				<strong>Tillfällig åtkomst som plattformsadmin</strong>

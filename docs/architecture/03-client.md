@@ -490,3 +490,22 @@ Client and server are one codebase, so most of these are shared code, not networ
 5. **CSP** allowing `wasm-unsafe-eval` (zxing-wasm), `worker-src 'self' blob:`, no third-party script origins, and `connect-src` for the error-reporting endpoint and the object-storage upload origin.
 6. **Error-reporting backend** choice (decided with hosting) and PII scrubbing rules. Cache headers: hashed assets immutable, `service-worker.js` `no-cache`.
 7. **Release policy:** no breaking API or deploy changes during an active competition window. The server exposes the "active competition" calendar so the client, Renovate and the deploy job can respect it.
+
+## Accessibility review 2026-10-27 (before v0.1.0)
+
+WCAG 2.2 AA review of every user group. No blocker; fixed in the same PR:
+
+| Finding | Fix |
+|---|---|
+| Error texts not tied to their fields (~50 fields) | `aria-describedby` to an `err-<field>` id wherever `aria-invalid` is set (registration, manage page, settings, new competition, next year, member rows). |
+| New-competition form only scrolled to the first error | Focuses it (the linked error is read out). |
+| After saving a score, "Skanna nästa patrull" was Scoutblå on Scoutblå; focus stayed on "Spara" behind the overlay | White main button; focus moves to it; the screen behind is `inert`; only "Sparat! …" is announced, not the undo countdown. |
+| "Ta bort" in the volunteer log deleted with one tap | Asks first ("Ja, ta bort" / "Avbryt"). |
+| Input borders and switch tracks 2.1:1 | `--line-input` #7d8794 (3.6:1). |
+| No skip link in admin | "Hoppa till innehållet" before the sidebar. |
+| Number pad cut off in landscape or with large text | Keys `clamp(48px, 11dvh, 76px)`; the pad scrolls as a last resort. |
+| "Sol" high-contrast mode existed but could not be switched on | "Stark kontrast" switch per phone in the log (localStorage). |
+| Focus lost after step/confirmation changes; scan result sheet not a dialog | Focus moves to the new step's heading / the safe button; the sheet is `role=dialog aria-modal`, focuses "Ja, sätt poäng", closes on Escape, background inert. |
+| Smaller | Sync pill and follow page no longer re-announce the clock; patrol-pass QR and number named; desk `<h1>`; "Koppla från" asks first; scorecard text ≥ 9 pt; green step label replaced (3.1:1). |
+
+**Known, for later:** tabs/radios on the scan screen and desk use ARIA roles without arrow keys; image alt text is always the competition name (no alt field for covers); "Ring HQ" and a few other field texts still say "HQ"; patrol-detail cell states rely on colour plus a legend.

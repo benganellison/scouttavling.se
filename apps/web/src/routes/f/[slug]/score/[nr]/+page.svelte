@@ -126,7 +126,7 @@
 	</main>
 {:else}
 	<div class="screen">
-		<header>
+		<header inert={!!saved}>
 			<a class="back" href="{base}/scan" aria-label="Tillbaka"><Icon name="back" /></a>
 			<span class="pnr">{patrol.number}</span>
 			<div class="pwho">
@@ -135,7 +135,7 @@
 			</div>
 		</header>
 
-		<main class:single>
+		<main class:single inert={!!saved}>
 			{#if undone}<p class="undone" role="status">Ångrat — inget sparades. Välj igen eller gå tillbaka.</p>{/if}
 			{#if already && !undone}
 				<p class="editing">Ändrar rapport från {hhmm(already.at)}{already.by ? ` (${already.by})` : ''}</p>
@@ -224,7 +224,7 @@
 			{/if}
 		</main>
 
-		<footer>
+		<footer inert={!!saved}>
 			<button type="button" class="save" disabled={!ready || busy} onclick={save}>{saveLabel}</button>
 			{#if !checkin && !showNote}
 				<button type="button" class="add-note" onclick={() => (showNote = true)}>+ Anteckning (valfritt)</button>
@@ -232,13 +232,17 @@
 		</footer>
 
 		{#if saved}
-			<div class="success" role="status">
+			<div class="success">
 				<span class="ring"><Icon name="check" size={64} stroke={3} /></span>
-				<span class="s-title">Sparat!</span>
-				<span class="s-line">{saved.line}</span>
+				<!-- Only this is announced (not the undo countdown, which changes every second). -->
+				<div role="status" class="s-said">
+					<span class="s-title">Sparat!</span>
+					<span class="s-line">{saved.line}</span>
+				</div>
 				<span class="s-pill"><Icon name="check" size={14} stroke={2.8} /> Sparad i telefonen · skickas automatiskt</span>
 				<div class="s-actions">
-					<a class="s-next" href="{base}/scan">Skanna nästa patrull</a>
+					<!-- svelte-ignore a11y_autofocus -->
+					<a class="s-next" href="{base}/scan" autofocus>Skanna nästa patrull</a>
 					{#if undoLeft > 0}
 						<button type="button" class="s-undo" onclick={undo}><Icon name="undo" size={20} /> Ångra ({undoLeft} s)</button>
 					{:else}
@@ -604,11 +608,18 @@
 		width: 100%;
 		margin-top: 20px;
 	}
+	.s-said {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+	}
+	/* White on the Scoutblå overlay: clearly THE next step (the outlined undo is secondary). */
 	.s-next {
 		min-height: 68px;
 		border-radius: 18px;
-		background: var(--cta);
-		color: #fff;
+		background: #fff;
+		color: var(--brand);
 		font-weight: 800;
 		font-size: 20px;
 		display: flex;
@@ -617,7 +628,7 @@
 		text-decoration: none;
 	}
 	.s-next:hover {
-		color: #fff;
+		color: var(--brand);
 	}
 	.s-undo {
 		min-height: 60px;

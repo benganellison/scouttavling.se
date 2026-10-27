@@ -12,6 +12,7 @@
 
 	let copied = $state(false);
 	let confirmRotate = $state(false);
+	let confirmPhone = $state<string | null>(null);
 	const sel = $derived(data.selected);
 	const isSF = $derived(sel.id === 'startfinish');
 	const joinedCount = $derived(data.rows.filter((r) => r.status === 'joined').length);
@@ -127,10 +128,16 @@
 								</span>
 								{#if ph.oldCode}<span class="pill pill-warn small">Gammal kod: får inga uppgifter längre</span>{/if}
 							</div>
-							<form method="POST" action="?s={sel.id}&/disconnect" use:enhance>
-								<input type="hidden" name="device" value={ph.id} />
-								<button class="btn btn-sm" aria-label="Koppla från {ph.name}">Koppla från</button>
-							</form>
+							{#if confirmPhone === ph.id}
+								<form method="POST" action="?s={sel.id}&/disconnect" class="confirm-row" use:enhance={() => async ({ update }) => { await update(); confirmPhone = null; }}>
+									<input type="hidden" name="device" value={ph.id} />
+									<!-- svelte-ignore a11y_autofocus -->
+									<button class="btn btn-sm btn-danger" autofocus>Ja, koppla från {ph.name}</button>
+									<button type="button" class="btn btn-sm btn-ghost" onclick={() => (confirmPhone = null)}>Avbryt</button>
+								</form>
+							{:else}
+								<button type="button" class="btn btn-sm" aria-label="Koppla från {ph.name}" onclick={() => (confirmPhone = ph.id)}>Koppla från…</button>
+							{/if}
 						</li>
 					{/each}
 				</ul>
@@ -175,6 +182,12 @@
 	}
 	.phones form {
 		margin: 0;
+	}
+	.confirm-row {
+		display: flex;
+		gap: 8px;
+		flex-wrap: wrap;
+		justify-content: flex-end;
 	}
 	.tabs {
 		display: flex;

@@ -46,7 +46,7 @@
 		<div class="pass-top">
 			<span class="pass-comp">{data.comp.name} · {dateRange(data.comp.startDate, data.comp.endDate)}</span>
 			<div class="pass-head">
-				<span class="pass-nr" aria-label="Patrullnummer">{p.number}</span>
+				<span class="pass-nr"><span class="sr-only">Patrullnummer </span>{p.number}</span>
 				<div class="pass-name">
 					<h1 id="h-pass">{p.name}</h1>
 					<span>{p.troop}</span>
@@ -60,8 +60,10 @@
 				<div><dt>Status</dt><dd><StatusPill status={p.status} /></dd></div>
 			</dl>
 			<figure class="qr" data-testid="patrol-qr">
-				<!-- eslint-disable-next-line svelte/no-at-html-tags -- server-generated SVG from qrcode -->
-				{@html data.qr}
+				<div role="img" aria-label="QR-kod för patrull {p.number} {p.name}">
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -- server-generated SVG from qrcode -->
+					{@html data.qr}
+				</div>
 				<figcaption>Visa koden på kontrollerna</figcaption>
 			</figure>
 		</div>
@@ -100,18 +102,18 @@
 			<h2 class="mt">Kontaktperson</h2>
 			<div class="field">
 				<label for="contactName">Namn</label>
-				<input id="contactName" name="contactName" bind:value={contactName} autocomplete="name" aria-invalid={errors.contactName ? 'true' : undefined} />
-				{#if errors.contactName}<span class="error-text">{errors.contactName}</span>{/if}
+				<input id="contactName" name="contactName" bind:value={contactName} autocomplete="name" aria-invalid={errors.contactName ? 'true' : undefined} aria-describedby={errors.contactName ? 'err-contactName' : undefined} />
+				{#if errors.contactName}<span class="error-text" id="err-contactName">{errors.contactName}</span>{/if}
 			</div>
 			<div class="field">
 				<label for="contactPhone">Mobilnummer</label>
-				<input id="contactPhone" name="contactPhone" type="tel" inputmode="tel" bind:value={contactPhone} autocomplete="tel" aria-invalid={errors.contactPhone ? 'true' : undefined} />
-				{#if errors.contactPhone}<span class="error-text">{errors.contactPhone}</span>{/if}
+				<input id="contactPhone" name="contactPhone" type="tel" inputmode="tel" bind:value={contactPhone} autocomplete="tel" aria-invalid={errors.contactPhone ? 'true' : undefined} aria-describedby={errors.contactPhone ? 'err-contactPhone' : undefined} />
+				{#if errors.contactPhone}<span class="error-text" id="err-contactPhone">{errors.contactPhone}</span>{/if}
 			</div>
 			<div class="field">
 				<label for="contactEmail">E-post</label>
-				<input id="contactEmail" name="contactEmail" type="email" inputmode="email" bind:value={contactEmail} autocomplete="email" aria-invalid={errors.contactEmail ? 'true' : undefined} />
-				{#if errors.contactEmail}<span class="error-text">{errors.contactEmail}</span>{/if}
+				<input id="contactEmail" name="contactEmail" type="email" inputmode="email" bind:value={contactEmail} autocomplete="email" aria-invalid={errors.contactEmail ? 'true' : undefined} aria-describedby={errors.contactEmail ? 'err-contactEmail' : undefined} />
+				{#if errors.contactEmail}<span class="error-text" id="err-contactEmail">{errors.contactEmail}</span>{/if}
 			</div>
 			{#if errors.form}<p class="error-text" role="alert">{errors.form}</p>{/if}
 			<div class="act">

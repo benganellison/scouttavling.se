@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { registerFieldServiceWorker } from '#lib/field/registerSw.ts';
+	import { applyContrast, readContrast } from '#lib/field/contrast.ts';
 	import { page } from '$app/state';
 	import { FieldApp, provideField } from '#lib/field/app.svelte.ts';
 	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
@@ -12,6 +13,7 @@
 	void app.init();
 	onDestroy(() => app.destroy());
 	onMount(registerFieldServiceWorker);
+	onMount(() => applyContrast(readContrast()));
 </script>
 
 <svelte:head>

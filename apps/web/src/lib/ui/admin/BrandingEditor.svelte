@@ -88,7 +88,7 @@
 		showContrast
 		disabled={!canEdit}
 	/>
-	{#if errors.accentColor}<span class="error-text">{errors.accentColor}</span>{/if}
+	{#if errors.accentColor}<span class="error-text" id="err-accentColor">{errors.accentColor}</span>{/if}
 	<p class="muted small">Färgen används som rand och markering. Sidhuvuden och knappar är alltid Scoutblå, så Scouterna syns tydligt.</p>
 	<fieldset class="fit" disabled={!canEdit}>
 		<legend class="label">Omslagsbild</legend>

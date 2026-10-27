@@ -74,7 +74,7 @@
 			<label for="mp-reason">Anledning (krävs, minst 10 tecken)</label>
 			<textarea id="mp-reason" rows="2" bind:value={reason} aria-invalid={errors.reason ? 'true' : undefined} aria-describedby="mp-reason-help" placeholder="t.ex. Ärende från distriktet: ägaren har slutat"></textarea>
 			<span id="mp-reason-help" class="muted small">Sparas i händelseloggen. Skriv inte namn på patrullmedlemmar.</span>
-			{#if errors.reason}<span class="error-text" role="alert">{errors.reason}</span>{/if}
+			{#if errors.reason}<span class="error-text" role="alert" id="err-reason">{errors.reason}</span>{/if}
 		</div>
 	{/if}
 
@@ -164,7 +164,7 @@
 								<button class="btn btn-primary sm">Ersätt</button>
 								<button type="button" class="btn btn-ghost sm" onclick={() => (confirming = null)}>Avbryt</button>
 							</form>
-							{#if errors.replace}<span class="error-text" role="alert">{errors.replace}</span>{/if}
+							{#if errors.replace}<span class="error-text" role="alert" id="err-replace">{errors.replace}</span>{/if}
 						{/if}
 					</div>
 				{/if}

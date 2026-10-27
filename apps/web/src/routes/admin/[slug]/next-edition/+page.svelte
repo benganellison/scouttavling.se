@@ -37,13 +37,13 @@
 			<div class="grid2">
 				<div class="stack tight">
 					<label class="label" for="name">Namn</label>
-					<input id="name" name="name" class="field" value={v?.name ?? p.name} aria-invalid={e.name ? 'true' : undefined} />
-					{#if e.name}<span class="error-text">{e.name}</span>{/if}
+					<input id="name" name="name" class="field" value={v?.name ?? p.name} aria-invalid={e.name ? 'true' : undefined} aria-describedby={e.name ? 'err-name' : undefined} />
+					{#if e.name}<span class="error-text" id="err-name">{e.name}</span>{/if}
 				</div>
 				<div class="stack tight">
 					<label class="label" for="slug">Adress</label>
-					<div class="prefix"><span class="muted">{page.data.siteHost}/</span><input id="slug" name="slug" class="field" value={v?.slug ?? p.slug} aria-invalid={e.slug ? 'true' : undefined} /></div>
-					{#if e.slug}<span class="error-text">{e.slug}</span>{/if}
+					<div class="prefix"><span class="muted">{page.data.siteHost}/</span><input id="slug" name="slug" class="field" value={v?.slug ?? p.slug} aria-invalid={e.slug ? 'true' : undefined} aria-describedby={e.slug ? 'err-slug' : undefined} /></div>
+					{#if e.slug}<span class="error-text" id="err-slug">{e.slug}</span>{/if}
 				</div>
 			</div>
 			<ul class="days" aria-label="Dagar">
@@ -67,12 +67,12 @@
 				<div class="stack tight">
 					<label class="label" for="ro">Öppnar</label>
 					<input id="ro" name="registrationOpensOn" type="date" class="field" value={v?.registrationOpensOn ?? p.registrationOpensOn ?? ''} />
-					{#if e.registrationOpensOn}<span class="error-text">{e.registrationOpensOn}</span>{/if}
+					{#if e.registrationOpensOn}<span class="error-text" id="err-registrationOpensOn">{e.registrationOpensOn}</span>{/if}
 				</div>
 				<div class="stack tight">
 					<label class="label" for="rc">Stänger</label>
 					<input id="rc" name="registrationClosesOn" type="date" class="field" value={v?.registrationClosesOn ?? p.registrationClosesOn ?? ''} />
-					{#if e.registrationClosesOn}<span class="error-text">{e.registrationClosesOn}</span>{/if}
+					{#if e.registrationClosesOn}<span class="error-text" id="err-registrationClosesOn">{e.registrationClosesOn}</span>{/if}
 				</div>
 			</div>
 		</section>

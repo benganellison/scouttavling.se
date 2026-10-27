@@ -10,14 +10,15 @@
 			: app.pendingCount > 0
 				? { cls: 'warn', icon: 'clock' as const, text: !app.online || app.lastFailedAt ? `${app.pendingCount} väntar på täckning` : `${app.pendingCount} väntar` }
 				: app.lastSyncAt
-					? { cls: 'ok', icon: 'check' as const, text: `Synkad ${hhmm(app.lastSyncAt)}` }
+					? { cls: 'ok', icon: 'check' as const, text: 'Synkad', time: hhmm(app.lastSyncAt) }
 					: !app.online
 						? { cls: 'warn', icon: 'offline' as const, text: 'Ingen täckning' }
 						: { cls: 'ok', icon: 'clock' as const, text: 'Synkar…' }
 	);
 </script>
 
-<span class="sync {pill.cls}" role="status" data-testid="sync-pill"><Icon name={pill.icon} size={14} stroke={2.8} />{pill.text}</span>
+<!-- The clock is not announced: only a change of state is ("Synkad", "2 väntar", …). -->
+<span class="sync {pill.cls}" role="status" data-testid="sync-pill"><Icon name={pill.icon} size={14} stroke={2.8} />{pill.text}{#if 'time' in pill && pill.time}<span aria-hidden="true">&nbsp;{pill.time}</span>{/if}</span>
 
 <style>
 	.sync {

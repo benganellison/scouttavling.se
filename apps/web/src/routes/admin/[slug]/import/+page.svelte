@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import '#lib/ui/patrols/prep.css';
 	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
@@ -34,6 +35,22 @@
 	];
 
 	let step = $state<Step>(1);
+	// A step change replaces the content (and often the button just pressed): move focus to the new
+	// step's heading so keyboard and screen-reader users continue there, not at the top of the page.
+	let stepsSeen = false;
+	$effect(() => {
+		void step;
+		if (!stepsSeen) {
+			stepsSeen = true;
+			return;
+		}
+		void tick().then(() => {
+			const h = document.querySelector<HTMLElement>('.prep h2');
+			if (!h) return;
+			h.tabIndex = -1;
+			h.focus();
+		});
+	});
 	let fileName = $state('');
 	let table = $state<Table>([]);
 	let columns = $state<ColumnGuess[]>([]);

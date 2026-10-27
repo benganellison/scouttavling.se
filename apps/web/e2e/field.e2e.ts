@@ -74,7 +74,7 @@ test('3: number pad → 127 → 17 + 3 → save → undo', async () => {
 	await shot(page, 'numpad');
 	await page.getByRole('button', { name: /^127/ }).click();
 	await expect(page.getByRole('heading', { name: 'Uttrarna' })).toBeVisible();
-	await expect(page.getByRole('region', { name: 'Uttrarna' }).getByText('Spårare · Ekbackens scoutkår')).toBeVisible();
+	await expect(page.getByRole('dialog', { name: 'Uttrarna' }).getByText('Spårare · Ekbackens scoutkår')).toBeVisible();
 	await shot(page, 'found');
 	await page.getByRole('button', { name: 'Ja, sätt poäng' }).click();
 
@@ -214,7 +214,12 @@ test('7: HQ disconnects a phone, and a new code disconnects the phones that join
 	const row = hq.getByTestId('phone').filter({ hasText: 'Lisa' });
 	await expect(row).toBeVisible();
 	await shot(hq, 'phones');
-	await row.getByRole('button', { name: 'Koppla från Lisa' }).click();
+	// The confirmation needs the page to be hydrated: click until it appears.
+	await expect(async () => {
+		if (!(await row.getByRole('button', { name: 'Ja, koppla från Lisa' }).count())) await row.getByRole('button', { name: 'Koppla från Lisa' }).click();
+		await expect(row.getByRole('button', { name: 'Ja, koppla från Lisa' })).toBeVisible({ timeout: 1000 });
+	}).toPass({ timeout: 15_000 });
+	await row.getByRole('button', { name: 'Ja, koppla från Lisa' }).click();
 	await expect(hq.getByTestId('phone').filter({ hasText: 'Lisa' })).toHaveCount(0);
 	await cutOff(lisa.p);
 
