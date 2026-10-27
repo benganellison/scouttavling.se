@@ -161,7 +161,7 @@ export const day = pgTable('day', {
 	name: text('name').notNull(),
 	prefix: text('prefix').notNull(),
 	sort: integer('sort').notNull()
-});
+}, (t) => [index('day_comp_idx').on(t.competitionId, t.sort)]);
 
 export const track = pgTable('track', {
 	id: id(),
@@ -170,7 +170,7 @@ export const track = pgTable('track', {
 	sort: integer('sort').notNull(),
 	/** Class colour #rrggbb (decoration only). null = default from the name (see #lib/brand/colors.ts). */
 	color: text('color')
-});
+}, (t) => [index('track_comp_idx').on(t.competitionId, t.sort)]);
 
 export const station = pgTable(
 	'station',
@@ -219,7 +219,7 @@ export const scoreItem = pgTable('score_item', {
 	styleMin: integer('style_min').notNull().default(0),
 	styleMax: integer('style_max').notNull().default(5),
 	countsForTiebreak: boolean('counts_for_tiebreak').notNull().default(true)
-});
+}, (t) => [index('score_item_station_idx').on(t.stationId, t.sort)]);
 
 // ---------- patrols ----------
 
@@ -264,7 +264,7 @@ export const member = pgTable('member', {
 	firstName: text('first_name').notNull(),
 	lastName: text('last_name').notNull().default(''),
 	troopText: text('troop_text').notNull().default('')
-});
+}, (t) => [index('member_patrol_idx').on(t.patrolId)]);
 
 // ---------- field devices ----------
 
@@ -281,7 +281,7 @@ export const invite = pgTable('invite', {
 	secretEnc: text('secret_enc'),
 	revokedAt: timestamp('revoked_at', { withTimezone: true }),
 	createdAt: createdAt()
-});
+}, (t) => [index('invite_comp_idx').on(t.competitionId)]);
 
 export const device = pgTable('device', {
 	id: id(),
@@ -296,7 +296,7 @@ export const device = pgTable('device', {
 	lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
 	revokedAt: timestamp('revoked_at', { withTimezone: true }),
 	createdAt: createdAt()
-});
+}, (t) => [index('device_comp_idx').on(t.competitionId), index('device_invite_idx').on(t.inviteId)]);
 
 /** Idempotency ledger: every command ever received, keyed by its client UUIDv7. */
 export const command = pgTable('command', {
@@ -310,7 +310,7 @@ export const command = pgTable('command', {
 	receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
 	result: text('result', { enum: ['accepted', 'duplicate', 'conflict', 'quarantined', 'rejected'] }).notNull(),
 	resultDetail: jsonb('result_detail')
-});
+}, (t) => [index('command_comp_idx').on(t.competitionId), index('command_device_idx').on(t.deviceId)]);
 
 // ---------- scores ----------
 
@@ -339,7 +339,7 @@ export const score = pgTable(
 		scoredAt: timestamp('scored_at', { withTimezone: true }),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
-	(t) => [unique('score_patrol_item').on(t.patrolId, t.itemId), index('score_comp_idx').on(t.competitionId)]
+	(t) => [unique('score_patrol_item').on(t.patrolId, t.itemId), index('score_comp_idx').on(t.competitionId), index('score_item_idx').on(t.itemId), index('score_device_idx').on(t.deviceId)]
 );
 
 /** Append-only audit trail of every change to a score. */
@@ -356,7 +356,7 @@ export const scoreRevision = pgTable('score_revision', {
 	commandId: uuid('command_id'),
 	reason: text('reason'),
 	at: timestamp('at', { withTimezone: true }).notNull().defaultNow()
-});
+}, (t) => [index('score_revision_score_idx').on(t.scoreId, t.version)]);
 
 /** Never silently overwrite: competing writes land here for HQ review. */
 export const scoreConflict = pgTable('score_conflict', {
@@ -370,7 +370,7 @@ export const scoreConflict = pgTable('score_conflict', {
 	kind: text('kind', { enum: ['conflict', 'quarantine'] }).notNull().default('conflict'),
 	status: text('status', { enum: ['open', 'resolved'] }).notNull().default('open'),
 	createdAt: createdAt()
-});
+}, (t) => [index('score_conflict_comp_idx').on(t.competitionId, t.status, t.createdAt)]);
 
 export const statusEvent = pgTable('status_event', {
 	id: id(),
@@ -379,7 +379,7 @@ export const statusEvent = pgTable('status_event', {
 	deviceId: uuid('device_id'),
 	userId: uuid('user_id'),
 	at: timestamp('at', { withTimezone: true }).notNull().defaultNow()
-});
+}, (t) => [index('status_event_patrol_idx').on(t.patrolId, t.at)]);
 
 /** Monotonic change feed per competition: drives SSE resume and snapshot deltas. */
 export const changeLog = pgTable(
@@ -416,7 +416,7 @@ export const message = pgTable('message', {
 	audience: jsonb('audience').$type<string[]>().notNull().default(['all']),
 	createdBy: uuid('created_by').references(() => appUser.id),
 	createdAt: createdAt()
-});
+}, (t) => [index('message_comp_idx').on(t.competitionId, t.createdAt)]);
 
 export const messageRead = pgTable(
 	'message_read',
@@ -425,7 +425,7 @@ export const messageRead = pgTable(
 		deviceId: uuid('device_id').notNull().references(() => device.id, { onDelete: 'cascade' }),
 		at: timestamp('at', { withTimezone: true }).notNull().defaultNow()
 	},
-	(t) => [primaryKey({ columns: [t.messageId, t.deviceId] })]
+	(t) => [primaryKey({ columns: [t.messageId, t.deviceId] }), index('message_read_device_idx').on(t.deviceId)]
 );
 
 // ---------- uploads ----------

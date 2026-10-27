@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
+	import { registerFieldServiceWorker } from '#lib/field/registerSw.ts';
 	import { page } from '$app/state';
 	import { FieldApp, provideField } from '#lib/field/app.svelte.ts';
 	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
@@ -10,6 +11,7 @@
 	provideField(app);
 	void app.init();
 	onDestroy(() => app.destroy());
+	onMount(registerFieldServiceWorker);
 </script>
 
 <svelte:head>

@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { readAsset } from '#lib/server/assetStore.ts';
+import { readAssetBytes, readAssetMeta } from '#lib/server/assetStore.ts';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -11,7 +11,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  */
 export async function GET({ params, request }) {
 	if (!UUID.test(params.id)) error(404, 'Bilden finns inte');
-	const a = await readAsset(params.id);
+	const a = await readAssetMeta(params.id);
 	if (!a) error(404, 'Bilden finns inte');
 	const headers: Record<string, string> = {
 		'content-type': a.mime,
@@ -23,6 +23,8 @@ export async function GET({ params, request }) {
 		'cross-origin-resource-policy': 'same-origin'
 	};
 	if (request.headers.get('if-none-match') === `"${a.sha256}"`) return new Response(null, { status: 304, headers });
-	headers['content-length'] = String(a.size);
-	return new Response(Buffer.from(a.data), { headers });
+	const data = await readAssetBytes(params.id);
+	if (!data) error(404, 'Bilden finns inte');
+	headers['content-length'] = String(data.byteLength);
+	return new Response(data as Uint8Array<ArrayBuffer>, { headers });
 }

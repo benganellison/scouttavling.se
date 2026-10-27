@@ -267,6 +267,24 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 	if (since !== null && since >= cursor) return { unchanged: true as const, cursor, serverTime };
 
 	const isDesk = device.role === 'startfinish';
+	// A station phone needs a new pack only for changes that concern it: the competition, stations,
+	// patrols, messages, or scores at its own stations. Most changes during a competition are scores
+	// elsewhere; those answer "unchanged" (with the new cursor) instead of ~200 KB per phone and pull.
+	// The start & finish desk shows every patrol's progress, so any change counts there.
+	if (since !== null && !isDesk) {
+		const mine = device.stationIds.filter((id) => ctx.claims.stations.includes(id));
+		const myScores = mine.length
+			? sql`(c.kind = 'score' and exists (
+					select 1 from score s join score_item i on i.id = s.item_id
+					where s.id = c.entity_id and i.station_id in (${sql.join(mine.map((id) => sql`${id}`), sql`, `)})))`
+			: sql`false`;
+		const relevant = await db.execute(sql`
+			select 1 from change_log c
+			where c.competition_id = ${comp.id} and c.seq > ${since}
+				and (c.kind in ('competition', 'station', 'patrol', 'message') or ${myScores})
+			limit 1`);
+		if ((relevant as unknown as unknown[]).length === 0) return { unchanged: true as const, cursor, serverTime };
+	}
 	const { stations, codes } = await stationCodeMap(comp.id);
 	const stationTracks = await db
 		.select({ stationId: schema.stationTrack.stationId, trackId: schema.stationTrack.trackId })
@@ -292,7 +310,7 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 				.select({ s: schema.score, by: schema.device.displayName })
 				.from(schema.score)
 				.leftJoin(schema.device, eq(schema.device.id, schema.score.deviceId))
-				.where(inArray(schema.score.itemId, myItems.map((i) => i.id)))
+				.where(and(eq(schema.score.competitionId, comp.id), inArray(schema.score.itemId, myItems.map((i) => i.id))))
 		: [];
 
 	// Desk: per-patrol progress (kontroller x/y, poäng, senast sedd, tid ute).

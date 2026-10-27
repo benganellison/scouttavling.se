@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { onMount as onMountSw } from 'svelte';
+	import { registerFieldServiceWorker } from '#lib/field/registerSw.ts';
+	onMountSw(registerFieldServiceWorker);
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { distinctList } from '@scouttavling/domain';

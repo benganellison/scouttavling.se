@@ -88,8 +88,9 @@ export const actions = {
 				touched.push(id);
 				await tx.delete(schema.member).where(eq(schema.member.patrolId, id));
 				if (r.members.length) await tx.insert(schema.member).values(r.members.map((m) => ({ patrolId: id, ...m })));
-				await recordChange(tx, comp.id, 'patrol', id);
 			}
+			// One change entry for the whole import (phones and dashboards reload the patrol list once).
+			await recordChange(tx, comp.id, 'patrol', null);
 			const linked = rows.filter((r) => r.contactMemberNo).length;
 			const unique = new Set(touched).size;
 			const memberRows = unique ? await tx.select({ id: schema.member.id }).from(schema.member).where(inArray(schema.member.patrolId, [...new Set(touched)])) : [];

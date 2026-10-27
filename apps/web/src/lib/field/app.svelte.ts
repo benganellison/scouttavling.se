@@ -389,6 +389,7 @@ export class FieldApp {
 				await this.push();
 				await this.flushReads();
 				await this.pull();
+				await this.pruneOutbox();
 				this.failures = 0;
 				this.lastSyncAt = Date.now();
 				this.lastFailedAt = null;
@@ -485,6 +486,23 @@ export class FieldApp {
 		return ok ? jws : null;
 	}
 
+	/**
+	 * Settled reports (accepted or duplicate) older than two hours leave the outbox: it is reread on
+	 * every change, and after a long day it would hold thousands of signed rows. Kept: everything that
+	 * still needs attention (pending, conflict, rejected, quarantined) and any row a waiting report
+	 * builds on (its result is that report's version base).
+	 */
+	private async pruneOutbox() {
+		const db = this.db;
+		const cutoff = Date.now() - 2 * 3600_000;
+		await db.transaction('rw', db.outbox, async () => {
+			const rows = await db.outbox.where('slug').equals(this.slug).toArray();
+			const needed = new Set(rows.filter((r) => r.state === 'pending' && r.baseFrom).map((r) => r.baseFrom!));
+			const old = rows.filter((r) => (r.state === 'accepted' || r.state === 'duplicate') && r.createdAt < cutoff && !needed.has(r.commandId));
+			if (old.length) await db.outbox.bulkDelete(old.map((r) => r.commandId));
+		});
+	}
+
 	private async applyResults(results: CommandResult[]) {
 		const db = this.db;
 		await db.transaction('rw', db.outbox, db.scores, db.statuses, db.packs, async () => {
@@ -552,18 +570,24 @@ export class FieldApp {
 		const offsetMs = Date.parse(snap.serverTime) - (t0 + t1) / 2;
 		const cur = await db.packs.get(this.slug);
 		if (snap.unchanged) {
-			if (cur) await db.packs.update(this.slug, { offsetMs, fetchedAt: t1 });
+			// Nothing that concerns this phone changed: move the cursor on, so the next check starts here.
+			if (cur) await db.packs.update(this.slug, { offsetMs, fetchedAt: t1, cursor: Math.max(cur.cursor, snap.cursor) });
 			return;
 		}
 		const pack = snap as Pack;
 		await db.transaction('rw', db.packs, db.scores, async () => {
 			await db.packs.put({ slug: this.slug, pack, cursor: pack.cursor, fetchedAt: t1, offsetMs });
+			// Only rows that changed: rewriting all of them on every pack re-renders the whole station.
+			const existing = new Map((await db.scores.where('slug').equals(this.slug).toArray()).map((r) => [r.key, r]));
+			const changed = [];
 			for (const s of pack.scores) {
 				const key = scoreKey(this.slug, s.patrolId, s.itemId);
-				const local = await db.scores.get(key);
+				const local = existing.get(key);
+				if (local?.server && local.server.version === s.version && local.server.state === s.state && local.server.by === s.by) continue;
 				const server = { points: s.points, stylePoints: s.stylePoints, raw: s.raw, state: s.state, version: s.version, at: s.at, by: s.by, mine: s.mine };
-				await db.scores.put({ key, slug: this.slug, patrolId: s.patrolId, itemId: s.itemId, server, local: local?.local ?? null, conflict: local?.conflict ?? null, problem: local?.problem ?? null });
+				changed.push({ key, slug: this.slug, patrolId: s.patrolId, itemId: s.itemId, server, local: local?.local ?? null, conflict: local?.conflict ?? null, problem: local?.problem ?? null });
 			}
+			if (changed.length) await db.scores.bulkPut(changed);
 		});
 	}
 }

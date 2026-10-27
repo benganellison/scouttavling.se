@@ -1,5 +1,5 @@
 import { fail } from '@sveltejs/kit';
-import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { recordChange } from '#lib/server/changes.ts';
@@ -33,19 +33,27 @@ export async function load(event) {
 	]);
 	const devName = new Map(devices.map((d) => [d.id, d.name]));
 	// The stored `existing` side has no author; look it up from the score revision with that version.
-	const authors = await Promise.all(
-		rows.map(async ({ c }) => {
-			const ex = c.existing as Side;
-			const [r] = await db
-				.select({ deviceId: schema.scoreRevision.deviceId, userId: schema.scoreRevision.userId, origin: schema.scoreRevision.origin })
+	// One query for all open conflicts (not one per conflict: a phone with a wrong clock can park hundreds).
+	const revs = rows.length
+		? await db
+				.select({ patrolId: schema.score.patrolId, itemId: schema.score.itemId, version: schema.scoreRevision.version, deviceId: schema.scoreRevision.deviceId, userId: schema.scoreRevision.userId, origin: schema.scoreRevision.origin })
 				.from(schema.scoreRevision)
 				.innerJoin(schema.score, eq(schema.score.id, schema.scoreRevision.scoreId))
-				.where(and(eq(schema.score.patrolId, c.patrolId), eq(schema.score.itemId, c.itemId), ex.version ? eq(schema.scoreRevision.version, ex.version) : undefined))
-				.orderBy(desc(schema.scoreRevision.version))
-				.limit(1);
-			return r ?? null;
-		})
-	);
+				.where(
+					and(
+						eq(schema.score.competitionId, comp.id),
+						sql`exists (select 1 from ${schema.scoreConflict} c where c.competition_id = ${comp.id} and c.status = 'open' and c.patrol_id = ${schema.score.patrolId} and c.item_id = ${schema.score.itemId})`
+					)
+				)
+		: [];
+	const revsOf = new Map<string, typeof revs>();
+	for (const r of revs) revsOf.set(`${r.patrolId}|${r.itemId}`, [...(revsOf.get(`${r.patrolId}|${r.itemId}`) ?? []), r]);
+	const authors = rows.map(({ c }) => {
+		const ex = c.existing as Side;
+		const list = (revsOf.get(`${c.patrolId}|${c.itemId}`) ?? []).filter((r) => !ex.version || r.version === ex.version);
+		const r = list.sort((a, b) => b.version - a.version)[0];
+		return r ? { deviceId: r.deviceId, userId: r.userId, origin: r.origin } : null;
+	});
 	const userIds = [...new Set([...authors.map((a) => a?.userId), ...rows.map(({ c }) => (c.incoming as Side).userId)].filter((x): x is string => !!x))];
 	const users = userIds.length ? await db.select({ id: schema.appUser.id, name: schema.appUser.name }).from(schema.appUser).where(inArray(schema.appUser.id, userIds)) : [];
 	const userName = new Map(users.map((u) => [u.id, u.name]));

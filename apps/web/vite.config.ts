@@ -15,6 +15,8 @@ export default defineConfig({
 			// from the Host header with protocol "https", so plain-http deployments fail Kit's CSRF check.
 			// Set ORIGIN at BUILD time (e.g. `ORIGIN=http://localhost:5210 npx vite build`) when not behind TLS.
 			paths: { origin: process.env.ORIGIN || undefined },
+			// Registered only by the field app and the join page (#lib/field/registerSw.ts), not on public pages.
+			serviceWorker: { register: false },
 			// Content-Security-Policy on every page (docs/architecture/04 §5). SvelteKit adds a nonce or hash
 			// for its own inline scripts. 'wasm-unsafe-eval': the QR scanner (zxing-wasm). Inline styles:
 			// Svelte's style attributes and transitions. /media sends its own stricter policy.

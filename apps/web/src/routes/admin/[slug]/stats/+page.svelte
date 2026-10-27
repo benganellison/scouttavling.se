@@ -6,7 +6,7 @@
 
 	let { data } = $props();
 
-	const live = new LiveStream(() => ({ url: `/api/v1/live/${data.comp.slug}/events`, depends: `live:${data.comp.slug}`, debounceMs: 3000 }));
+	const live = new LiveStream(() => ({ url: `/api/v1/live/${data.comp.slug}/events`, depends: `live:${data.comp.slug}`, debounceMs: 3000, maxWaitMs: 10_000, minIntervalMs: 10_000 }));
 	const s = $derived(data.stats);
 	const pay = $derived(s.payments);
 	const kr = (n: number) => `${n.toLocaleString('sv-SE')} kr`;

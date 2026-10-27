@@ -10,6 +10,10 @@ export interface LiveOptions {
 	events?: string[];
 	onEvent?: (type: string, data: unknown) => void;
 	debounceMs?: number;
+	/** Refresh at the latest this long after the first unhandled change, even if changes keep coming. */
+	maxWaitMs?: number;
+	/** Never refresh more often than this (heavy pages: the dashboard, statistics). */
+	minIntervalMs?: number;
 	/** Also invalidate on a timer so "x min sedan" texts stay fresh. */
 	refreshMs?: number;
 }
@@ -43,10 +47,24 @@ export class LiveStream {
 		let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 		const refreshTimer = o.refreshMs && o.depends ? setInterval(() => invalidate(o.depends!), o.refreshMs) : undefined;
 
+		// Trailing debounce, but with a ceiling (maxWait) so a steady stream of changes still refreshes
+		// the page, and a floor (minInterval) so a busy competition does not reload it constantly.
+		let firstPending: number | null = null;
+		let lastRun = 0;
+		const run = () => {
+			firstPending = null;
+			lastRun = Date.now();
+			void invalidate(o.depends!);
+		};
 		const schedule = () => {
 			if (!o.depends) return;
+			const now = Date.now();
+			firstPending ??= now;
 			clearTimeout(debounceTimer);
-			debounceTimer = setTimeout(() => invalidate(o.depends!), o.debounceMs ?? 250);
+			const debounce = now + (o.debounceMs ?? 250);
+			const ceiling = firstPending + (o.maxWaitMs ?? 3000);
+			const floor = lastRun + (o.minIntervalMs ?? 1500);
+			debounceTimer = setTimeout(run, Math.max(Math.min(debounce, ceiling), floor) - now);
 		};
 
 		const handler = (type: string) => (e: MessageEvent) => {

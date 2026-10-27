@@ -6,6 +6,7 @@ import { and, eq } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
 import { NO_STORE, missLimiter, patrolByFollowToken } from '#lib/server/registration.ts';
 import { formatTime, getResults, loadStations, stationAppliesTo } from '#lib/server/live.ts';
+import { cachedForCompetition } from '#lib/server/compCache.ts';
 
 /**
  * "Följ patrullen": read-only live view of one patrol for leaders and parents.
@@ -27,11 +28,12 @@ export async function load({ params, setHeaders, getClientAddress, depends }) {
 	setHeaders(NO_STORE);
 	const { patrol, comp } = row;
 	const compInfo = { name: comp.name, slug: comp.slug, status: comp.status, publicResults: comp.publicResults };
-	const branding = await loadBranding(comp);
+	// Shared by every follower of the competition (each polls every 10 s): cached per competition.
+	const branding = await cachedForCompetition(`branding:${comp.id}`, comp.id, 30_000, () => loadBranding(comp));
 	if (!comp.followEnabled) return { enabled: false as const, comp: compInfo, branding };
 
 	const [stations, scores, events, track] = await Promise.all([
-		loadStations(comp.id),
+		cachedForCompetition(`stations:${comp.id}`, comp.id, 10_000, () => loadStations(comp.id)),
 		db
 			.select({ itemId: schema.score.itemId, points: schema.score.points, stylePoints: schema.score.stylePoints, updatedAt: schema.score.updatedAt })
 			.from(schema.score)

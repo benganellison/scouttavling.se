@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, ne, or, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, ne, or, sql } from 'drizzle-orm';
 import { db, schema } from './db/index.ts';
 import { recordChange } from './changes.ts';
 import { clearUploader } from './assetStore.ts';
@@ -49,7 +49,9 @@ export async function anonymiseCompetition(competitionId: string, actor?: Actor)
 		if (!comp) throw new Error('Tävlingen finns inte');
 		if (comp.status !== 'closed') throw new Error('Bara en avslutad tävling kan arkiveras');
 		const patrolIds = (await tx.select({ id: schema.patrol.id }).from(schema.patrol).where(eq(schema.patrol.competitionId, competitionId))).map((p) => p.id);
-		const scoreIds = (await tx.select({ id: schema.score.id }).from(schema.score).where(eq(schema.score.competitionId, competitionId))).map((s) => s.id);
+		// Subqueries, not id lists: a big hajk has ~36 000 scores, more than a query may carry as parameters.
+		const patrolsOf = sql`(select ${schema.patrol.id} from ${schema.patrol} where ${schema.patrol.competitionId} = ${competitionId})`;
+		const scoresOf = sql`(select ${schema.score.id} from ${schema.score} where ${schema.score.competitionId} = ${competitionId})`;
 
 		// Patrol links: keep only "this hash belonged to that edition" so old links can say it is archived.
 		const links = await tx
@@ -67,19 +69,15 @@ export async function anonymiseCompetition(competitionId: string, actor?: Actor)
 			.update(schema.patrol)
 			.set({ contactName: null, contactPhone: null, contactEmail: null, contactMemberNo: null, followTokenHash: null, followTokenEnc: null, manageTokenHash: null })
 			.where(eq(schema.patrol.competitionId, competitionId));
-		if (patrolIds.length) {
-			await tx.delete(schema.member).where(inArray(schema.member.patrolId, patrolIds));
-			await tx.update(schema.statusEvent).set({ deviceId: null, userId: null }).where(inArray(schema.statusEvent.patrolId, patrolIds));
-		}
+		await tx.delete(schema.member).where(sql`${schema.member.patrolId} in ${patrolsOf}`);
+		await tx.update(schema.statusEvent).set({ deviceId: null, userId: null }).where(sql`${schema.statusEvent.patrolId} in ${patrolsOf}`);
 
 		// Scores: points and style stay; who/why goes.
 		await tx.update(schema.score).set({ note: null, userId: null, deviceId: null }).where(eq(schema.score.competitionId, competitionId));
-		if (scoreIds.length) {
-			await tx
-				.update(schema.scoreRevision)
-				.set({ reason: null, userId: null, deviceId: null, commandId: null })
-				.where(inArray(schema.scoreRevision.scoreId, scoreIds));
-		}
+		await tx
+			.update(schema.scoreRevision)
+			.set({ reason: null, userId: null, deviceId: null, commandId: null })
+			.where(sql`${schema.scoreRevision.scoreId} in ${scoresOf}`);
 		await tx
 			.update(schema.scoreConflict)
 			.set({

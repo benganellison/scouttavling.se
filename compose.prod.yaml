@@ -67,7 +67,7 @@ services:
       - traefik.http.routers.scouttavling.rule=Host(`${DOMAIN:?Set DOMAIN}`)
       - traefik.http.routers.scouttavling.entrypoints=websecure
       - traefik.http.routers.scouttavling.tls.certresolver=le
-      - traefik.http.routers.scouttavling.middlewares=scouttavling-headers
+      - traefik.http.routers.scouttavling.middlewares=scouttavling-headers,scouttavling-compress
       - traefik.http.services.scouttavling.loadbalancer.server.port=3000
       # www.<DOMAIN> → <DOMAIN> (permanent, path and query kept). Needs a DNS record for www too;
       # it gets its own certificate. Every other subdomain gets no answer from this stack.
@@ -80,6 +80,8 @@ services:
       - traefik.http.middlewares.scouttavling-www-redirect.redirectregex.replacement=https://$${1}$${2}
       - traefik.http.middlewares.scouttavling-www-redirect.redirectregex.permanent=true
       - traefik.http.services.scouttavling.loadbalancer.healthcheck.path=/healthz
+      # Compress HTML/JSON (patrol packs, results); never live streams, which must not be buffered.
+      - traefik.http.middlewares.scouttavling-compress.compress.excludedcontenttypes=text/event-stream
       - traefik.http.middlewares.scouttavling-headers.headers.stsSeconds=31536000
       - traefik.http.middlewares.scouttavling-headers.headers.stsIncludeSubdomains=true
       - traefik.http.middlewares.scouttavling-headers.headers.contentTypeNosniff=true

@@ -170,6 +170,8 @@ interface CacheEntry {
 }
 const g = globalThis as unknown as { __liveResultsCache?: Map<string, CacheEntry>; __liveHub?: Hub };
 const resultsCache = (g.__liveResultsCache ??= new Map());
+/** Competitions whose results are kept in memory (each up to ~1 MB with points per station). */
+const RESULTS_CACHE_MAX = 50;
 
 /** Latest change_log seq for a competition (0 when nothing has been logged). */
 export async function latestSeq(competitionId: string): Promise<number> {
@@ -182,11 +184,17 @@ export async function latestSeq(competitionId: string): Promise<number> {
  * every `maxStaleMs` (10 s for public pages, 0 for organiser pages). Entries
  * older than a minute are refreshed anyway (covers writes outside change_log).
  */
-export async function getResults(comp: Pick<CompRow, 'id' | 'styleEnabled'>, maxStaleMs = 0): Promise<{ seq: number; tracks: TrackResults[] }> {
+export async function getResults(comp: Pick<CompRow, 'id' | 'styleEnabled'> & { status?: string }, maxStaleMs = 0): Promise<{ seq: number; tracks: TrackResults[] }> {
 	const seq = await latestSeq(comp.id);
 	const hit = resultsCache.get(comp.id);
 	const age = hit ? Date.now() - hit.at : Infinity;
-	if (hit && age < 60_000 && (hit.seq === seq || age < maxStaleMs)) return { seq: hit.seq, tracks: hit.data };
+	// A closed competition's results do not change without a change_log entry: no 1-minute expiry.
+	const fresh = age < 60_000 || comp.status === 'closed';
+	if (hit && fresh && (hit.seq === seq || age < maxStaleMs)) {
+		resultsCache.delete(comp.id); // least recently used goes first when the cache is full
+		resultsCache.set(comp.id, hit);
+		return { seq: hit.seq, tracks: hit.data };
+	}
 	// Single flight: many open result streams after one score share one computation.
 	const key = `${comp.id}:${seq}`;
 	let running = computing.get(key);
@@ -195,6 +203,7 @@ export async function getResults(comp: Pick<CompRow, 'id' | 'styleEnabled'>, max
 			try {
 				const data = computeResults(await loadResultsInput(comp));
 				resultsCache.set(comp.id, { seq, at: Date.now(), data });
+				while (resultsCache.size > RESULTS_CACHE_MAX) resultsCache.delete(resultsCache.keys().next().value!);
 				return data;
 			} finally {
 				computing.delete(key);
@@ -211,7 +220,9 @@ const computing = new Map<string, Promise<TrackResults[]>>();
  * every change, so one client cannot hold thousands open (the admin stream needs a login).
  */
 const streams = { total: 0, byClient: new Map<string, number>() };
-export const STREAM_LIMITS = { perClient: 8, total: 4000 };
+// perClient is high on purpose: mobile operators put many users behind one IPv4 address (CGNAT),
+// and a whole camp may share one Wi-Fi address. The total cap protects the server.
+export const STREAM_LIMITS = { perClient: 200, total: 4000 };
 /** Reserves a slot for a public stream; null when over a limit. Call the returned release on close. */
 export function acquireStream(client: string): (() => void) | null {
 	const mine = streams.byClient.get(client) ?? 0;

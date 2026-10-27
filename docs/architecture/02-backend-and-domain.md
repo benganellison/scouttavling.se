@@ -501,3 +501,25 @@ Fixed, each with a test (`scores.db.test.ts` reproduces the races against Postgr
 - Concurrent creation of patrols by hand can hit the unique number (an error, nothing lost).
 - Prize-ceremony snapshots live in process memory (one app instance in v0.1).
 - A new event logo or cover reaches phones at their next snapshot refresh, not instantly.
+
+## 12. Performance review 2026-10-27 (before v0.1.0)
+
+Sized for one VPS and one app instance: ~300 patrols, ~40 stations, ~60 phones, ~1000 parents on the public results at once.
+
+| Finding | Fix |
+|---|---|
+| Public live results: every open stream computed and serialised the results itself | One shared frame per competition, rebuilt only when a stream needs a newer change, at most every 2 s; every viewer gets the same string. |
+| Phones downloaded the full pack (~200 KB) on every change anywhere in the competition | A station phone gets "unchanged" unless something concerning it changed (competition, stations, patrols, messages, scores at its stations); the phone moves its cursor on and rewrites only score rows whose version changed. The start & finish desk still follows every change. |
+| Missing indexes on hot paths (snapshot scores by item, revisions, status events, conflicts, commands, devices, members, messages) | Migration `0002_hot_path_indexes`; the snapshot query also filters on the competition. |
+| Pool of 10 and the competition's change lock: a sync burst could starve every page and fail `/healthz` (Traefik would drop the only instance) | Pool 20 with `lock_timeout` 5 s / `statement_timeout` 30 s; `/healthz` on its own connection; at most 2 concurrent syncs per competition (others get 503 and back off). |
+| Per-client limits would refuse parents behind one mobile-operator address (CGNAT) or a camp Wi-Fi | 200 streams per address (4000 in total); only the join POST is limited (300 / 10 min). |
+| Follow pages and public statistics recomputed per request | `cachedForCompetition`: reused while nothing changed, or for 10–30 s under load; bounded. |
+| No compression | Traefik `compress` (live streams excluded, verified unbuffered). |
+| Admin pages' live refresh never fired under steady change, or fired constantly | Debounce with a ceiling (`maxWaitMs`) and a floor (`minIntervalMs`); statistics at most every 10 s, the dashboard every 2 s. |
+| The service worker installed (and precached ~1 MB) for every visitor | Registered only by the field app and the join page. |
+| `/media` read up to 2 MB before answering 304 | Metadata first; bytes from a 32 MB in-process LRU (ids never change). |
+| Results cache unbounded; closed competitions recomputed every minute | LRU of 50; no expiry for closed competitions while nothing changes. |
+| Phone outbox reread in full after a long day | Settled reports older than two hours are pruned (never one a waiting report builds on). |
+| "Ta bort personuppgifter" passed ~36 000 ids as parameters (limit 65 535); conflicts page one query per conflict; import one change entry per row | Subqueries; one query; one change entry per import. |
+
+Not measured: real query plans (EXPLAIN) and a load test; both are worth doing on the production host before the first big event.

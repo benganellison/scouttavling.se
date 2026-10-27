@@ -269,7 +269,9 @@ test('fix: conflicts name the reporter; a report after closing is kept for HQ, w
 	await card.getByRole('button', { name: 'Behåll' }).click();
 
 	// Close the competition: a late report is not dropped but kept for HQ ("Granskas av HQ"), plus a banner.
+	// Like the "Avsluta tävlingen" button: the status change and a change entry (phones refetch on it).
 	await sql`update competition set status = 'closed' where slug = ${SLUG}`;
+	await sql`insert into change_log (competition_id, kind, entity_id) select id, 'competition', id from competition where slug = ${SLUG}`;
 	await p.goto(`/f/${SLUG}`);
 	await score(133);
 	await p.goto(`/f/${SLUG}`);
