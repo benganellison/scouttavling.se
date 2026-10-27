@@ -17,7 +17,7 @@
  *   --commit                write it (one transaction; nothing is written on any error)
  *
  * The connection string is read from GOKAPP_SOURCE so the password never shows in the process
- * list or shell history. Only allowlisted columns are read (READS in gokappImport.ts): no members,
+ * list or shell history. Only allowlisted columns are read (FIELDS in gokappImport.ts, any gokapp version): no members,
  * contacts, notes or payments. Production: run inside the app container (DATABASE_URL is set).
  */
 import postgres from 'postgres';
@@ -57,8 +57,8 @@ const opts = {
 	ownerMemberNo: owner, withTimes: !flag('no-times'), operator
 };
 
-// DATETIME columns are read as UTC; only differences between them are used (times between stations).
-const my = await mysql.createConnection({ uri: source, timezone: 'Z', dateStrings: false });
+// gokapp stores Swedish wall-clock time (LocalDateTime): read it as text, convert in gokappImport.ts.
+const my = await mysql.createConnection({ uri: source, dateStrings: true });
 const pg = postgres(process.env.DATABASE_URL, { max: 1, onnotice: () => {} });
 try {
 	const data = await readGokapp(my);
@@ -68,7 +68,12 @@ try {
 	const p = plan(data, { ...opts, seriesName: existing?.name ?? opts.seriesName! }).plan;
 	console.log(`\n${p.name}  →  /t/${series} (år ${year}), adress /r/${p.slug}`);
 	console.log(`${existing ? 'Befintlig serie' : 'Ny serie'}: ${existing?.name ?? opts.seriesName} (/t/${series})`);
-	console.log(`Datum: ${p.date ?? '(okänt, ange --date)'}${p.dateGuessed && p.date ? ' (gissat från när poängen sparades)' : ''}`);
+	if (p.days.length > 1) {
+		console.log(`Dagar: ${p.days.join(', ')} (flera dagar, utlästa från när poängen sparades; --date gör det till en dag)`);
+		const per = new Map<string, string[]>();
+		for (const [st, d] of Object.entries(p.stationDays)) per.set(d, [...(per.get(d) ?? []), st]);
+		for (const d of p.days) console.log(`  ${d}: ${(per.get(d) ?? []).join(', ') || '(inga kontroller)'}`);
+	} else console.log(`Datum: ${p.date ?? '(okänt, ange --date)'}${p.dateGuessed && p.date ? ' (gissat från när poängen sparades)' : ''}`);
 	if (p.date && Number(p.date.slice(0, 4)) !== year) console.log(`VARNING: datumet ${p.date} är inte år ${year}. Stämmer --year? Ange annars --date.`);
 	console.log(`${p.stations} kontroller, ${p.patrols} patruller, ${p.scores} poäng, ${p.timedScores} med tid`);
 	for (const c of p.classes) {

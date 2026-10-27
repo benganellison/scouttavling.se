@@ -4,6 +4,8 @@
 *.xlsx
 *.csv
 *.ods
+# Local copies of real databases (e.g. the old Hajk-DM gokapp MySQL). Personal data: never commit.
+.local-data/
 # …but SvelteKit route folders named like a file (e.g. results.csv/+server.ts) are code.
 !apps/web/src/routes/**/*.csv/
 

@@ -127,6 +127,20 @@ describe('station codes', () => {
 		const m = stationCodes(st, days);
 		expect(st.map((s) => m.get(s.id))).toEqual(['FS', 'F1', 'FM', 'L1', 'LM']);
 	});
+	it('never gives out a code someone typed by hand', () => {
+		const days = [{ id: 'f', prefix: 'F' }, { id: 'l', prefix: 'L' }];
+		const st = [
+			{ id: '1', dayId: 'l', order: 1, name: 'Kartan' },
+			{ id: '2', dayId: 'l', order: 2, name: 'Kanoten', customCode: 'L1' },
+			{ id: '3', dayId: 'l', order: 3, name: 'Knopar', customCode: 'L2' },
+			{ id: '4', dayId: 'l', order: 4, name: 'Eldning' }
+		];
+		const m = stationCodes(st, days);
+		expect(st.map((s) => m.get(s.id))).toEqual(['L3', 'L1', 'L2', 'L4']);
+		// Single day: K-numbers by order, skipping a hand-typed K-code.
+		const one = stationCodes([{ id: 'a', dayId: null, order: 1, name: 'A', customCode: 'K3' }, { id: 'b', dayId: null, order: 2, name: 'B' }, { id: 'c', dayId: null, order: 3, name: 'C' }], []);
+		expect(['a', 'b', 'c'].map((id) => one.get(id))).toEqual(['K3', 'K2', 'K4']);
+	});
 	it('derives a role from the name (case-insensitive)', () => {
 		expect([roleFromName('Fredag START'), roleFromName('Lördag Mål '), roleFromName('Målgång'), roleFromName('Eldstaden')]).toEqual(['start', 'finish', null, null]);
 	});

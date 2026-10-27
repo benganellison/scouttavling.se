@@ -53,7 +53,7 @@ describe.skipIf(!PG || !MY)('gokapp import (MySQL → Postgres)', () => {
 		await admin.query(readFileSync(fileURLToPath(new URL('../../../e2e/fixtures/gokapp-invented.sql', import.meta.url)), 'utf8'));
 
 		await sql`insert into app_user (member_no, name) values (${memberNo}, 'Importör Påhittad')`;
-		const source = await mysql.createConnection({ uri: `${MY}/${myDb}`, timezone: 'Z' });
+		const source = await mysql.createConnection({ uri: `${MY}/${myDb}`, dateStrings: true });
 		const data = await readGokapp(source);
 		await source.end();
 		const r = await writeImport(sql, data, {
@@ -85,7 +85,7 @@ describe.skipIf(!PG || !MY)('gokapp import (MySQL → Postgres)', () => {
 	});
 
 	it('refuses the same year twice and writes nothing', async () => {
-		const source = await mysql.createConnection({ uri: `${MY}/${myDb}`, timezone: 'Z' });
+		const source = await mysql.createConnection({ uri: `${MY}/${myDb}`, dateStrings: true });
 		const data = await readGokapp(source);
 		await source.end();
 		const before = await sql`select count(*)::int n from competition`;

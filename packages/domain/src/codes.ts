@@ -32,21 +32,39 @@ export function roleFromName(name: string): StationRole | null {
  * Multi-day: per day, a station with role start gets <prefix>S, role finish gets
  * <prefix>M and the rest are numbered: FS F1 F2 FM / LS L1 … LM. Without an
  * explicit role the name decides ("… start" / "… mål").
- * A custom code always wins.
+ * A custom code always wins, and numbering skips custom codes on the same day.
  */
 export function stationCodes(stations: CodeStation[], days: CodeDay[]): Map<string, string> {
 	const out = new Map<string, string>();
 	const ordered = [...stations].sort((a, b) => a.order - b.order);
 	if (days.length <= 1) {
-		ordered.forEach((s, i) => out.set(s.id, s.customCode || `K${i + 1}`));
+		const taken = new Set(ordered.map((st) => st.customCode).filter(Boolean));
+		const used = new Set<string>();
+		ordered.forEach((s, i) => {
+			let n = i + 1;
+			while (!s.customCode && (taken.has(`K${n}`) || used.has(`K${n}`))) n++;
+			const code = s.customCode || `K${n}`;
+			used.add(code);
+			out.set(s.id, code);
+		});
 		return out;
 	}
 	for (const day of days) {
 		let n = 0;
-		for (const s of ordered.filter((st) => st.dayId === day.id)) {
+		const mine = ordered.filter((st) => st.dayId === day.id);
+		// Numbers skip codes someone typed by hand, so "L1" is never given out twice.
+		const taken = new Set(mine.map((st) => st.customCode).filter(Boolean));
+		for (const s of mine) {
+			if (s.customCode) {
+				out.set(s.id, s.customCode);
+				continue;
+			}
 			const role = s.role !== undefined ? s.role : roleFromName(s.name);
-			const code = role === 'start' ? `${day.prefix}S` : role === 'finish' ? `${day.prefix}M` : `${day.prefix}${++n}`;
-			out.set(s.id, s.customCode || code);
+			let code: string;
+			if (role === 'start') code = `${day.prefix}S`;
+			else if (role === 'finish') code = `${day.prefix}M`;
+			else do code = `${day.prefix}${++n}`; while (taken.has(code));
+			out.set(s.id, code);
 		}
 	}
 	for (const s of ordered) if (!out.has(s.id)) out.set(s.id, s.customCode || '?');

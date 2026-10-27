@@ -10,6 +10,8 @@
 **/*.xlsx
 **/*.csv
 **/*.ods
+.local-data
+**/.db-backups
 .git
 docs
 apps/web/e2e

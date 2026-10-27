@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NEVER_READ, READS, plan, readGokapp, type GokappData } from './gokappImport.ts';
+import { buildReads, COLUMNS_QUERY, FIELDS, NEVER_READ, plan, readGokapp, stationNaming, type GokappData } from './gokappImport.ts';
 
 /** Invented gokapp data: two classes, a waypoint, a distinct station, a tie, a withdrawn patrol. */
 function data(): GokappData {
@@ -38,25 +38,70 @@ function data(): GokappData {
 
 const OPTS = { series: 'pahittade-hajken', seriesName: 'Påhittade Hajken', year: 2023, withTimes: true };
 
+/** Column names as information_schema reports them: today's gokapp and the 2023 version. */
+const CURRENT: Record<string, string[]> = {
+	config: ['id', 'name', 'allowpublicresult', 'phone', 'use_qr'],
+	track: ['id', 'name'],
+	station: ['id', 'stationnumber', 'stationname', 'alltracks', 'minscore', 'maxscore', 'minstylescore', 'maxstylescore', 'stationcontact', 'stationphone', 'waypoint', 'usedistinctscores', 'distinctscores', 'user_id'],
+	station_track: ['station_id', 'tracks_id'],
+	patrol: ['patrolid', 'externalid', 'patrolname', 'troop', 'fk_track', 'starttime', 'endtime', 'members', 'note', 'leadercontact', 'contactmail', 'leadercontactphone', 'status', 'date_registered', 'paid', 'fk_station'],
+	score: ['id', 'station_id', 'patrol_id', 'score_point', 'style_point', 'visited_waypoint', 'last_saved'],
+	users: ['id', 'username', 'password']
+};
+const V2023: Record<string, string[]> = {
+	config: ['id', 'allowpublicresult', 'name', 'phone'],
+	track: ['trackid', 'trackname'],
+	station: ['stationid', 'maxscore', 'maxstylescore', 'minscore', 'minstylescore', 'stationcontact', 'stationname', 'stationnumber', 'stationphone', 'stationuser', 'waypoint'],
+	patrol: ['patrolid', 'date_registered', 'endtime', 'externalid', 'leadercontact', 'contactmail', 'leaderContactPhone', 'members', 'note', 'paid', 'patrolname', 'starttime', 'status', 'troop', 'fk_station', 'fk_track'],
+	score: ['scoreid', 'lastSaved', 'scorepoint', 'stylepoint', 'visitedWaypoint', 'fk_patrol', 'fk_station'],
+	users: ['id', 'username', 'password']
+};
+const cols = (v: Record<string, string[]>) => Object.entries(v).flatMap(([t, cs]) => cs.map((c) => ({ t, c })));
+
 describe('gokapp import: what is read', () => {
-	it('never selects a column that holds personal data', () => {
-		for (const q of Object.values(READS)) {
-			const words = q.toLowerCase().match(/[a-z_]+/g)!;
-			expect(q).not.toMatch(/\*/);
-			for (const col of NEVER_READ) expect(words, `${col} in "${q}"`).not.toContain(col);
-		}
+	it('no allowlisted column name holds personal data', () => {
+		for (const fields of Object.values(FIELDS)) for (const { cols: names } of Object.values(fields)) for (const n of names) expect(NEVER_READ).not.toContain(n.toLowerCase());
 	});
-	it('runs exactly the allowlisted queries and maps MySQL BIT(1) buffers', async () => {
+	for (const [name, version] of [['current', CURRENT], ['2023', V2023]] as const) {
+		it(`builds SELECTs without a personal column for the ${name} schema`, () => {
+			const reads = buildReads(cols(version));
+			expect(Object.keys(reads).sort()).toEqual(name === '2023' ? ['config', 'patrol', 'score', 'station', 'track'] : ['config', 'patrol', 'score', 'station', 'station_track', 'track']);
+			for (const q of Object.values(reads)) {
+				expect(q).not.toMatch(/\*/);
+				const words = q!.toLowerCase().match(/[a-z_]+/g)!;
+				for (const col of NEVER_READ) expect(words, `${col} in "${q}"`).not.toContain(col);
+			}
+		});
+	}
+	it('maps the 2023 names and refuses a database without gokapp tables', () => {
+		expect(buildReads(cols(V2023)).score).toBe('SELECT `fk_patrol` AS `patrol_id`, `fk_station` AS `station_id`, `scorepoint` AS `score_point`, `stylepoint` AS `style_point`, `visitedWaypoint` AS `visited_waypoint`, `lastSaved` AS `last_saved` FROM `score`');
+		expect(() => buildReads([{ t: 'foo', c: 'id' }])).toThrow(/track/);
+	});
+	it('reads a 2023 database: only the column list and the built SELECTs, BIT(1) as booleans', async () => {
 		const asked: string[] = [];
-		const rows: Record<string, unknown[]> = {
-			[READS.config]: [{ name: 'X' }], [READS.tracks]: [], [READS.stationTracks]: [], [READS.patrols]: [],
-			[READS.stations]: [{ id: 1, stationnumber: 1, stationname: 'A', alltracks: Buffer.from([1]), minscore: 0, maxscore: 20, minstylescore: 0, maxstylescore: 5, waypoint: Buffer.from([0]), usedistinctscores: Buffer.from([0]), distinctscores: null }],
-			[READS.scores]: [{ patrol_id: 1, station_id: 1, score_point: 5, style_point: 1, visited_waypoint: Buffer.from([1]), last_saved: null }]
-		};
-		const d = await readGokapp({ query: async (sql: string) => (asked.push(sql), [rows[sql] ?? [], []]) });
-		expect(asked.sort()).toEqual(Object.values(READS).sort());
-		expect(d.stations[0]).toMatchObject({ alltracks: true, waypoint: false, usedistinctscores: false });
+		const reads = buildReads(cols(V2023));
+		const rows = new Map<string, unknown[]>([
+			[COLUMNS_QUERY, cols(V2023)],
+			[reads.config!, [{ name: 'X' }]], [reads.track!, [{ id: 1, name: 'Spårare' }]], [reads.patrol!, []],
+			[reads.station!, [{ id: 1, stationnumber: 1, stationname: 'A', minscore: 0, maxscore: 20, minstylescore: 0, maxstylescore: 5, waypoint: Buffer.from([0]) }]],
+			[reads.score!, [{ patrol_id: 1, station_id: 1, score_point: 5, style_point: 1, visited_waypoint: Buffer.from([1]), last_saved: null }]]
+		]);
+		const d = await readGokapp({ query: async (sql: string) => (asked.push(sql), [rows.get(sql) ?? [], []]) });
+		expect(asked.sort()).toEqual([COLUMNS_QUERY, ...Object.values(reads)].sort());
+		// Columns the 2023 version did not have: every station for every class, no distinct values.
+		expect(d.stations[0]).toMatchObject({ alltracks: true, waypoint: false, usedistinctscores: null, distinctscores: null });
+		expect(d.stationTracks).toEqual([]);
 		expect(d.scores[0].visited_waypoint).toBe(true);
+	});
+});
+
+describe('gokapp import: station names', () => {
+	it('takes a code from the name and the start/finish role from "Start"/"Mål"', () => {
+		expect(stationNaming('F1 Eldstaden')).toEqual({ name: 'Eldstaden', code: 'F1', role: null });
+		expect(stationNaming('Lördag Start')).toEqual({ name: 'Lördag Start', code: null, role: 'start' });
+		expect(stationNaming('Söndag Mål!')).toEqual({ name: 'Söndag Mål!', code: null, role: 'finish' });
+		expect(stationNaming('Målgång och Startgrop')).toEqual({ name: 'Målgång och Startgrop', code: null, role: null });
+		expect(stationNaming('Eldstaden')).toEqual({ name: 'Eldstaden', code: null, role: null });
 	});
 });
 
@@ -75,6 +120,18 @@ describe('gokapp import: plan', () => {
 		expect(p.classes[0].podium.map((r) => r.place)).toEqual([1, 1]);
 		expect(p.classes[1].podium.map((r) => r.number)).toEqual([201, 202]);
 		expect(p.timedScores).toBe(7);
+	});
+	it('a hajk over several days gets days, and each station the day most of its scores were saved', () => {
+		const d = data();
+		const day2 = (s: (typeof d.scores)[number]) => ({ ...s, last_saved: new Date(s.last_saved!.getTime() + 86400_000) });
+		// Kartan-like: everything at Nödbrev (id 12) and the waypoint (11) happened the next day.
+		d.scores = d.scores.map((s) => (s.station_id === 12 || s.station_id === 11 ? day2(s) : s));
+		const { plan: p, built } = plan(d, OPTS);
+		expect(p.days).toEqual(['2023-05-13', '2023-05-14']);
+		expect(p.stationDays).toEqual({ Eldstaden: '2023-05-13', Rastplats: '2023-05-14', Nödbrev: '2023-05-14' });
+		expect(built.stationDay.get(10)).toBe('2023-05-13');
+		// --date makes it one day.
+		expect(plan(d, { ...OPTS, date: '2023-05-13' }).plan.days).toEqual(['2023-05-13']);
 	});
 	it('can leave the times out and take the date from the command line', () => {
 		const { plan: p } = plan(data(), { ...OPTS, withTimes: false, date: '2023-05-14' });

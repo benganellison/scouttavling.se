@@ -106,3 +106,41 @@ export function gokappComparator(scores: OracleScore[], stations: Map<string, { 
 		return c;
 	};
 }
+
+/**
+ * gokapp stores Java LocalDateTime: wall-clock time without a zone, as on the organisers' clocks.
+ * "2023-09-22 18:40:48" in Swedish time → the right instant (DST-aware).
+ */
+export function fromWallClock(s: string, timeZone = 'Europe/Stockholm'): Date | null {
+	const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/.exec(s);
+	if (!m) return null;
+	const [y, mo, d, h, mi, se] = m.slice(1).map((x) => Number(x ?? 0));
+	const guess = Date.UTC(y, mo - 1, d, h, mi, se || 0);
+	const offset = (t: number) => {
+		const p = Object.fromEntries(
+			new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+				.formatToParts(new Date(t))
+				.map((x) => [x.type, x.value])
+		);
+		return Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute), Number(p.second)) - t;
+	};
+	let t = guess - offset(guess);
+	t = guess - offset(t); // second pass settles DST changes
+	return new Date(t);
+}
+
+/**
+ * The competition days: Swedish dates that hold at least `minShare` of the score saves (a
+ * correction made a week later does not make the competition a week long), first to last.
+ */
+export function competitionDays(saved: (Date | null)[], minShare = 0.03, timeZone = 'Europe/Stockholm'): string[] {
+	const fmt = new Intl.DateTimeFormat('sv-SE', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' });
+	const counts = new Map<string, number>();
+	let n = 0;
+	for (const d of saved) if (d) (counts.set(fmt.format(d), (counts.get(fmt.format(d)) ?? 0) + 1), n++);
+	return [...counts].filter(([, c]) => c >= n * minShare).map(([d]) => d).sort();
+}
+
+/** Swedish date of an instant (for placing a station on a day). */
+export const swedishDate = (d: Date, timeZone = 'Europe/Stockholm') =>
+	new Intl.DateTimeFormat('sv-SE', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
