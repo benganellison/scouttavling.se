@@ -1,1 +1,0 @@
-ALTER TABLE "competition" ADD COLUMN "station_results_live" boolean DEFAULT false NOT NULL;

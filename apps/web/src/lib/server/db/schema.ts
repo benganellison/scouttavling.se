@@ -502,7 +502,7 @@ export const siteAdminAccess = pgTable(
 
 /**
  * Append-only audit log (owner changes, site-admin actions, personal-data removal). A trigger
- * rejects UPDATE/DELETE/TRUNCATE (migration 0008). No foreign keys on purpose: rows outlive the
+ * rejects UPDATE/DELETE/TRUNCATE (trigger in 0000_initial.sql). No foreign keys on purpose: rows outlive the
  * users and competitions they mention, and a cascading delete would be an UPDATE/DELETE.
  * Only ids are stored; names are looked up at read time. `reason` must never contain patrol member names.
  */

@@ -12,6 +12,8 @@ Every schema change goes through this document. If something here is unclear or 
 | `__drizzle_migrations` table | Which migrations a database has already applied (one row per file, keyed by hash). |
 | `apps/web/scripts/migrate.ts` | Applies pending migrations in order, each in a transaction. Idempotent: already-applied files are skipped. |
 
+**History starts at `0000_initial.sql`.** Before anything was deployed, the eleven development migrations were collapsed into it (2026-10-27; the resulting schema was diffed against the old chain and is identical apart from column order). From the first deploy on, merged migrations are never edited, collapsed or renumbered.
+
 **Migrations are forward-only.** There are no "down" migrations. Undoing means deploying a fix-forward migration, or restoring a backup (§9).
 
 **Where migrations run:**
@@ -114,7 +116,7 @@ Anything Drizzle can't express goes in a hand-written migration, so it's version
 npx drizzle-kit generate --custom --name=<what>     # creates an empty NNNN_<what>.sql
 ```
 
-- Separate statements with `--> statement-breakpoint` lines (see `0001_change_log_seq_trigger.sql`).
+- Separate statements with `--> statement-breakpoint` lines (see the trigger functions at the end of `0000_initial.sql`).
 - Make it re-runnable where possible (`CREATE OR REPLACE`, `DROP … IF EXISTS`, `WHERE` guards on updates).
 - Data fixes belong here too (e.g. backfills), not in ad-hoc scripts run by hand.
 
@@ -195,6 +197,7 @@ $C up -d --no-deps --wait app
 | CI: "schema.ts has changes without a migration" | Run `npm run db:generate -- --name=…`, review, commit `drizzle/`. |
 | `db-backup: the dev database container is not running` | `docker compose -f compose.dev.yaml up -d`, then retry. |
 | Migration fails locally with a constraint error | Existing data violates the new rule. Add a custom data-fix step (§5, §7), then `npm run db:restore` and retry. |
+| `relation … already exists` right after pulling the collapsed `0000_initial.sql` | Your dev DB still has the old 0000–0010 recorded. `npm run db:reset` (it takes a backup first). |
 | `relation … already exists` | The DB was changed outside migrations (e.g. an old `push`). In dev: `npm run db:reset`. In production: investigate, never reset. |
 | Production: deploy script stopped at "Applying migrations" | The old app is still serving. Read the output, fix forward in a new release. The pre-migrate dump is in the `backups` volume. |
 | Someone ran plain `docker compose up -d` and migrate failed | The app is down. Deploy the previous `APP_IMAGE` with `scripts/deploy.sh` (§11 A). |

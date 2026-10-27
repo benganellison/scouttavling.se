@@ -1,4 +1,4 @@
-/** DEV ONLY: drops and recreates the public schema so `drizzle-kit push` never needs an interactive prompt. */
+/** DEV ONLY: drops and recreates the public schema, so the migrations then run on an empty database. */
 import postgres from 'postgres';
 
 const url = process.env.DATABASE_URL!;

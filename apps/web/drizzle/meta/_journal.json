@@ -5,78 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1792389164526,
+      "when": 1793074243425,
       "tag": "0000_initial",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1792389165391,
-      "tag": "0001_change_log_seq_trigger",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1792441179461,
-      "tag": "0002_public_registration_follow",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1792511340533,
-      "tag": "0003_station_role_patrol_camp",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1792554354333,
-      "tag": "0004_event_branding",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1792929022781,
-      "tag": "0005_competition_series",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1792929041355,
-      "tag": "0006_series_backfill",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1792966575114,
-      "tag": "0007_site_admin_audit",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1792966585022,
-      "tag": "0008_audit_immutable_series_members",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1793047062544,
-      "tag": "0009_station_results_live",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1793049531754,
-      "tag": "0010_stats_times_fees",
       "breakpoints": true
     }
   ]

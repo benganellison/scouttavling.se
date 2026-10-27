@@ -516,7 +516,7 @@ Built in v0.1 (2026-10-26), decided with the product owner. Code: `apps/web/src/
 ### 10.1 Owners manage owners
 
 - A competition (edition) and a series each have **owners** and **organisers** ("Ägare och arrangörer" in Inställningar and on `/admin/series/<slug>`). Owners add a co-owner by member number (the person must have logged in once, same rule as before), change roles (owner ↔ organiser), remove people and **transfer** ownership (the owner becomes organiser). Organisers can add and remove organisers and leave, never touch an owner. Removal and transfer ask for confirmation.
-- Series owners live in `series_member` (owner/organiser). A series without rows is initialised from its editions' owners/organisers (migration 0008 and lazily in `ensureSeriesMembers`, so a series created by an older app version still works). Access to the series page is unchanged (owner/organiser of any edition) plus series members.
+- Series owners live in `series_member` (owner/organiser). A series without rows is initialised lazily from its editions' owners/organisers (`ensureSeriesMembers`). Access to the series page is unchanged (owner/organiser of any edition) plus series members.
 - **Invariant: at least one owner at all times.** `changeMembers()` is the only write path. It locks the competition/series row `FOR UPDATE`, applies a list of operations, re-counts owners from the database and rolls back if none is left. Concurrent demotions are serialised by the lock (tested: two owners leaving at the same time leave exactly one). The UI only explains the rule; the server enforces it.
 
 ### 10.2 Site admin
@@ -545,7 +545,7 @@ Built in v0.1 (2026-10-26), decided with the product owner. Code: `apps/web/src/
 
 ### 10.3 Audit log
 
-- `audit_log` is **append-only**: a trigger (migration 0008) rejects `UPDATE`, `DELETE` and `TRUNCATE`; there is no update/delete path in the app. Columns: `at`, `actor_user_id` (null for the CLI), `actor_kind` (`user`/`site_admin`/`cli`), `action`, `target_type`/`target_id`, `competition_id`, `series_id`, `reason`, `details` (jsonb). No foreign keys, so rows outlive what they mention.
+- `audit_log` is **append-only**: a trigger (in `0000_initial.sql`) rejects `UPDATE`, `DELETE` and `TRUNCATE`; there is no update/delete path in the app. Columns: `at`, `actor_user_id` (null for the CLI), `actor_kind` (`user`/`site_admin`/`cli`), `action`, `target_type`/`target_id`, `competition_id`, `series_id`, `reason`, `details` (jsonb). No foreign keys, so rows outlive what they mention.
 - Logged: every owner/organiser change (A), every site-admin action and CLI grant/revoke, and every "Ta bort personuppgifter" (owner or site admin).
 - **Personal data:** rows store **ids only**; names are looked up when the log is read ("Borttagen användare" when the account is gone). Removing a competition's personal data therefore never needs to touch the log. The free-text **reason must not contain patrol member names**; every reason field says so. This replaces the "pseudonymise the audit log" job in §6.4 for these rows.
 - Read: `/site-admin/audit` (filter by event type, site-admin only, competition/series address, date range); owners see their competition's (and series') entries read-only in Inställningar → Händelselogg.

@@ -22,7 +22,7 @@ Class tabs ("Alla klasser" + each class) filter participation and stations. Poin
 
 Per patrol and day the timed visits are put in time order; each consecutive pair is a **leg** (A → B) with the minutes between the two reports (time spent at the station is included). Legs over the night (across days) are not counted. **Time on course** = first to last timed visit of a patrol on a day. Legs walked by one patrol only are folded away ("Visa N sträckor till …").
 
-`scored_at` contains no personal data and is **kept** by "Ta bort personuppgifter" (tested in `stats.db.test.ts`: statistics are identical before and after). Migration 0010 backfills existing device scores from their first revision's server time (the phone time was not stored before).
+`scored_at` contains no personal data and is **kept** by "Ta bort personuppgifter" (tested in `stats.db.test.ts`: statistics are identical before and after).
 
 ## 3. Fees and payments
 

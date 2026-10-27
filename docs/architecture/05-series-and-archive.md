@@ -24,15 +24,13 @@ Organisers edit the series branding on `/admin/series/<slug>`; an edition's Inst
 
 ### Permissions (kept simple)
 
-A user organises a series when they are **owner or organiser of any of its editions**, or a **series member** (`series_member`, owner/organiser; `requireSeries`). Series members are managed in "Ägare och arrangörer" on the series page; the series always has at least one owner (04 §10.1). A series without member rows starts with its editions' owners/organisers (migration 0008, and lazily). "Skapa nästa år" carries the owners and organisers over to the new edition; HQ and start/finish roles do not (product owner confirmed 2026-10-25; the next-year form says so in one line). Those are day-of roles and are invited again per year.
+A user organises a series when they are **owner or organiser of any of its editions**, or a **series member** (`series_member`, owner/organiser; `requireSeries`). Series members are managed in "Ägare och arrangörer" on the series page; the series always has at least one owner (04 §10.1). A series without member rows starts with its editions' owners/organisers (lazily, `ensureSeriesMembers`). "Skapa nästa år" carries the owners and organisers over to the new edition; HQ and start/finish roles do not (product owner confirmed 2026-10-25; the next-year form says so in one line). Those are day-of roles and are invited again per year.
 
 **Removing personal data is owner-only.** Organisers can do everything else on a closed edition, but `/admin/<slug>/anonymise` (page and action) requires the `owner` role and answers 403 otherwise. The overview shows organisers the reminder card with "Be ägaren (namn) ta bort personuppgifterna" instead of the button. Tested in `e2e/series.e2e.ts` (test 3).
 
-## 2. Migrations (expand only)
+## 2. Migrations
 
-- `0005_competition_series` (generated): `series`, `retired_link`, the four competition columns, `asset.series_id`, `asset.competition_id` nullable, the check constraint. Purely additive.
-- `0006_series_backfill` (custom, re-runnable): each competition without a series joins/creates a series named after its year-stripped name and owner ("GökOpen 2027" → "GökOpen", `gokopen`, `edition_year` 2027; a slug clash with a competition gets `-serie`). Branding is **copied** to the series (newest edition wins; images copied row by row; class colours from the tracks). The edition keeps its own values, so the previous app version (which only reads competition-level branding) is unchanged.
-- **Contract step, later release:** optionally clear edition-level branding that equals the series' copy, so future series changes reach those editions. Until then such editions behave exactly as before (their override equals the series value).
+Series are part of the single `0000_initial.sql` (all migrations before the first deploy were collapsed on 2026-10-27; nothing had been deployed, so no data needed a backfill). The earlier series backfill (one-off competitions joining a series named after their year-stripped name, branding copied to the series) is in git history if an old database ever needs it.
 
 ## 3. "Ny tävling" and "Skapa <Serie> <år+1>"
 
