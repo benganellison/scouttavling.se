@@ -757,7 +757,3 @@ export const hhmm = (t: number | string | null | undefined) =>
 export function shortTroop(troop: string): string {
 	return troop.replace(/s? (sjö)?scoutkår$/i, '').replace(/ scoutkår$/i, '');
 }
-
-export function totalLabel(points: number, style: number, styleOn: boolean): string {
-	return styleOn ? `${points} + ${style} p` : `${points} p`;
-}

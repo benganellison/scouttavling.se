@@ -34,7 +34,7 @@ export { slugify } from '#lib/routing/slugs.ts';
 
 export type CompStatus = 'draft' | 'live' | 'closed';
 
-export const STATUS_LABEL: Record<CompStatus, string> = { draft: 'Utkast', live: 'Live', closed: 'Avslutad' };
+export const COMP_STATUS_LABEL: Record<CompStatus, string> = { draft: 'Utkast', live: 'Live', closed: 'Avslutad' };
 
 /** 1 Före · 2 Tävlingsdag · 3 Efter */
 export function phaseOf(c: { status: CompStatus; startDate: string; endDate: string }, now = new Date()): 1 | 2 | 3 {

@@ -14,7 +14,9 @@
  * Resigned patrols are never touched and finished patrols are never downgraded.
  */
 
-export type PatrolStatusValue = 'registered' | 'active' | 'camp' | 'finished' | 'resigned';
+/** Every patrol status, in the order they are shown (lists, filters, the desk). The one definition. */
+export const PATROL_STATUSES = ['registered', 'active', 'camp', 'finished', 'resigned'] as const;
+export type PatrolStatusValue = (typeof PATROL_STATUSES)[number];
 
 export interface StatusFacts {
 	current: PatrolStatusValue;
@@ -31,6 +33,27 @@ export interface StatusFacts {
 	campDay: number | null;
 	/** Latest day (position) the patrol has been seen at any station (its other active scores). */
 	latestDay?: number | null;
+}
+
+/** A report that sends a patrol to I läger / I mål: a check-in at a finish station, or an AUTO_ON_SCAN item. */
+export const isFinishReport = (r: { role: string | null; mode: string }) => r.role === 'finish' || r.mode === 'AUTO_ON_SCAN';
+
+/**
+ * Undoing the report that sent a patrol to "I läger"/"I mål" (a wrong patrol scanned at Mål) takes
+ * it back: to "På banan" when it has other reports, else "Anmäld". Another finish report that still
+ * stands keeps the status, and so does undoing any other report. Resigned patrols are never touched.
+ * Returns the new status, or null to leave it.
+ */
+export function statusAfterUndo(f: {
+	current: PatrolStatusValue;
+	undone: { role: string | null; mode: string };
+	/** The patrol's active reports after the undo. */
+	remaining: readonly { role: string | null; mode: string }[];
+}): PatrolStatusValue | null {
+	if (f.current !== 'camp' && f.current !== 'finished') return null;
+	if (!isFinishReport(f.undone)) return null;
+	if (f.remaining.some(isFinishReport)) return null;
+	return f.remaining.length ? 'active' : 'registered';
 }
 
 /** The status the patrol should move to, or null to leave it as it is. */

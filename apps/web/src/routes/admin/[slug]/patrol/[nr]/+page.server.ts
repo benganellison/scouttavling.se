@@ -3,7 +3,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { itemDef, writeScore } from '#lib/server/scores.ts';
-import { STATUS_LABEL } from '#lib/ui/patrols/labels.ts';
+import { PATROL_STATUS_LABEL } from '#lib/ui/patrols/labels.ts';
 import { firstName, formatTime, getResults, loadStations, stationAppliesTo } from '#lib/server/live.ts';
 
 const pts = (p: number, s: number) => (s ? `${p} + ${s}` : `${p}`);
@@ -83,7 +83,7 @@ export async function load(event) {
 	}
 	for (const { e, deviceName, userName } of statusEvents) {
 		const who = deviceName ?? (userName ? firstName(userName) : null);
-		events.push({ at: e.at, time: formatTime(e.at), text: `Status: ${STATUS_LABEL[e.status]}${who ? ` · ${who}` : ''}`, kind: 'status', reason: null });
+		events.push({ at: e.at, time: formatTime(e.at), text: `Status: ${PATROL_STATUS_LABEL[e.status]}${who ? ` · ${who}` : ''}`, kind: 'status', reason: null });
 	}
 	events.sort((a, b) => b.at.getTime() - a.at.getTime());
 

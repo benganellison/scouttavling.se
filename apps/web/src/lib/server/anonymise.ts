@@ -1,5 +1,6 @@
 import { and, eq, isNotNull, ne, or, sql } from 'drizzle-orm';
 import { db, schema } from './db/index.ts';
+import type { ConflictIncoming } from './db/schema.ts';
 import { recordChange } from './changes.ts';
 import { clearUploader } from './assetStore.ts';
 import { sha256 } from './auth.ts';
@@ -41,7 +42,16 @@ export async function personalDataLeft(competitionId: string): Promise<number> {
 }
 
 /** JSON keys that may name or identify a person inside score_conflict.existing/incoming. */
-const CONFLICT_PERSONAL_KEYS = ['deviceName', 'deviceId', 'userId', 'reason', 'note', 'by', 'name'];
+// Typed against the stored shape, so a renamed key fails to compile; note/by/name are kept defensively.
+const CONFLICT_PERSONAL_KEYS: readonly (keyof ConflictIncoming | 'note' | 'by' | 'name')[] = [
+	'deviceName',
+	'deviceId',
+	'userId',
+	'reason',
+	'note',
+	'by',
+	'name'
+];
 
 /**
  * `actor` is logged in audit_log in the same transaction (owner from the confirm page, a site admin

@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { STATUS_LABEL, type PatrolStatus } from './labels.ts';
+	import { PATROL_STATUS_LABEL, type PatrolStatus } from './labels.ts';
 
 	/** `detail` follows the label, e.g. "klar för dagen 18:42" → "I läger · klar för dagen 18:42". */
 	let { status, detail = null }: { status: PatrolStatus; detail?: string | null } = $props();
 </script>
 
-<span class="st st-{status}" data-status={status}>{detail ? `${STATUS_LABEL[status]} · ${detail}` : STATUS_LABEL[status]}</span>
+<span class="st st-{status}" data-status={status}>{detail ? `${PATROL_STATUS_LABEL[status]} · ${detail}` : PATROL_STATUS_LABEL[status]}</span>
 
 <style>
 	.st {

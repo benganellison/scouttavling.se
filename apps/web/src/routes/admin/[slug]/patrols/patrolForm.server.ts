@@ -1,3 +1,4 @@
+import { PATROL_STATUSES } from '@scouttavling/domain';
 import { fail } from '@sveltejs/kit';
 import { and, eq, max, ne } from 'drizzle-orm';
 import * as v from 'valibot';
@@ -25,7 +26,7 @@ export const PatrolFormSchema = v.object({
 	contactEmail: v.union([v.literal(''), v.pipe(trimmed(160), v.email('Ogiltig e-postadress'))]),
 	contactMemberNo: v.pipe(trimmed(12), v.regex(/^\d*$/, 'Medlemsnummer är bara siffror')),
 	paid: v.boolean(),
-	status: v.picklist(['registered', 'active', 'camp', 'finished', 'resigned'], 'Okänd status'),
+	status: v.picklist(PATROL_STATUSES, 'Okänd status'),
 	members: v.pipe(v.array(MemberSchema), v.maxLength(30, 'Högst 30 medlemmar'))
 });
 

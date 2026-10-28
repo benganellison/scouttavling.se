@@ -7,10 +7,11 @@
 	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
 	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
+	import { PATROL_STATUS_LABEL, STATUS_ORDER } from '#lib/ui/patrols/labels.ts';
 
 	const app = useField();
-	const LABEL: Record<PatrolStatus, string> = { registered: 'Anmäld', active: 'På banan', camp: 'I läger', finished: 'I mål', resigned: 'Återbud' };
-	const ORDER: PatrolStatus[] = ['registered', 'active', 'camp', 'finished', 'resigned'];
+	const LABEL = PATROL_STATUS_LABEL;
+	const ORDER = STATUS_ORDER;
 	const SV_DATE = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm' });
 	const svDate = (ms: number) => SV_DATE.format(ms);
 

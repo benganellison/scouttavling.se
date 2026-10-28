@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nextPatrolStatus, type StatusFacts } from './index.ts';
+import { nextPatrolStatus, statusAfterUndo, type StatusFacts } from './index.ts';
 
 // Two-day hajk: day 0 = Fredag (FS F1 F2 FM), day 1 = Lördag (LS L1 L2 LM).
 const f = (o: Partial<StatusFacts>): StatusFacts => ({ current: 'active', finishTrigger: false, stationDay: 0, dayCount: 2, campDay: null, ...o });
@@ -61,5 +61,24 @@ describe('nextPatrolStatus', () => {
 	it('a finish station without a day counts as the day the patrol is on', () => {
 		expect(nextPatrolStatus(f({ current: 'active', finishTrigger: true, stationDay: null, latestDay: 1 }))).toBe('finished');
 		expect(nextPatrolStatus(f({ current: 'active', finishTrigger: true, stationDay: null, latestDay: 0 }))).toBe('camp');
+	});
+});
+
+describe('statusAfterUndo', () => {
+	const fin = { role: 'finish', mode: 'CHECKIN' };
+	const auto = { role: null, mode: 'AUTO_ON_SCAN' };
+	const plain = { role: null, mode: 'RANGE' };
+	it('takes a patrol back from I mål / I läger when its only finish report is undone', () => {
+		expect(statusAfterUndo({ current: 'finished', undone: fin, remaining: [plain] })).toBe('active');
+		expect(statusAfterUndo({ current: 'camp', undone: auto, remaining: [plain, plain] })).toBe('active');
+		expect(statusAfterUndo({ current: 'finished', undone: auto, remaining: [] })).toBe('registered');
+	});
+	it('keeps the status while another finish report stands', () => {
+		expect(statusAfterUndo({ current: 'finished', undone: fin, remaining: [auto] })).toBeNull();
+	});
+	it('ignores undoing an ordinary report, and patrols not in camp or finished', () => {
+		expect(statusAfterUndo({ current: 'finished', undone: plain, remaining: [] })).toBeNull();
+		expect(statusAfterUndo({ current: 'resigned', undone: fin, remaining: [] })).toBeNull();
+		expect(statusAfterUndo({ current: 'active', undone: fin, remaining: [] })).toBeNull();
 	});
 });

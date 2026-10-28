@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { STATUS_LABEL, type CompStatus } from './format.ts';
+	import { COMP_STATUS_LABEL, type CompStatus } from './format.ts';
 
 	let { status }: { status: CompStatus } = $props();
 </script>
 
 <span class="status {status}">
 	{#if status === 'live'}<span class="dot" aria-hidden="true"></span>{/if}
-	{STATUS_LABEL[status]}
+	{COMP_STATUS_LABEL[status]}
 </span>
 
 <style>

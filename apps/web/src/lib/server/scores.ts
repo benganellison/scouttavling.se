@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, ne, sql } from 'drizzle-orm';
-import { evaluate, InvalidScoreError, nextPatrolStatus, type ScoreItemDef } from '@scouttavling/domain';
+import { evaluate, InvalidScoreError, isFinishReport, nextPatrolStatus, statusAfterUndo, type ScoreItemDef } from '@scouttavling/domain';
 import { db, schema, type Tx, type CompRow } from './db/index.ts';
 import { recordChange } from './changes.ts';
 
@@ -100,7 +100,7 @@ async function applyStatusRules(tx: Tx, w: WriteScore, item: ItemRow) {
 	let campDay: number | null = null;
 	if (p.status === 'camp') {
 		// The day of the finish station that put the patrol in camp (its latest other finish score)…
-		const fin = others.find((o) => o.role === 'finish' || o.mode === 'AUTO_ON_SCAN');
+		const fin = others.find(isFinishReport);
 		if (fin) campDay = dayIndex(fin.dayId);
 		// …or, when camp was set by hand, the latest day it was seen.
 		else
@@ -112,7 +112,7 @@ async function applyStatusRules(tx: Tx, w: WriteScore, item: ItemRow) {
 
 	const next = nextPatrolStatus({
 		current: p.status,
-		finishTrigger: st?.role === 'finish' || item.mode === 'AUTO_ON_SCAN',
+		finishTrigger: isFinishReport({ role: st?.role ?? null, mode: item.mode }),
 		stationDay: dayIndex(st?.dayId),
 		dayCount: days.length,
 		campDay,
@@ -140,35 +140,31 @@ async function lockPatrol(tx: Tx, patrolId: string) {
 	await tx.select({ id: schema.patrol.id }).from(schema.patrol).where(eq(schema.patrol.id, patrolId)).for('update').limit(1);
 }
 
-/** Runs in its own transaction, or as a savepoint inside the caller's (`outer`, e.g. one sync command). */
-/**
- * Undoing the report that sent a patrol to "I läger"/"I mål" (a wrong patrol scanned at Mål) takes
- * it back: to "På banan" when it has other reports, else "Anmäld". Another finish report that still
- * stands keeps the status. Resigned patrols are never touched.
- */
+/** Applies statusAfterUndo (packages/domain) after a report is voided. */
 async function statusAfterVoid(tx: Tx, w: Pick<WriteScore, 'competitionId' | 'patrolId' | 'deviceId' | 'userId'>, itemId: string) {
 	const [p] = await tx.select({ id: schema.patrol.id, status: schema.patrol.status }).from(schema.patrol).where(eq(schema.patrol.id, w.patrolId)).limit(1);
-	if (!p || (p.status !== 'camp' && p.status !== 'finished')) return;
+	if (!p || (p.status !== 'camp' && p.status !== 'finished')) return; // nothing to undo: skip the queries
 	const [voided] = await tx
 		.select({ role: schema.station.role, mode: schema.scoreItem.mode })
 		.from(schema.scoreItem)
 		.innerJoin(schema.station, eq(schema.station.id, schema.scoreItem.stationId))
 		.where(eq(schema.scoreItem.id, itemId))
 		.limit(1);
-	if (!voided || (voided.role !== 'finish' && voided.mode !== 'AUTO_ON_SCAN')) return;
+	if (!voided || !isFinishReport(voided)) return;
 	const remaining = await tx
 		.select({ role: schema.station.role, mode: schema.scoreItem.mode })
 		.from(schema.score)
 		.innerJoin(schema.scoreItem, eq(schema.scoreItem.id, schema.score.itemId))
 		.innerJoin(schema.station, eq(schema.station.id, schema.scoreItem.stationId))
 		.where(and(eq(schema.score.patrolId, p.id), eq(schema.score.state, 'active')));
-	if (remaining.some((r) => r.role === 'finish' || r.mode === 'AUTO_ON_SCAN')) return;
-	const next = remaining.length ? 'active' : 'registered';
+	const next = statusAfterUndo({ current: p.status, undone: voided, remaining });
+	if (!next) return;
 	await tx.update(schema.patrol).set({ status: next }).where(eq(schema.patrol.id, p.id));
 	await tx.insert(schema.statusEvent).values({ patrolId: p.id, status: next, deviceId: w.deviceId ?? null, userId: w.userId ?? null });
 	await recordChange(tx, w.competitionId, 'patrol', p.id);
 }
 
+/** Runs in its own transaction, or as a savepoint inside the caller's (`outer`, e.g. one sync command). */
 export async function writeScore(w: WriteScore, outer?: Tx): Promise<WriteResult> {
 	const run = async (tx: Tx): Promise<WriteResult> => {
 		await lockPatrol(tx, w.patrolId);

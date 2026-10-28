@@ -2,7 +2,7 @@
 	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 	import '#lib/ui/patrols/prep.css';
 	import StatusPill from '#lib/ui/patrols/StatusPill.svelte';
-	import { STATUS_LABEL, STATUS_ORDER } from '#lib/ui/patrols/labels.ts';
+	import { PATROL_STATUS_LABEL, STATUS_ORDER } from '#lib/ui/patrols/labels.ts';
 	import { enhance } from '$app/forms';
 
 	let { data } = $props();
@@ -55,7 +55,7 @@
 			<label for="status">Status</label>
 			<select id="status" bind:value={status}>
 				<option value="">Alla</option>
-				{#each STATUS_ORDER as s (s)}<option value={s}>{STATUS_LABEL[s]}</option>{/each}
+				{#each STATUS_ORDER as s (s)}<option value={s}>{PATROL_STATUS_LABEL[s]}</option>{/each}
 			</select>
 		</div>
 	</div>

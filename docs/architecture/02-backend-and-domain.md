@@ -525,3 +525,28 @@ Sized for one VPS and one app instance: ~300 patrols, ~40 stations, ~60 phones, 
 | "Ta bort personuppgifter" passed ~36 000 ids as parameters (limit 65 535); conflicts page one query per conflict; import one change entry per row | Subqueries; one query; one change entry per import. |
 
 Not measured: real query plans (EXPLAIN) and a load test; both are worth doing on the production host before the first big event.
+
+## 13. Code-quality review 2026-10-28 (before v0.1.0)
+
+Reviewed for long-term maintenance by volunteers. **Fixed:**
+
+- **CI** runs every `*.db.test.ts` (concurrent writes, undo of Mål, ownership, statistics, removal) with `REQUIRE_DB=1`, so a database problem fails instead of skipping. It also runs ESLint, Prettier and a typecheck of `scripts/`, `e2e/` and the domain tests (`apps/web/tsconfig.tools.json`). The dev-server e2e suites run nightly (`e2e-nightly.yml` → `apps/web/scripts/e2e-dev.sh`).
+- **Boundaries** are lint rules (01 §0); two breaks were fixed (lib/server importing a route folder and a UI module).
+- **One copy** each of: AES-GCM sealing (`lib/server/sealed.ts`), QR rendering (`qr.ts`), invite code (`invites.ts`, moved out of a route), `Tx`/`Queryable`/`CompRow` (`db/index.ts`), the patrol status list (`PATROL_STATUSES` in domain; the database enum is checked against it at compile time), the "finish report" rule (`isFinishReport`) and the undo rule (`statusAfterUndo`, now unit-tested). `STATUS_LABEL` is `PATROL_STATUS_LABEL` / `COMP_STATUS_LABEL`.
+- **Types:** `score_conflict.existing/incoming` are typed (`ConflictExisting`/`ConflictIncoming` in `schema.ts`), as is a stored command result.
+- **Errors:** `handleError` logs unexpected errors as one JSON line with an id, shown on the error page ("felkod …"). It logs the route pattern, never the URL, because some paths contain secrets.
+- **Docs:** 01 §0 "As built", status banners, `CONTRIBUTING.md`; dead code and the broken root Playwright config removed.
+
+**For later** (restructuring only; no behaviour depends on it):
+
+| Finding | Suggestion |
+|---|---|
+| `lib/server/live.ts` (≈740 lines) mixes results, caches, SSE and dashboard | Split into `results.ts`, `sse.ts`, `dashboard.ts`; `live.test.ts` already covers the logic. |
+| `syncCommands` in `field.ts` is one long closure; its DB paths (pending re-run, quarantine cap, closed competition) have no DB test | Extract the `BatchDeps` factory, add `field.db.test.ts`. |
+| Form actions validate in two styles (Valibot and hand-rolled `f.get()`), the ISO-date regex is copied 4× | Valibot schemas for settings and `admin/new`; one form-field helper. |
+| "Tracks/stations/items of a competition" queries repeated ≈12×, some without `orderBy` | `lib/server/queries.ts`. |
+| Date/time formatting inline in ≈16 files | Named formatters in `#lib/time.ts` (started). |
+| Per-process state uses `globalThis` in some modules and plain module maps in others | One `processSingleton()` helper; the list of per-process state is in 01 §0. |
+| e2e waits for hydration with `networkidle` and click-until-visible loops; the UAT's video pauses run in CI | A `data-hydrated` attribute set in the root layout's `onMount`; `beat()` a no-op unless recording. |
+| Big Svelte pages (`admin/new`, `import`) | One component per step. |
+| `app_user.phone` is always null; `patrol.contact_member_no` is collected but never used | Drop both in an expand/contract migration (the second also collects less personal data). |

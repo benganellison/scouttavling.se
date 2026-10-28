@@ -6,13 +6,14 @@
  * non-extractable P-256 key. WebCrypto's ECDSA output is already the raw r||s
  * form JWS expects, so no DER conversion is needed.
  */
+import { PATROL_STATUSES, type PatrolStatusValue } from '@scouttavling/domain';
 import * as v from 'valibot';
 
 export const CMD_TYP = 'st-cmd+jwt';
 export const GRANT_TYP = 'st-grant+jwt';
 export const MAX_BATCH = 100;
 
-export type PatrolStatus = 'registered' | 'active' | 'camp' | 'finished' | 'resigned';
+export type PatrolStatus = PatrolStatusValue;
 
 const uuid = v.pipe(v.string(), v.regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i));
 const int = v.pipe(v.number(), v.integer());
@@ -33,7 +34,7 @@ const VoidScore = v.object({
 });
 const SetStatus = v.object({
 	type: v.literal('SetStatus'),
-	payload: v.object({ patrolId: uuid, status: v.picklist(['registered', 'active', 'camp', 'finished', 'resigned']) })
+	payload: v.object({ patrolId: uuid, status: v.picklist(PATROL_STATUSES) })
 });
 
 const Envelope = v.object({

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { STATUS_LABEL, STATUS_ORDER, type PatrolFormData } from './labels.ts';
+	import { PATROL_STATUS_LABEL, STATUS_ORDER, type PatrolFormData } from './labels.ts';
 
 	let {
 		initial,
@@ -92,7 +92,7 @@
 			<div class="field">
 				<label for="status">Status</label>
 				<select id="status" name="status" value={initial.status}>
-					{#each STATUS_ORDER as s (s)}<option value={s}>{STATUS_LABEL[s]}</option>{/each}
+					{#each STATUS_ORDER as s (s)}<option value={s}>{PATROL_STATUS_LABEL[s]}</option>{/each}
 				</select>
 				<!-- The status when this page was loaded: the server only changes the live status if you did. -->
 				<input type="hidden" name="statusWas" value={initial.status} />

@@ -17,7 +17,7 @@ import {
 	type AnyPgColumn
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import type { DistinctValue, ItemMode } from '@scouttavling/domain';
+import type { DistinctValue, ItemMode, PatrolStatusValue } from '@scouttavling/domain';
 
 /*
  * Data model v0.1 — see docs/architecture/02-backend-and-domain.md.
@@ -34,7 +34,40 @@ const id = () => uuid('id').primaryKey().defaultRandom();
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
 
 export const competitionRole = pgEnum('competition_role', ['owner', 'organiser', 'hq', 'startfinish']);
+/**
+ * The two sides of a score_conflict, as written by scores.ts (conflict) and field.ts (quarantine).
+ * Every key is optional: a quarantined command may have no score yet, and "Ta bort personuppgifter"
+ * strips the keys that identify a person (anonymise.ts, CONFLICT_PERSONAL_KEYS).
+ */
+export interface ConflictExisting {
+	points?: number;
+	stylePoints?: number;
+	version?: number;
+	state?: 'active' | 'void';
+	origin?: string;
+}
+export interface ConflictIncoming {
+	/** Set for a VoidScore and for quarantined commands. */
+	type?: 'SetScore' | 'VoidScore' | 'SetStatus';
+	points?: number;
+	stylePoints?: number;
+	raw?: { value: number; style: number | null };
+	origin?: string;
+	deviceId?: string | null;
+	deviceName?: string;
+	userId?: string | null;
+	baseVersion?: number | null;
+	/** Quarantine: why the command was not applied. */
+	reason?: string;
+	clientNow?: string;
+}
+
+// DB order is historical (enum values were added over time); the display order is PATROL_STATUSES.
 export const patrolStatus = pgEnum('patrol_status', ['registered', 'active', 'finished', 'resigned', 'camp']);
+// Fails to compile if the database enum and the domain list ever differ.
+type SameValues<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+const _statusesMatch: SameValues<(typeof patrolStatus.enumValues)[number], PatrolStatusValue> = true;
+void _statusesMatch;
 export const deviceRole = pgEnum('device_role', ['station_volunteer', 'startfinish']);
 export const scoreState = pgEnum('score_state', ['active', 'void']);
 export const scoreOrigin = pgEnum('score_origin', ['device', 'admin', 'paper']);
@@ -468,8 +501,8 @@ export const scoreConflict = pgTable(
 		itemId: uuid('item_id')
 			.notNull()
 			.references(() => scoreItem.id, { onDelete: 'cascade' }),
-		existing: jsonb('existing').notNull(),
-		incoming: jsonb('incoming').notNull(),
+		existing: jsonb('existing').$type<ConflictExisting>().notNull(),
+		incoming: jsonb('incoming').$type<ConflictIncoming>().notNull(),
 		commandId: uuid('command_id'),
 		kind: text('kind', { enum: ['conflict', 'quarantine'] })
 			.notNull()

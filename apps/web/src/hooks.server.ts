@@ -1,4 +1,4 @@
-import type { Handle } from '@sveltejs/kit/hooks';
+import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
 import { readSession } from '#lib/server/auth.ts';
 import { closeDb } from '#lib/server/db/index.ts';
 import { hub } from '#lib/server/live.ts';
@@ -27,6 +27,19 @@ process.once('sveltekit:shutdown', async () => {
  * Session lookup + CSRF for organiser requests. Field devices authenticate with
  * their signed grant (see #lib/server/field) and are not cookie-based.
  */
+/**
+ * Unexpected errors (bugs, a lost database): one log line with a short id, which the error page
+ * shows, so a report from the forest ("felkod 3f2a9c1b") can be found in the container log.
+ * The route pattern is logged, never the URL: paths such as /j/<secret> and /m/<token> are secrets.
+ */
+export const handleError: HandleServerError = ({ error, event, kind }) => {
+	if (kind !== 'unknown') return;
+	const id = crypto.randomUUID().slice(0, 8);
+	const e = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+	console.error(JSON.stringify({ level: 'error', id, route: event.route.id, method: event.request.method, ...e }));
+	return { message: `Något gick fel (felkod ${id}). Försök igen om en stund.` };
+};
+
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = await readSession(event.cookies, event.url);
 

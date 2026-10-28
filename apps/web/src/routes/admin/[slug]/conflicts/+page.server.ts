@@ -2,21 +2,13 @@ import { fail } from '@sveltejs/kit';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { db, schema } from '#lib/server/db/index.ts';
+import type { ConflictExisting, ConflictIncoming } from '#lib/server/db/schema.ts';
 import { recordChange } from '#lib/server/changes.ts';
 import { voidScore, writeScore } from '#lib/server/scores.ts';
 import { formatTime, loadStations } from '#lib/server/live.ts';
 
-interface Side {
-	points?: number;
-	stylePoints?: number;
-	version?: number;
-	state?: string;
-	origin?: string;
-	deviceId?: string | null;
-	userId?: string | null;
-	raw?: { value: number; style: number | null };
-	reason?: string;
-}
+/** One side as shown: the stored conflict side plus its author. */
+type Side = ConflictIncoming & Omit<ConflictExisting, 'state'> & { state?: string };
 
 export async function load(event) {
 	const { comp } = await requireCompetition(event, event.params.slug);
@@ -56,12 +48,12 @@ export async function load(event) {
 	const revsOf = new Map<string, typeof revs>();
 	for (const r of revs) revsOf.set(`${r.patrolId}|${r.itemId}`, [...(revsOf.get(`${r.patrolId}|${r.itemId}`) ?? []), r]);
 	const authors = rows.map(({ c }) => {
-		const ex = c.existing as Side;
+		const ex = c.existing;
 		const list = (revsOf.get(`${c.patrolId}|${c.itemId}`) ?? []).filter((r) => !ex.version || r.version === ex.version);
 		const r = list.sort((a, b) => b.version - a.version)[0];
 		return r ? { deviceId: r.deviceId, userId: r.userId, origin: r.origin } : null;
 	});
-	const userIds = [...new Set([...authors.map((a) => a?.userId), ...rows.map(({ c }) => (c.incoming as Side).userId)].filter((x): x is string => !!x))];
+	const userIds = [...new Set([...authors.map((a) => a?.userId), ...rows.map(({ c }) => c.incoming.userId)].filter((x): x is string => !!x))];
 	const users = userIds.length
 		? await db.select({ id: schema.appUser.id, name: schema.appUser.name }).from(schema.appUser).where(inArray(schema.appUser.id, userIds))
 		: [];
@@ -98,10 +90,10 @@ export async function load(event) {
 			patrolNumber,
 			where: where.get(c.itemId) ?? 'Okänd kontroll',
 			existing: side({
-				...(c.existing as Side),
-				...(authors[i] ? { deviceId: authors[i]!.deviceId, userId: authors[i]!.userId, origin: (c.existing as Side).origin ?? authors[i]!.origin } : {})
+				...c.existing,
+				...(authors[i] ? { deviceId: authors[i]!.deviceId, userId: authors[i]!.userId, origin: c.existing.origin ?? authors[i]!.origin } : {})
 			}),
-			incoming: side({ ...(c.incoming as Side), ...((c.incoming as { type?: string }).type === 'VoidScore' ? { state: 'void' } : {}) })
+			incoming: side({ ...c.incoming, ...(c.incoming.type === 'VoidScore' ? { state: 'void' } : {}) })
 		}))
 	};
 }
@@ -136,7 +128,7 @@ export const actions = {
 		const id = String((await event.request.formData()).get('id') ?? '');
 		const c = await openConflict(comp.id, id);
 		if (!c) return fail(404, { message: 'Konflikten är redan löst' });
-		const inc = c.incoming as Side & { type?: string };
+		const inc = c.incoming;
 		const base = {
 			competitionId: comp.id,
 			patrolId: c.patrolId,

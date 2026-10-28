@@ -1,8 +1,10 @@
 /** Shared Swedish labels and colours for the patrol/preparation pages. */
 
-export type PatrolStatus = 'registered' | 'active' | 'camp' | 'finished' | 'resigned';
+import { PATROL_STATUSES, type PatrolStatusValue } from '@scouttavling/domain';
 
-export const STATUS_LABEL: Record<PatrolStatus, string> = {
+export type PatrolStatus = PatrolStatusValue;
+
+export const PATROL_STATUS_LABEL: Record<PatrolStatus, string> = {
 	registered: 'Anmäld',
 	active: 'På banan',
 	/** Multi-day: done for the day (the day's finish station), not yet I mål. */
@@ -11,7 +13,7 @@ export const STATUS_LABEL: Record<PatrolStatus, string> = {
 	resigned: 'Återbud'
 };
 
-export const STATUS_ORDER: PatrolStatus[] = ['registered', 'active', 'camp', 'finished', 'resigned'];
+export const STATUS_ORDER: readonly PatrolStatus[] = PATROL_STATUSES;
 
 /** Class colours live in #lib/brand/colors.ts (trackColors, needsOutline); layout data has `trackColors`. */
 
