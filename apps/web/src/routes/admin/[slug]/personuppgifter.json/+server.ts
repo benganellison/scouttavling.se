@@ -29,20 +29,34 @@ export async function GET(event) {
 		exported: new Date().toISOString(),
 		competition: { name: comp.name, slug: comp.slug, organiser: comp.ownerGroupName, hqPhone: comp.hqPhone, personalDataRemoved: comp.anonymisedAt },
 		patrols: patrols.map((p) => ({
-			number: p.number, name: p.name, troop: p.troop, class: p.trackId ? (trackName.get(p.trackId) ?? null) : null, status: p.status,
-			paid: p.paid, paidAt: p.paidAt, registeredAt: p.createdAt,
+			number: p.number,
+			name: p.name,
+			troop: p.troop,
+			class: p.trackId ? (trackName.get(p.trackId) ?? null) : null,
+			status: p.status,
+			paid: p.paid,
+			paidAt: p.paidAt,
+			registeredAt: p.createdAt,
 			contact: { name: p.contactName, phone: p.contactPhone, email: p.contactEmail, memberNo: p.contactMemberNo },
 			members: members.filter((m) => m.patrolId === p.id).map((m) => ({ firstName: m.firstName, lastName: m.lastName, troop: m.troopText }))
 		})),
 		stationContacts: stations.filter((s) => s.contactName || s.contactPhone).map((s) => ({ station: s.name, name: s.contactName, phone: s.contactPhone })),
 		volunteers: devices.map((d) => ({
-			name: d.displayName, stations: d.stationIds.map((id) => stationName.get(id) ?? id), joinedAt: d.createdAt, lastSeenAt: d.lastSeenAt, disconnectedAt: d.revokedAt
+			name: d.displayName,
+			stations: d.stationIds.map((id) => stationName.get(id) ?? id),
+			joinedAt: d.createdAt,
+			lastSeenAt: d.lastSeenAt,
+			disconnectedAt: d.revokedAt
 		})),
 		messages: messages.map((m) => ({ title: m.title, body: m.body, sentAt: m.createdAt })),
 		organisers
 	};
 	await writeAudit(db, access ? { kind: 'site_admin', userId: user.id, reason: access.reason } : { kind: 'user', userId: user.id }, {
-		action: 'competition.export_personal_data', targetType: 'competition', targetId: comp.id, competitionId: comp.id, seriesId: comp.seriesId,
+		action: 'competition.export_personal_data',
+		targetType: 'competition',
+		targetId: comp.id,
+		competitionId: comp.id,
+		seriesId: comp.seriesId,
 		details: { patrols: patrols.length }
 	});
 	return new Response(JSON.stringify(body, null, 2), {

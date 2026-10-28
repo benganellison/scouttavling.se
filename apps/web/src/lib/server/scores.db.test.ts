@@ -33,7 +33,10 @@ describe.skipIf(!ok)('concurrent score writes (database)', async () => {
 			.returning();
 		compId = comp.id;
 		const [st] = await db.insert(schema.station).values({ competitionId: comp.id, sort: 1, name: 'K1' }).returning();
-		const [item] = await db.insert(schema.scoreItem).values({ stationId: st.id, sort: 1, name: 'K1', mode: 'RANGE', min: 0, max: 20, styleEnabled: false }).returning();
+		const [item] = await db
+			.insert(schema.scoreItem)
+			.values({ stationId: st.id, sort: 1, name: 'K1', mode: 'RANGE', min: 0, max: 20, styleEnabled: false })
+			.returning();
 		const patrols = await db
 			.insert(schema.patrol)
 			.values(Array.from({ length: 10 }, (_, i) => ({ competitionId: comp.id, number: 100 + i, name: `P${i}`, troop: 'Testkåren' })))
@@ -45,10 +48,22 @@ describe.skipIf(!ok)('concurrent score writes (database)', async () => {
 		const { comp, item, patrols } = await setup();
 		for (const p of patrols) {
 			const write = (value: number, deviceId: string | null) =>
-				writeScore({ competitionId: comp.id, patrolId: p.id, itemId: item.id, raw: { value, style: null }, baseVersion: null, origin: 'paper', userId: null, deviceId });
+				writeScore({
+					competitionId: comp.id,
+					patrolId: p.id,
+					itemId: item.id,
+					raw: { value, style: null },
+					baseVersion: null,
+					origin: 'paper',
+					userId: null,
+					deviceId
+				});
 			const results = await Promise.all([write(12, null), write(15, null)]);
 			expect(results.map((r) => r.result).sort(), p.name).toEqual(['accepted', 'conflict']);
-			const scores = await db.select().from(schema.score).where(and(eq(schema.score.patrolId, p.id), eq(schema.score.itemId, item.id)));
+			const scores = await db
+				.select()
+				.from(schema.score)
+				.where(and(eq(schema.score.patrolId, p.id), eq(schema.score.itemId, item.id)));
 			expect(scores).toHaveLength(1);
 			const conflicts = await db.select().from(schema.scoreConflict).where(eq(schema.scoreConflict.patrolId, p.id));
 			expect(conflicts).toHaveLength(1);
@@ -56,7 +71,11 @@ describe.skipIf(!ok)('concurrent score writes (database)', async () => {
 		// Same value twice at once: merged, not a conflict.
 		const p = patrols[0];
 		await db.delete(schema.score).where(eq(schema.score.patrolId, p.id));
-		const same = await Promise.all([1, 2].map(() => writeScore({ competitionId: comp.id, patrolId: p.id, itemId: item.id, raw: { value: 9, style: null }, baseVersion: null, origin: 'paper' })));
+		const same = await Promise.all(
+			[1, 2].map(() =>
+				writeScore({ competitionId: comp.id, patrolId: p.id, itemId: item.id, raw: { value: 9, style: null }, baseVersion: null, origin: 'paper' })
+			)
+		);
 		expect(same.map((r) => r.result).sort()).toEqual(['accepted', 'duplicate']);
 	});
 
@@ -78,7 +97,17 @@ describe.skipIf(!ok)('concurrent score writes (database)', async () => {
 		const jobs: Promise<unknown>[] = [];
 		for (let round = 0; round < 5; round++) {
 			for (const p of patrols) {
-				jobs.push(writeScore({ competitionId: comp.id, patrolId: p.id, itemId: item.id, raw: { value: round, style: null }, baseVersion: null, origin: 'admin', force: true }));
+				jobs.push(
+					writeScore({
+						competitionId: comp.id,
+						patrolId: p.id,
+						itemId: item.id,
+						raw: { value: round, style: null },
+						baseVersion: null,
+						origin: 'admin',
+						force: true
+					})
+				);
 				jobs.push(deskUpdate(p.id));
 			}
 		}
@@ -90,8 +119,14 @@ describe.skipIf(!ok)('concurrent score writes (database)', async () => {
 	it('undoing the Mål scan of the wrong patrol takes it back to På banan', async () => {
 		const [comp] = await db.select().from(schema.competition).where(eq(schema.competition.id, compId));
 		const [mal] = await db.insert(schema.station).values({ competitionId: comp.id, sort: 9, name: 'Mål', role: 'finish' }).returning();
-		const [malItem] = await db.insert(schema.scoreItem).values({ stationId: mal.id, sort: 1, name: 'Mål', mode: 'CHECKIN', min: 0, max: 0, styleEnabled: false }).returning();
-		const [p] = await db.select().from(schema.patrol).where(and(eq(schema.patrol.competitionId, comp.id), eq(schema.patrol.number, 105)));
+		const [malItem] = await db
+			.insert(schema.scoreItem)
+			.values({ stationId: mal.id, sort: 1, name: 'Mål', mode: 'CHECKIN', min: 0, max: 0, styleEnabled: false })
+			.returning();
+		const [p] = await db
+			.select()
+			.from(schema.patrol)
+			.where(and(eq(schema.patrol.competitionId, comp.id), eq(schema.patrol.number, 105)));
 		const status = async () => (await db.select({ s: schema.patrol.status }).from(schema.patrol).where(eq(schema.patrol.id, p.id)))[0].s;
 		expect(await status()).toBe('active'); // it has a K1 score from the tests above
 		const w = { competitionId: comp.id, patrolId: p.id, itemId: malItem.id, origin: 'admin' as const };
@@ -103,4 +138,3 @@ describe.skipIf(!ok)('concurrent score writes (database)', async () => {
 		expect(events.map((e) => e.s).slice(-2)).toEqual(['finished', 'active']);
 	});
 });
-

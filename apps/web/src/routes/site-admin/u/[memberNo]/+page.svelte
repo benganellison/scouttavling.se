@@ -5,7 +5,8 @@
 	let { data, form } = $props();
 	const p = $derived(data.person);
 	const ROLE: Record<string, string> = { owner: 'Ägare', organiser: 'Arrangör', hq: 'Ledningscentral', startfinish: 'Start & mål' };
-	const dt = (d: Date | string | null) => (d ? new Date(d).toLocaleString('sv-SE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Stockholm' }) : '–');
+	const dt = (d: Date | string | null) =>
+		d ? new Date(d).toLocaleString('sv-SE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Stockholm' }) : '–';
 </script>
 
 <svelte:head><title>{p.name} · Plattformsadmin</title></svelte:head>
@@ -30,7 +31,11 @@
 
 <section class="card sa-sec" aria-labelledby="h-susp">
 	<h2 id="h-susp">{p.suspendedAt ? 'Användaren är avstängd' : 'Stäng av användaren'}</h2>
-	<p class="muted">{p.suspendedAt ? `Avstängd sedan ${dt(p.suspendedAt)}. Hen kan inte logga in.` : 'En avstängd användare loggas ut direkt och kan inte logga in. Rollerna i tävlingarna finns kvar.'}</p>
+	<p class="muted">
+		{p.suspendedAt
+			? `Avstängd sedan ${dt(p.suspendedAt)}. Hen kan inte logga in.`
+			: 'En avstängd användare loggas ut direkt och kan inte logga in. Rollerna i tävlingarna finns kvar.'}
+	</p>
 	<form method="POST" action="?/suspend" class="stack" use:enhance>
 		<input type="hidden" name="suspend" value={p.suspendedAt ? '0' : '1'} />
 		<div class="field">

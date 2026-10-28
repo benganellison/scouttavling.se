@@ -53,7 +53,11 @@ describe('parseImportPayload', () => {
 
 describe('member fields', () => {
 	it('refuses any digit in a member field (birth dates, ages), even past the browser', () => {
-		for (const m of [{ firstName: 'Elsa', lastName: 'Ek 2012', troopText: '' }, { firstName: 'Elsa', lastName: 'Ek', troopText: '12 år' }, { firstName: 'Elsa', lastName: 'Ek', troopText: '-05-03' }]) {
+		for (const m of [
+			{ firstName: 'Elsa', lastName: 'Ek 2012', troopText: '' },
+			{ firstName: 'Elsa', lastName: 'Ek', troopText: '12 år' },
+			{ firstName: 'Elsa', lastName: 'Ek', troopText: '-05-03' }
+		]) {
 			expect(parseImportPayload(JSON.stringify({ rows: [row({ members: [m] })], createTracks: [] })).ok, JSON.stringify(m)).toBe(false);
 		}
 		expect(parseImportPayload(JSON.stringify({ rows: [row()], createTracks: [] })).ok).toBe(true);

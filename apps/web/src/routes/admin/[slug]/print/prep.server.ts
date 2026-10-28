@@ -42,9 +42,7 @@ export async function loadStations(competitionId: string): Promise<{ days: PrepD
 	const rows = await db.select().from(schema.station).where(eq(schema.station.competitionId, competitionId)).orderBy(asc(schema.station.sort));
 	const ids = rows.map((r) => r.id);
 	const links = ids.length ? await db.select().from(schema.stationTrack).where(inArray(schema.stationTrack.stationId, ids)) : [];
-	const items = ids.length
-		? await db.select().from(schema.scoreItem).where(inArray(schema.scoreItem.stationId, ids)).orderBy(asc(schema.scoreItem.sort))
-		: [];
+	const items = ids.length ? await db.select().from(schema.scoreItem).where(inArray(schema.scoreItem.stationId, ids)).orderBy(asc(schema.scoreItem.sort)) : [];
 	const codes = stationCodes(
 		rows.map((r) => ({ id: r.id, dayId: r.dayId, order: r.sort, name: r.name, customCode: r.customCode, role: r.role })),
 		days.map((d) => ({ id: d.id, prefix: d.prefix }))

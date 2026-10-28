@@ -14,5 +14,11 @@ export async function load({ params, setHeaders, locals }) {
 	const res = await getResults(comp, 10_000);
 	setHeaders({ 'cache-control': 'public, max-age=5' });
 	const [branding, trackColors] = await Promise.all([loadBranding(comp), loadTrackColors(comp.id)]);
-	return { comp: { slug: comp.slug, name: comp.name, location: comp.location, final: comp.status === 'closed' }, seq: res.seq, tracks: publicTracks(res.tracks, showStationResults(comp)), branding, trackColors };
+	return {
+		comp: { slug: comp.slug, name: comp.name, location: comp.location, final: comp.status === 'closed' },
+		seq: res.seq,
+		tracks: publicTracks(res.tracks, showStationResults(comp)),
+		branding,
+		trackColors
+	};
 }

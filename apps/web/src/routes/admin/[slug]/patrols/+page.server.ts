@@ -49,7 +49,10 @@ export const actions = {
 		await db.transaction(async (tx) => {
 			const [row] = await tx.select({ id: schema.patrol.id, c: schema.patrol.competitionId }).from(schema.patrol).where(eq(schema.patrol.id, id));
 			if (!row || row.c !== comp.id) return;
-			await tx.update(schema.patrol).set({ paid, paidAt: paidAtFor(paid) }).where(eq(schema.patrol.id, id));
+			await tx
+				.update(schema.patrol)
+				.set({ paid, paidAt: paidAtFor(paid) })
+				.where(eq(schema.patrol.id, id));
 			await recordChange(tx, comp.id, 'patrol', id);
 		});
 		return { ok: true };

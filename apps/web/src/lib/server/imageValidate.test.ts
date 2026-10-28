@@ -8,7 +8,34 @@ const has = (b: Uint8Array, s: string) => Buffer.from(b).includes(Buffer.from(s,
 /** A tiny baseline JPEG (1×1) with an EXIF APP1 (orientation 6 + a fake GPS-ish string) and a comment. */
 function jpegWithExif(): Uint8Array {
 	const exifBody = [
-		...enc('Exif\0\0'), 0x4d, 0x4d, 0, 0x2a, 0, 0, 0, 8, 0, 1, 0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 6, 0, 0, 0, 0, 0, 0, ...enc('GPS 59.33N 18.06E')
+		...enc('Exif\0\0'),
+		0x4d,
+		0x4d,
+		0,
+		0x2a,
+		0,
+		0,
+		0,
+		8,
+		0,
+		1,
+		0x01,
+		0x12,
+		0,
+		3,
+		0,
+		0,
+		0,
+		1,
+		0,
+		6,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		...enc('GPS 59.33N 18.06E')
 	];
 	const seg = (m: number, body: number[]) => [0xff, m, (body.length + 2) >> 8, (body.length + 2) & 0xff, ...body];
 	const jfif = seg(0xe0, [...enc('JFIF\0'), 1, 1, 0, 0, 1, 0, 1, 0, 0]);

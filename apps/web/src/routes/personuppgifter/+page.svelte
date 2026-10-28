@@ -10,7 +10,12 @@
 	<title>Personuppgifter · scouttavling.se</title>
 </svelte:head>
 
-<PublicShell title="Personuppgifter" eyebrow={data.competition?.name ?? 'scouttavling.se'} href={data.competition ? `/t/${data.competition.slug}` : null} branding={data.branding}>
+<PublicShell
+	title="Personuppgifter"
+	eyebrow={data.competition?.name ?? 'scouttavling.se'}
+	href={data.competition ? `/t/${data.competition.slug}` : null}
+	branding={data.branding}
+>
 	<article class="prose" data-testid="privacy">
 		<h1>Så hanterar vi personuppgifter</h1>
 		<p class="lead">
@@ -21,7 +26,8 @@
 		<h2>Vem ansvarar?</h2>
 		<p>
 			<strong>Personuppgiftsansvarig</strong> är {org}. Det är dit du vänder dig med frågor eller om du vill se, rätta eller ta bort uppgifter.
-			<strong>Personuppgiftsbiträde</strong> är {op}, som driver tjänsten åt arrangören{#if data.operator.email} (<a href="mailto:{data.operator.email}">{data.operator.email}</a>){/if}.
+			<strong>Personuppgiftsbiträde</strong> är {op}, som driver tjänsten åt arrangören{#if data.operator.email}
+				(<a href="mailto:{data.operator.email}">{data.operator.email}</a>){/if}.
 		</p>
 
 		<h2>Vilka uppgifter och varför</h2>
@@ -38,10 +44,16 @@
 		<ul>
 			<li><strong>Alla:</strong> patrullens namn, kår, klass och resultat (resultatsidan och arkivet).</li>
 			<li><strong>Arrangörer och tävlingsledning:</strong> allt ovan.</li>
-			<li><strong>Funktionärer vid start och mål:</strong> kontaktpersonens namn och telefon, för att kunna ringa om något händer på banan. Övriga funktionärer ser bara patrullens nummer, namn och kår.</li>
+			<li>
+				<strong>Funktionärer vid start och mål:</strong> kontaktpersonens namn och telefon, för att kunna ringa om något händer på banan. Övriga funktionärer ser
+				bara patrullens nummer, namn och kår.
+			</li>
 			<li><strong>Följ-länken:</strong> var patrullen är och hur det går, men inga namn på scouterna eller kontaktuppgifter.</li>
 		</ul>
-		<p>Uppgifterna säljs inte och lämnas inte till någon annan. Tjänsten har ingen annonsering eller statistikspårning, och den enda kakan är inloggningen för arrangörer.</p>
+		<p>
+			Uppgifterna säljs inte och lämnas inte till någon annan. Tjänsten har ingen annonsering eller statistikspårning, och den enda kakan är inloggningen för
+			arrangörer.
+		</p>
 
 		<h2>Hur länge</h2>
 		<ul>
@@ -54,7 +66,8 @@
 		<h2>Dina rättigheter</h2>
 		<p>
 			Du har rätt att få veta vilka uppgifter som finns om dig, få dem rättade eller borttagna och invända mot behandlingen. Kontaktpersonen kan själv ändra
-			uppgifterna via patrullens länk fram till att anmälan stänger. Kontakta annars {org}: arrangören kan ta ut alla uppgifter om patrullen som fil, rätta dem och ta bort dem. Du kan också klaga hos Integritetsskyddsmyndigheten (IMY).
+			uppgifterna via patrullens länk fram till att anmälan stänger. Kontakta annars {org}: arrangören kan ta ut alla uppgifter om patrullen som fil, rätta dem
+			och ta bort dem. Du kan också klaga hos Integritetsskyddsmyndigheten (IMY).
 		</p>
 	</article>
 </PublicShell>

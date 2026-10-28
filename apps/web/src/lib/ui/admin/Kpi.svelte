@@ -10,7 +10,9 @@
 
 <div class="kpi">
 	<span class="l">{label}</span>
-	<span class="v">{value}{#if of}<span class="of">{of}</span>{/if}</span>
+	<span class="v"
+		>{value}{#if of}<span class="of">{of}</span>{/if}</span
+	>
 	{#if note}<span class="n {tone}">{note}</span>{/if}
 </div>
 

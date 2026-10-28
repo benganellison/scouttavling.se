@@ -73,7 +73,11 @@ export class FieldApp {
 	/** Real conflicts only (someone else changed the score). */
 	conflictCount = $derived(this.scores.filter((s) => s.conflict).length);
 	/** Reports the server refused (e.g. competition closed); the reason is in the log. */
-	rejectedCount = $derived(this.scores.filter((s) => !s.conflict && s.problem).length + this.outbox.filter((o) => o.type === 'SetStatus' && o.state === 'rejected' && this.statusOverride.get(o.payload.patrolId)?.commandId === o.commandId).length);
+	rejectedCount = $derived(
+		this.scores.filter((s) => !s.conflict && s.problem).length +
+			this.outbox.filter((o) => o.type === 'SetStatus' && o.state === 'rejected' && this.statusOverride.get(o.payload.patrolId)?.commandId === o.commandId)
+				.length
+	);
 	/** The organiser closed the competition: the server no longer accepts reports. */
 	closed = $derived(this.pack?.competition.status === 'closed');
 	unreadCount = $derived((this.pack?.messages ?? []).filter((m) => !m.read).length);
@@ -159,8 +163,14 @@ export class FieldApp {
 		}
 		if (!s.server) return null;
 		return {
-			points: s.server.points, stylePoints: s.server.stylePoints, raw: s.server.raw, state: s.server.state, at: Date.parse(s.server.at),
-			by: s.server.by, version: s.server.version, sync: s.conflict ? 'conflict' : s.problem ? 'problem' : 'synced'
+			points: s.server.points,
+			stylePoints: s.server.stylePoints,
+			raw: s.server.raw,
+			state: s.server.state,
+			at: Date.parse(s.server.at),
+			by: s.server.by,
+			version: s.server.version,
+			sync: s.conflict ? 'conflict' : s.problem ? 'problem' : 'synced'
 		};
 	}
 
@@ -244,9 +254,15 @@ export class FieldApp {
 				const commandId = uuidv7(now + i);
 				const local: LocalValue = { value: e.value, style: def.styleEnabled ? e.style : null, ...value, state: 'active', at: now, commandId };
 				await db.outbox.add({
-					commandId, slug: this.slug, groupId, createdAt: now + i, type: 'SetScore', state: 'pending',
+					commandId,
+					slug: this.slug,
+					groupId,
+					createdAt: now + i,
+					type: 'SetScore',
+					state: 'pending',
 					payload: { patrolId, itemId: e.itemId, value: e.value, style: def.styleEnabled ? e.style : null, ...(e.note ? { note: e.note } : {}) },
-					...this.baseFor(cur), prevLocal: cur?.local ?? serverAsLocal(cur)
+					...this.baseFor(cur),
+					prevLocal: cur?.local ?? serverAsLocal(cur)
 				});
 				await db.scores.put({ key, slug: this.slug, patrolId, itemId: e.itemId, server: cur?.server ?? null, local, conflict: null, problem: null });
 			}
@@ -267,10 +283,22 @@ export class FieldApp {
 				if (!cur || (!cur.local && cur.server?.state !== 'active') || cur.local?.state === 'void') continue;
 				const commandId = uuidv7(now + i);
 				await db.outbox.add({
-					commandId, slug: this.slug, groupId, createdAt: now + i, type: 'VoidScore', state: 'pending',
-					payload: { patrolId, itemId }, ...this.baseFor(cur), prevLocal: cur.local
+					commandId,
+					slug: this.slug,
+					groupId,
+					createdAt: now + i,
+					type: 'VoidScore',
+					state: 'pending',
+					payload: { patrolId, itemId },
+					...this.baseFor(cur),
+					prevLocal: cur.local
 				});
-				const base = cur.local ?? { value: cur.server!.raw.value, style: cur.server!.raw.style, points: cur.server!.points, stylePoints: cur.server!.stylePoints };
+				const base = cur.local ?? {
+					value: cur.server!.raw.value,
+					style: cur.server!.raw.style,
+					points: cur.server!.points,
+					stylePoints: cur.server!.stylePoints
+				};
 				await db.scores.put({ ...cur, local: { ...base, state: 'void', at: now, commandId }, conflict: null, problem: null });
 			}
 		});
@@ -287,8 +315,16 @@ export class FieldApp {
 		const commandId = uuidv7(now);
 		await db.transaction('rw', db.outbox, db.statuses, async () => {
 			await db.outbox.add({
-				commandId, slug: this.slug, groupId, createdAt: now, type: 'SetStatus', state: 'pending', payload: { patrolId, status },
-				baseVersion: null, baseFrom: null, prevStatus
+				commandId,
+				slug: this.slug,
+				groupId,
+				createdAt: now,
+				type: 'SetStatus',
+				state: 'pending',
+				payload: { patrolId, status },
+				baseVersion: null,
+				baseFrom: null,
+				prevStatus
 			});
 			await db.statuses.put({ key: `${this.slug}|${patrolId}`, slug: this.slug, patrolId, status, commandId, at: now });
 		});
@@ -341,7 +377,16 @@ export class FieldApp {
 				const key = scoreKey(this.slug, patrolId, it.id);
 				const cur = await db.scores.get(key);
 				if (!cur || (!cur.conflict && !cur.problem)) continue;
-				const server = cur.conflict && cur.server ? { ...cur.server, points: cur.conflict.points, stylePoints: cur.conflict.stylePoints, version: cur.conflict.version, state: cur.conflict.state as 'active' | 'void' } : cur.server;
+				const server =
+					cur.conflict && cur.server
+						? {
+								...cur.server,
+								points: cur.conflict.points,
+								stylePoints: cur.conflict.stylePoints,
+								version: cur.conflict.version,
+								state: cur.conflict.state as 'active' | 'void'
+							}
+						: cur.server;
 				await db.scores.put({ ...cur, server, local: null, conflict: null, problem: null });
 			}
 		});
@@ -400,8 +445,7 @@ export class FieldApp {
 					// No longer connected (expired, disconnected, new code): drop the patrol list, contact
 					// phones, messages and sent reports. Unsent reports stay for a re-join.
 					await forgetCompetition(this.slug, { keepUnsent: true });
-				}
-				else {
+				} else {
 					this.failures++;
 					this.lastFailedAt = Date.now();
 					if (typeof navigator !== 'undefined' && !navigator.onLine) this.online = false;
@@ -469,8 +513,14 @@ export class FieldApp {
 		const db = this.db;
 		const grant = (await db.grants.get(this.slug))!;
 		const body = {
-			commandId: row.commandId, deviceId: grant.deviceId, deviceSeq: grant.nextSeq, baseVersion,
-			type: row.type, payload: row.payload, clientNow: new Date(row.createdAt).toISOString(), prev: grant.lastHash
+			commandId: row.commandId,
+			deviceId: grant.deviceId,
+			deviceSeq: grant.nextSeq,
+			baseVersion,
+			type: row.type,
+			payload: row.payload,
+			clientNow: new Date(row.createdAt).toISOString(),
+			prev: grant.lastHash
 		} as CommandBody;
 		const jws = await signCommand(grant.privateKey, body);
 		const hash = await sha256b64url(jws);
@@ -533,10 +583,18 @@ export class FieldApp {
 					await db.scores.put({
 						...cur,
 						server: {
-							points: l.points, stylePoints: l.stylePoints, raw: { value: l.value, style: l.style }, state: l.state,
-							version: r.version ?? cur.server?.version ?? 1, at: new Date(l.at).toISOString(), by: this.grant?.displayName ?? '', mine: true
+							points: l.points,
+							stylePoints: l.stylePoints,
+							raw: { value: l.value, style: l.style },
+							state: l.state,
+							version: r.version ?? cur.server?.version ?? 1,
+							at: new Date(l.at).toISOString(),
+							by: this.grant?.displayName ?? '',
+							mine: true
 						},
-						local: null, conflict: null, problem: null
+						local: null,
+						conflict: null,
+						problem: null
 					});
 				} else if (r.result === 'conflict') {
 					if (mine) await db.scores.put({ ...cur, conflict: r.server });
@@ -585,7 +643,16 @@ export class FieldApp {
 				const local = existing.get(key);
 				if (local?.server && local.server.version === s.version && local.server.state === s.state && local.server.by === s.by) continue;
 				const server = { points: s.points, stylePoints: s.stylePoints, raw: s.raw, state: s.state, version: s.version, at: s.at, by: s.by, mine: s.mine };
-				changed.push({ key, slug: this.slug, patrolId: s.patrolId, itemId: s.itemId, server, local: local?.local ?? null, conflict: local?.conflict ?? null, problem: local?.problem ?? null });
+				changed.push({
+					key,
+					slug: this.slug,
+					patrolId: s.patrolId,
+					itemId: s.itemId,
+					server,
+					local: local?.local ?? null,
+					conflict: local?.conflict ?? null,
+					problem: local?.problem ?? null
+				});
 			}
 			if (changed.length) await db.scores.bulkPut(changed);
 		});
@@ -597,7 +664,15 @@ class AuthError extends Error {}
 /** A synced score as an undo target ("restore what the server had before my edit"). */
 function serverAsLocal(s: LocalScore | undefined): LocalValue | null {
 	if (!s?.server || s.server.state !== 'active') return null;
-	return { value: s.server.raw.value, style: s.server.raw.style, points: s.server.points, stylePoints: s.server.stylePoints, state: 'active', at: Date.parse(s.server.at), commandId: '' };
+	return {
+		value: s.server.raw.value,
+		style: s.server.raw.style,
+		points: s.server.points,
+		stylePoints: s.server.stylePoints,
+		state: 'active',
+		at: Date.parse(s.server.at),
+		commandId: ''
+	};
 }
 
 function authMessage(raw: string): string {
@@ -623,7 +698,12 @@ export async function forgetCompetition(slug: string, { keepUnsent }: { keepUnse
 		await db.scores.where('slug').equals(slug).delete();
 		await db.statuses.where('slug').equals(slug).delete();
 		await db.reads.where('slug').equals(slug).delete();
-		if (keepUnsent) await db.outbox.where('slug').equals(slug).and((r) => r.state !== 'pending').delete();
+		if (keepUnsent)
+			await db.outbox
+				.where('slug')
+				.equals(slug)
+				.and((r) => r.state !== 'pending')
+				.delete();
 		else {
 			await db.outbox.where('slug').equals(slug).delete();
 			await db.grants.delete(slug);
@@ -634,8 +714,15 @@ export async function forgetCompetition(slug: string, { keepUnsent }: { keepUnse
 // ---------- joining ----------
 
 export async function storeJoin(input: {
-	slug: string; grant: string; deviceId: string; privateKey: CryptoKey; publicJwk: JsonWebKey; displayName: string;
-	role: GrantRow['role']; stations: string[]; exp: number;
+	slug: string;
+	grant: string;
+	deviceId: string;
+	privateKey: CryptoKey;
+	publicJwk: JsonWebKey;
+	displayName: string;
+	role: GrantRow['role'];
+	stations: string[];
+	exp: number;
 }) {
 	const db = fieldDb();
 	const old = await db.grants.get(input.slug);

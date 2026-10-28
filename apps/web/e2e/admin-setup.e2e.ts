@@ -59,7 +59,10 @@ test('organiser creates a multi-day competition and edits a station', async ({ p
 	await page.getByLabel('Namn på del 1').fill('Orientering');
 	await page.getByRole('button', { name: '+ Lägg till del' }).click();
 	await page.getByLabel('Namn på del 2').fill('Nödbrev');
-	await page.getByRole('radio', { name: /Fasta värden/ }).nth(1).check({ force: true });
+	await page
+		.getByRole('radio', { name: /Fasta värden/ })
+		.nth(1)
+		.check({ force: true });
 	await expect(page.getByRole('list', { name: 'Tillåtna poäng för Nödbrev' })).toBeVisible();
 	await page.getByRole('button', { name: 'Spara kontrollen' }).click();
 	await expect(page.getByRole('status').filter({ hasText: 'Sparat' })).toBeVisible();

@@ -55,9 +55,20 @@
 		</div>
 		<div class="pass-body">
 			<dl>
-				<div><dt>Klass</dt><dd class="trk">{#if p.track}<TrackChip color={data.trackColor} />{/if}{p.track || '–'}</dd></div>
-				<div><dt>Startkontroll</dt><dd>{p.start ?? 'Delas ut före start'}</dd></div>
-				<div><dt>Status</dt><dd><StatusPill status={p.status} /></dd></div>
+				<div>
+					<dt>Klass</dt>
+					<dd class="trk">
+						{#if p.track}<TrackChip color={data.trackColor} />{/if}{p.track || '–'}
+					</dd>
+				</div>
+				<div>
+					<dt>Startkontroll</dt>
+					<dd>{p.start ?? 'Delas ut före start'}</dd>
+				</div>
+				<div>
+					<dt>Status</dt>
+					<dd><StatusPill status={p.status} /></dd>
+				</div>
 			</dl>
 			<figure class="qr" data-testid="patrol-qr">
 				<div role="img" aria-label="QR-kod för patrull {p.number} {p.name}">
@@ -102,17 +113,42 @@
 			<h2 class="mt">Kontaktperson</h2>
 			<div class="field">
 				<label for="contactName">Namn</label>
-				<input id="contactName" name="contactName" bind:value={contactName} autocomplete="name" aria-invalid={errors.contactName ? 'true' : undefined} aria-describedby={errors.contactName ? 'err-contactName' : undefined} />
+				<input
+					id="contactName"
+					name="contactName"
+					bind:value={contactName}
+					autocomplete="name"
+					aria-invalid={errors.contactName ? 'true' : undefined}
+					aria-describedby={errors.contactName ? 'err-contactName' : undefined}
+				/>
 				{#if errors.contactName}<span class="error-text" id="err-contactName">{errors.contactName}</span>{/if}
 			</div>
 			<div class="field">
 				<label for="contactPhone">Mobilnummer</label>
-				<input id="contactPhone" name="contactPhone" type="tel" inputmode="tel" bind:value={contactPhone} autocomplete="tel" aria-invalid={errors.contactPhone ? 'true' : undefined} aria-describedby={errors.contactPhone ? 'err-contactPhone' : undefined} />
+				<input
+					id="contactPhone"
+					name="contactPhone"
+					type="tel"
+					inputmode="tel"
+					bind:value={contactPhone}
+					autocomplete="tel"
+					aria-invalid={errors.contactPhone ? 'true' : undefined}
+					aria-describedby={errors.contactPhone ? 'err-contactPhone' : undefined}
+				/>
 				{#if errors.contactPhone}<span class="error-text" id="err-contactPhone">{errors.contactPhone}</span>{/if}
 			</div>
 			<div class="field">
 				<label for="contactEmail">E-post</label>
-				<input id="contactEmail" name="contactEmail" type="email" inputmode="email" bind:value={contactEmail} autocomplete="email" aria-invalid={errors.contactEmail ? 'true' : undefined} aria-describedby={errors.contactEmail ? 'err-contactEmail' : undefined} />
+				<input
+					id="contactEmail"
+					name="contactEmail"
+					type="email"
+					inputmode="email"
+					bind:value={contactEmail}
+					autocomplete="email"
+					aria-invalid={errors.contactEmail ? 'true' : undefined}
+					aria-describedby={errors.contactEmail ? 'err-contactEmail' : undefined}
+				/>
 				{#if errors.contactEmail}<span class="error-text" id="err-contactEmail">{errors.contactEmail}</span>{/if}
 			</div>
 			{#if errors.form}<p class="error-text" role="alert">{errors.form}</p>{/if}
@@ -130,7 +166,9 @@
 			<h2 class="mt">Kontaktperson</h2>
 			<p>{p.contactName}<br /><span class="muted">{p.contactPhone} · {p.contactEmail}</span></p>
 			{#if data.comp.status !== 'closed'}
-				<p class="muted small" data-testid="edit-closed">Anmälan är stängd. Kontakta arrangören{data.comp.hqPhone ? ` (${data.comp.hqPhone})` : ''} om något behöver ändras.</p>
+				<p class="muted small" data-testid="edit-closed">
+					Anmälan är stängd. Kontakta arrangören{data.comp.hqPhone ? ` (${data.comp.hqPhone})` : ''} om något behöver ändras.
+				</p>
 			{/if}
 		</section>
 	{/if}

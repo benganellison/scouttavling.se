@@ -102,7 +102,6 @@ test.afterAll(async () => {
 
 // ---------------------------------------------------------------- 1
 test.describe('1 organiser prepares', () => {
-
 	test('organiser prepares a 2-day competition', async ({ browser }) => {
 		const { page } = await actor(browser, '01-organiser', DESKTOP, false);
 		await sql`delete from competition where slug like 'uat-%'`;
@@ -149,7 +148,10 @@ test.describe('1 organiser prepares', () => {
 		await beat(page, 400);
 		await page.getByRole('button', { name: '+ Lägg till del' }).click();
 		await page.getByLabel('Namn på del 2').fill('Nödbrev');
-		await page.getByRole('radio', { name: /Fasta värden/ }).nth(1).check({ force: true });
+		await page
+			.getByRole('radio', { name: /Fasta värden/ })
+			.nth(1)
+			.check({ force: true });
 		const vals = page.getByRole('list', { name: 'Tillåtna poäng för Nödbrev' });
 		await expect(vals).toBeVisible();
 		for (const v of [5, 10, 15]) {
@@ -224,7 +226,6 @@ test.describe('1 organiser prepares', () => {
 
 // ---------------------------------------------------------------- 2
 test.describe('2 volunteer offline', () => {
-
 	test('volunteer scores at a station, including offline', async ({ browser }) => {
 		const { page, ctx: context } = await actor(browser, '02-volunteer-offline', PHONE, true);
 		await clearScores([104, 108, 112, 137], 'Repstegen');
@@ -319,7 +320,11 @@ test.describe('2 volunteer offline', () => {
 		await beat(page, 1000);
 		await shot(page, '20-log-synced');
 
-		for (const [nr, p, s] of [[104, 17, 3], [108, 12, 4], [112, 17, 3]]) {
+		for (const [nr, p, s] of [
+			[104, 17, 3],
+			[108, 12, 4],
+			[112, 17, 3]
+		]) {
 			const rows = await scoresFor(nr, 'Repstegen');
 			expect(rows, `score for ${nr}`).toHaveLength(1);
 			expect(rows[0]).toMatchObject({ points: p, style_points: s, state: 'active', origin: 'device' });
@@ -329,7 +334,6 @@ test.describe('2 volunteer offline', () => {
 
 // ---------------------------------------------------------------- 3
 test.describe('3 mal', () => {
-
 	test('Mål station with four items on one screen', async ({ browser }) => {
 		const { page } = await actor(browser, '03-mal-station', PHONE, true);
 		await clearScores([119], 'Mål');
@@ -364,7 +368,6 @@ test.describe('3 mal', () => {
 
 // ---------------------------------------------------------------- 4
 test.describe('4 desk', () => {
-
 	test('start and finish desk', async ({ browser }) => {
 		const { page } = await actor(browser, '04-start-finish-desk', TABLET, true);
 		await setStatus(144, 'registered');
@@ -397,7 +400,6 @@ test.describe('4 desk', () => {
 
 // ---------------------------------------------------------------- 5
 test.describe('5 hq live', () => {
-
 	test('HQ sees a score live, edits it and messages the volunteer', async ({ browser }) => {
 		const { page } = await actor(browser, '05-hq-live', DESKTOP, false);
 		await clearScores([137], 'Repstegen');
@@ -435,7 +437,10 @@ test.describe('5 hq live', () => {
 		}).toPass({ timeout: 15_000 });
 		const form = page.locator('form.item').first();
 		await beat(page);
-		await form.locator('label.chip', { hasText: /^\s*16\s*$/ }).first().click();
+		await form
+			.locator('label.chip', { hasText: /^\s*16\s*$/ })
+			.first()
+			.click();
 		await beat(page, 400);
 		await form.getByLabel('Anledning').pressSequentially('fel siffra på lappen', { delay: 40 });
 		await shot(page, '29-patrol-edit');
@@ -463,7 +468,10 @@ test.describe('5 hq live', () => {
 		await expect(vp.getByText('Nytt från ledningen:')).toBeVisible({ timeout: 30_000 });
 		await beat(vp);
 		await shot(vp, '32-field-message-banner');
-		await vp.getByRole('navigation', { name: 'Huvudmeny' }).getByRole('link', { name: /Meddelanden/ }).click();
+		await vp
+			.getByRole('navigation', { name: 'Huvudmeny' })
+			.getByRole('link', { name: /Meddelanden/ })
+			.click();
 		await vp.getByRole('button', { name: /Fika vid Mål kl 14/ }).click();
 		await expect(vp.getByText('Kanelbullar finns vid målet.')).toBeVisible();
 		await beat(vp, 800);
@@ -479,7 +487,6 @@ test.describe('5 hq live', () => {
 
 // ---------------------------------------------------------------- 6
 test.describe('6 results', () => {
-
 	test('results, public page and prize ceremony', async ({ browser }) => {
 		const { page } = await actor(browser, '06-results-ceremony', DESKTOP, false);
 		await loginBengt(page);
@@ -536,7 +543,6 @@ test.describe('6 results', () => {
 
 // ---------------------------------------------------------------- 7
 test.describe('7 print', () => {
-
 	test('scorecards and reserve protocol', async ({ browser }) => {
 		const { page } = await actor(browser, '07-print', DESKTOP, false);
 		await loginBengt(page);
@@ -566,13 +572,17 @@ test.describe('7 print', () => {
 
 // ---------------------------------------------------------------- 8
 test.describe('8 accessibility smoke', () => {
-
 	const audit = (page: Page) =>
 		page.evaluate(() => {
 			const name = (el: Element) => {
 				const aria = el.getAttribute('aria-label') ?? '';
 				const by = el.getAttribute('aria-labelledby');
-				const byText = by ? by.split(' ').map((id) => document.getElementById(id)?.textContent ?? '').join(' ') : '';
+				const byText = by
+					? by
+							.split(' ')
+							.map((id) => document.getElementById(id)?.textContent ?? '')
+							.join(' ')
+					: '';
 				const imgAlt = [...el.querySelectorAll('img[alt]')].map((i) => i.getAttribute('alt')).join(' ');
 				return (aria + byText + (el.textContent ?? '') + imgAlt + (el.getAttribute('title') ?? '')).trim();
 			};
@@ -597,7 +607,26 @@ test.describe('8 accessibility smoke', () => {
 		const bengt = await browser.newContext({ viewport: DESKTOP, baseURL: BASE });
 		const ep = await bengt.newPage();
 		await loginBengt(ep);
-		const adminPages = ['/admin', '/admin/new', `/admin/${SLUG}`, `/admin/${SLUG}/stations`, `/admin/${SLUG}/patrols`, `/admin/${SLUG}/import`, `/admin/${SLUG}/distribution`, `/admin/${SLUG}/invites`, `/admin/${SLUG}/print`, `/admin/${SLUG}/settings`, `/admin/${SLUG}/live`, `/admin/${SLUG}/messages`, `/admin/${SLUG}/conflicts`, `/admin/${SLUG}/results`, `/admin/${SLUG}/patrol/112`, `/admin/${SLUG}/live/paper`, '/admin/uat-varhajk/print/scorecards', `/admin/${SLUG}/print/protocol`];
+		const adminPages = [
+			'/admin',
+			'/admin/new',
+			`/admin/${SLUG}`,
+			`/admin/${SLUG}/stations`,
+			`/admin/${SLUG}/patrols`,
+			`/admin/${SLUG}/import`,
+			`/admin/${SLUG}/distribution`,
+			`/admin/${SLUG}/invites`,
+			`/admin/${SLUG}/print`,
+			`/admin/${SLUG}/settings`,
+			`/admin/${SLUG}/live`,
+			`/admin/${SLUG}/messages`,
+			`/admin/${SLUG}/conflicts`,
+			`/admin/${SLUG}/results`,
+			`/admin/${SLUG}/patrol/112`,
+			`/admin/${SLUG}/live/paper`,
+			'/admin/uat-varhajk/print/scorecards',
+			`/admin/${SLUG}/print/protocol`
+		];
 		for (const p of adminPages) {
 			await ep.goto(p);
 			await ep.waitForLoadState('networkidle').catch(() => undefined);
@@ -626,7 +655,10 @@ test.describe('8 accessibility smoke', () => {
 		// Keyboard through the score screen (115 at Kojbygge).
 		await page.goto(`/f/${SLUG}/score/115`);
 		await expect(page.getByRole('button', { name: '17', exact: true })).toBeVisible();
-		await page.locator('body').click({ position: { x: 5, y: 5 } }).catch(() => undefined);
+		await page
+			.locator('body')
+			.click({ position: { x: 5, y: 5 } })
+			.catch(() => undefined);
 		const order: string[] = [];
 		for (let i = 0; i < 40; i++) {
 			await page.keyboard.press('Tab');
@@ -651,9 +683,21 @@ test.describe('8 accessibility smoke', () => {
 		await shot(page, '48-keyboard-save-focused');
 		console.log('A11Y_REPORT ' + JSON.stringify(report, null, 1));
 		await test.info().attach('a11y.json', { body: JSON.stringify(report, null, 2), contentType: 'application/json' });
-		const missingH1 = Object.entries(report).filter(([k]) => !k.includes('/print/')).filter(([, v]) => typeof v === 'object' && v && 'h1' in v && (v as { h1: number }).h1 !== 1);
+		const missingH1 = Object.entries(report)
+			.filter(([k]) => !k.includes('/print/'))
+			.filter(([, v]) => typeof v === 'object' && v && 'h1' in v && (v as { h1: number }).h1 !== 1);
 		const unnamed = Object.entries(report).filter(([, v]) => typeof v === 'object' && v && 'unnamed' in v && (v as { unnamed: string[] }).unnamed.length);
-		expect.soft(missingH1.map(([k, v]) => `${k}: ${(v as { h1: number }).h1}`), 'pages without exactly one h1').toEqual([]);
-		expect.soft(unnamed.map(([k, v]) => `${k}: ${(v as { unnamed: string[] }).unnamed.join(' | ')}`), 'unnamed controls').toEqual([]);
+		expect
+			.soft(
+				missingH1.map(([k, v]) => `${k}: ${(v as { h1: number }).h1}`),
+				'pages without exactly one h1'
+			)
+			.toEqual([]);
+		expect
+			.soft(
+				unnamed.map(([k, v]) => `${k}: ${(v as { unnamed: string[] }).unnamed.join(' | ')}`),
+				'unnamed controls'
+			)
+			.toEqual([]);
 	});
 });

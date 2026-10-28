@@ -86,7 +86,12 @@
 			const entries = [
 				...autoItems.filter((i) => app.display(patrol.id, i.id)?.state !== 'active').map((i) => ({ itemId: i.id, value: 0, style: null })),
 				...app.items.filter((i) => i.mode === 'CHECKIN').map((i) => ({ itemId: i.id, value: 0, style: null })),
-				...manual.map((i, idx) => ({ itemId: i.id, value: values[i.id]!, style: i.styleEnabled ? styles[i.id]! : null, note: idx === 0 && note.trim() ? note.trim() : null }))
+				...manual.map((i, idx) => ({
+					itemId: i.id,
+					value: values[i.id]!,
+					style: i.styleEnabled ? styles[i.id]! : null,
+					note: idx === 0 && note.trim() ? note.trim() : null
+				}))
 			];
 			const groupId = await app.saveScores(patrol.id, entries);
 			navigator.vibrate?.(80);
@@ -130,7 +135,11 @@
 			<span class="pnr">{patrol.number}</span>
 			<div class="pwho">
 				<h1 class="pname">{patrol.name}</h1>
-				<span class="psub"><TrackChip color={app.pack?.tracks.find((t) => t.id === patrol.trackId)?.color} size={11} /> {patrol.track} · {shortTroop(patrol.troop)} · {app.station?.code} {app.station?.name}</span>
+				<span class="psub"
+					><TrackChip color={app.pack?.tracks.find((t) => t.id === patrol.trackId)?.color} size={11} />
+					{patrol.track} · {shortTroop(patrol.troop)} · {app.station?.code}
+					{app.station?.name}</span
+				>
 			</div>
 		</header>
 
@@ -172,7 +181,9 @@
 					<div class="item-head">
 						<h2 id="h-{it.id}">
 							{manual.length > 1 || it.name !== app.station?.name ? it.name : 'Poäng'}
-							<span class="range">{it.mode === 'RANGE' ? `${it.min}–${it.max}` : it.mode === 'COUNT' ? `${it.min}–${it.max} × ${it.countMultiplier ?? 1} p` : ''}</span>
+							<span class="range"
+								>{it.mode === 'RANGE' ? `${it.min}–${it.max}` : it.mode === 'COUNT' ? `${it.min}–${it.max} × ${it.countMultiplier ?? 1} p` : ''}</span
+							>
 						</h2>
 						<span class="shown">{values[it.id] ?? '–'}</span>
 					</div>
@@ -191,7 +202,9 @@
 						</div>
 					{:else if it.mode === 'COUNT'}
 						<div class="stepper">
-							<button type="button" class="step" aria-label="Minska {it.name}" onclick={() => countStep(it, -1)}><Icon name="minus" size={34} stroke={3} /></button>
+							<button type="button" class="step" aria-label="Minska {it.name}" onclick={() => countStep(it, -1)}
+								><Icon name="minus" size={34} stroke={3} /></button
+							>
 							<span class="count" aria-live="polite">
 								<span class="cnum">{values[it.id] ?? '–'} <span class="cmax">/ {it.max}</span></span>
 								<span class="cpts">→ {values[it.id] == null ? '–' : values[it.id]! * (it.countMultiplier ?? 1)} p</span>
@@ -207,7 +220,9 @@
 						</div>
 						<div class="style-row" style="grid-template-columns: repeat({styleValues(it).length}, minmax(0, 1fr))">
 							{#each styleValues(it) as v (v)}
-								<button type="button" class="chip style" aria-pressed={styles[it.id] === v} aria-label="Stil {v}" onclick={() => (styles[it.id] = v)}>{v}</button>
+								<button type="button" class="chip style" aria-pressed={styles[it.id] === v} aria-label="Stil {v}" onclick={() => (styles[it.id] = v)}
+									>{v}</button
+								>
 							{/each}
 						</div>
 					{/if}

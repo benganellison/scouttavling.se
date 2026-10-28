@@ -6,7 +6,12 @@
 
 	let { data } = $props();
 
-	const live = new LiveStream(() => ({ url: `/api/v1/live/${data.comp.slug}/events`, depends: `live:${data.comp.slug}`, refreshMs: 60_000, minIntervalMs: 2000 }));
+	const live = new LiveStream(() => ({
+		url: `/api/v1/live/${data.comp.slug}/events`,
+		depends: `live:${data.comp.slug}`,
+		refreshMs: 60_000,
+		minIntervalMs: 2000
+	}));
 
 	const base = $derived(`/admin/${data.comp.slug}`);
 	const pct = (done: number, expected: number) => (expected ? Math.min(100, Math.round((done / expected) * 100)) : 0);
@@ -25,7 +30,9 @@
 		</div>
 		<div class="row actions">
 			<a class="btn" href="{base}/messages">
-				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z" /></svg>
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
+					><path d="M4 5h16v11H8l-4 4z" /></svg
+				>
 				Skicka meddelande
 			</a>
 			<form method="POST" action="?/backup" use:enhance>
@@ -40,7 +47,9 @@
 
 	{#if data.comp.backupMode}
 		<div class="banner" role="alert">
-			<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3 2 21h20zM12 10v5M12 18v.5" /></svg>
+			<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"
+				><path d="M12 3 2 21h20zM12 10v5M12 18v.5" /></svg
+			>
 			<div>
 				<strong>Reservläge är på.</strong> Alla funktionärer har uppmanats att skriva poäng på papperslappar tills reservläget avslutas.
 			</div>
@@ -70,7 +79,14 @@
 						</div>
 						<span class="name">{t.name}</span>
 						{#if t.finishSets}<span class="role">Sätter {t.finishSets === 'camp' ? 'I läger' : 'I mål'}</span>{/if}
-						<div class="bar" role="progressbar" aria-valuemin={0} aria-valuemax={t.expected} aria-valuenow={t.done} aria-label="{t.name}: {t.done} av {t.expected}">
+						<div
+							class="bar"
+							role="progressbar"
+							aria-valuemin={0}
+							aria-valuemax={t.expected}
+							aria-valuenow={t.done}
+							aria-label="{t.name}: {t.done} av {t.expected}"
+						>
 							<span style="width: {pct(t.done, t.expected)}%"></span>
 						</div>
 						<div class="t-foot">

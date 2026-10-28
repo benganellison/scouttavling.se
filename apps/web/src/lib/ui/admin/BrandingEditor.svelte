@@ -58,23 +58,40 @@
 	let fit = $state<string>(untrack(() => coverFit ?? ''));
 	const previewFit = $derived(fit === 'contain' || fit === 'cover' ? fit : effectiveCoverFit(fromSeries?.coverFit ?? null, b.cover));
 	const IMAGES: { kind: AssetKind; part: BrandPart; title: string; help: string }[] = [
-		{ kind: 'event_logo', part: 'eventLogo', title: 'Tävlingens logga', help: 'Visas i sidhuvudet på tävlingssidan, funktionärernas telefoner, utskrifter och i menyn här.' },
-		{ kind: 'organiser_logo', part: 'organiserLogo', title: 'Arrangörens logga', help: 'Kårens eller distriktets logga. Visas i sidfoten bredvid Scouternas logga.' },
+		{
+			kind: 'event_logo',
+			part: 'eventLogo',
+			title: 'Tävlingens logga',
+			help: 'Visas i sidhuvudet på tävlingssidan, funktionärernas telefoner, utskrifter och i menyn här.'
+		},
+		{
+			kind: 'organiser_logo',
+			part: 'organiserLogo',
+			title: 'Arrangörens logga',
+			help: 'Kårens eller distriktets logga. Visas i sidfoten bredvid Scouternas logga.'
+		},
 		{ kind: 'cover', part: 'cover', title: 'Omslagsbild', help: 'Stor bild överst på tävlingssidan. Ingen text läggs ovanpå bilden.' }
 	];
 	const current = (k: AssetKind) => (k === 'event_logo' ? b.eventLogo : k === 'organiser_logo' ? b.organiserLogo : b.cover);
 	const fitLabel = (f: 'contain' | 'cover' | null) => (f === 'contain' ? 'visa hela bilden' : f === 'cover' ? 'fyll ytan' : 'automatiskt');
-	const keep = () => async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) => update({ reset: false });
+	const keep =
+		() =>
+		async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) =>
+			update({ reset: false });
 </script>
 
 {#if level === 'series'}
 	<p class="muted lead">Gäller alla år i serien. Ett enskilt år kan ändå få en egen färg eller bild under årets Inställningar.</p>
 {:else if fromSeries}
 	<p class="muted lead" data-testid="series-branding-note">
-		Utseendet ärvs från serien <a href="/admin/series/{fromSeries.seriesSlug}">{fromSeries.seriesName}</a>. Ändra här bara om {name} ska se annorlunda ut än övriga år.
+		Utseendet ärvs från serien <a href="/admin/series/{fromSeries.seriesSlug}">{fromSeries.seriesName}</a>. Ändra här bara om {name} ska se annorlunda ut än övriga
+		år.
 	</p>
 {:else}
-	<p class="muted lead">Grunden följer Scouternas grafiska profil. Tävlingens egen logga, färg och bild syns på tävlingssidan, patrullpasset, följ-sidan, resultaten, funktionärernas telefoner och utskrifterna. Scouternas logga står alltid med som avsändare.</p>
+	<p class="muted lead">
+		Grunden följer Scouternas grafiska profil. Tävlingens egen logga, färg och bild syns på tävlingssidan, patrullpasset, följ-sidan, resultaten,
+		funktionärernas telefoner och utskrifterna. Scouternas logga står alltid med som avsändare.
+	</p>
 {/if}
 
 <form method="POST" action="?/appearance" class="stack" use:enhance={keep} novalidate>
@@ -92,8 +109,15 @@
 	<p class="muted small">Färgen används som rand och markering. Sidhuvuden och knappar är alltid Scoutblå, så Scouterna syns tydligt.</p>
 	<fieldset class="fit" disabled={!canEdit}>
 		<legend class="label">Omslagsbild</legend>
-		<label><input type="radio" name="coverFit" value="" bind:group={fit} /> {fromSeries ? `Som serien` : 'Automatiskt'} <span class="muted small">({fromSeries ? fitLabel(fromSeries.coverFit) : 'breda banderoller visas hela'})</span></label>
-		<label><input type="radio" name="coverFit" value="contain" bind:group={fit} /> Visa hela bilden <span class="muted small">(text i bilden beskärs aldrig)</span></label>
+		<label
+			><input type="radio" name="coverFit" value="" bind:group={fit} />
+			{fromSeries ? `Som serien` : 'Automatiskt'}
+			<span class="muted small">({fromSeries ? fitLabel(fromSeries.coverFit) : 'breda banderoller visas hela'})</span></label
+		>
+		<label
+			><input type="radio" name="coverFit" value="contain" bind:group={fit} /> Visa hela bilden
+			<span class="muted small">(text i bilden beskärs aldrig)</span></label
+		>
 		<label><input type="radio" name="coverFit" value="cover" bind:group={fit} /> Fyll ytan (beskär)</label>
 	</fieldset>
 	<div class="act">
@@ -111,7 +135,9 @@
 				{#if cur}<img src={cur.url} alt={cur.alt} />{:else}<span class="muted small">Ingen bild</span>{/if}
 			</div>
 			<div class="img-txt">
-				<strong>{im.title}{#if cur && !mine && fromSeries}<span class="pill inherit">Från serien</span>{/if}</strong>
+				<strong
+					>{im.title}{#if cur && !mine && fromSeries}<span class="pill inherit">Från serien</span>{/if}</strong
+				>
 				<span class="muted small">{im.help}</span>
 				<form method="POST" action="?/upload" enctype="multipart/form-data" class="up" use:enhance>
 					<input type="hidden" name="kind" value={im.kind} />
@@ -122,7 +148,9 @@
 				{#if cur && mine}
 					<form method="POST" action="?/removeImage" use:enhance>
 						<input type="hidden" name="kind" value={im.kind} />
-						<button class="btn btn-ghost rm sm" disabled={!canEdit}>{fromSeries ? `Använd seriens ${im.title.toLowerCase()}` : `Ta bort ${im.title.toLowerCase()}`}</button>
+						<button class="btn btn-ghost rm sm" disabled={!canEdit}
+							>{fromSeries ? `Använd seriens ${im.title.toLowerCase()}` : `Ta bort ${im.title.toLowerCase()}`}</button
+						>
 					</form>
 				{/if}
 				{#if errors[im.kind]}<span class="error-text" role="alert">{errors[im.kind]}</span>{/if}
@@ -130,7 +158,10 @@
 			</div>
 		</div>
 	{/each}
-	<p class="muted small">PNG, JPEG eller WebP, högst 2 MB. SVG går inte (av säkerhetsskäl). Bildinformation som plats och kamera tas bort vid uppladdning. Bilderna är publika och sparas i arkivet: använd inte bilder där scouter går att känna igen.</p>
+	<p class="muted small">
+		PNG, JPEG eller WebP, högst 2 MB. SVG går inte (av säkerhetsskäl). Bildinformation som plats och kamera tas bort vid uppladdning. Bilderna är publika och
+		sparas i arkivet: använd inte bilder där scouter går att känna igen.
+	</p>
 </div>
 
 <div class="previews" aria-label="Förhandsvisning">

@@ -39,7 +39,13 @@ export async function load({ params, setHeaders, getClientAddress, depends }) {
 			.from(schema.score)
 			.where(and(eq(schema.score.patrolId, patrol.id), eq(schema.score.state, 'active'))),
 		db.select({ status: schema.statusEvent.status, at: schema.statusEvent.at }).from(schema.statusEvent).where(eq(schema.statusEvent.patrolId, patrol.id)),
-		patrol.trackId ? db.select({ name: schema.track.name }).from(schema.track).where(eq(schema.track.id, patrol.trackId)).then((r) => r[0]?.name ?? '') : Promise.resolve('')
+		patrol.trackId
+			? db
+					.select({ name: schema.track.name })
+					.from(schema.track)
+					.where(eq(schema.track.id, patrol.trackId))
+					.then((r) => r[0]?.name ?? '')
+			: Promise.resolve('')
 	]);
 	const showScores = comp.followShowScores;
 	const mine = stations.filter((s) => s.items.length > 0 && stationAppliesTo(s, patrol.trackId));
@@ -57,10 +63,18 @@ export async function load({ params, setHeaders, getClientAddress, depends }) {
 			sortAt: last?.getTime() ?? null
 		};
 	});
-	const firstAt = (st: string) => events.filter((e) => e.status === st).map((e) => e.at).sort((a, b) => a.getTime() - b.getTime())[0];
+	const firstAt = (st: string) =>
+		events
+			.filter((e) => e.status === st)
+			.map((e) => e.at)
+			.sort((a, b) => a.getTime() - b.getTime())[0];
 	const started = firstAt('active');
 	const finished = firstAt('finished');
-	const lastAt = (st: string) => events.filter((e) => e.status === st).map((e) => e.at).sort((a, b) => b.getTime() - a.getTime())[0];
+	const lastAt = (st: string) =>
+		events
+			.filter((e) => e.status === st)
+			.map((e) => e.at)
+			.sort((a, b) => b.getTime() - a.getTime())[0];
 	const camp = patrol.status === 'camp' ? lastAt('camp') : undefined;
 
 	let placement: { place: number; total: number; of: number; tied: boolean } | null = null;

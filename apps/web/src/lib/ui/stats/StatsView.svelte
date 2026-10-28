@@ -35,18 +35,41 @@
 <section class="block" aria-labelledby="h-part">
 	<h2 id="h-part">Deltagande</h2>
 	<dl class="figures" data-testid="participation">
-		<div data-k="registered"><dt>Anmälda</dt><dd>{p.registered}</dd></div>
-		<div data-k="started"><dt>Startade</dt><dd>{p.started}</dd><span class="sub">{pct(p.started, p.registered)} av anmälda</span></div>
-		<div data-k="finished"><dt>Gick i mål</dt><dd>{p.finished}</dd><span class="sub">{pct(p.finished, p.started)} av startade</span></div>
-		<div data-k="resigned"><dt>Bröt</dt><dd>{p.resigned}</dd></div>
+		<div data-k="registered">
+			<dt>Anmälda</dt>
+			<dd>{p.registered}</dd>
+		</div>
+		<div data-k="started">
+			<dt>Startade</dt>
+			<dd>{p.started}</dd>
+			<span class="sub">{pct(p.started, p.registered)} av anmälda</span>
+		</div>
+		<div data-k="finished">
+			<dt>Gick i mål</dt>
+			<dd>{p.finished}</dd>
+			<span class="sub">{pct(p.finished, p.started)} av startade</span>
+		</div>
+		<div data-k="resigned">
+			<dt>Bröt</dt>
+			<dd>{p.resigned}</dd>
+		</div>
 	</dl>
 	{#if scope.trackId === null && stats.scopes.length > 2}
 		<div class="table-wrap">
 			<table class="plain">
-				<thead><tr><th scope="col">Klass</th><th scope="col" class="num">Anmälda</th><th scope="col" class="num">Startade</th><th scope="col" class="num">I mål</th><th scope="col" class="num">Bröt</th></tr></thead>
+				<thead
+					><tr
+						><th scope="col">Klass</th><th scope="col" class="num">Anmälda</th><th scope="col" class="num">Startade</th><th scope="col" class="num">I mål</th
+						><th scope="col" class="num">Bröt</th></tr
+					></thead
+				>
 				<tbody>
 					{#each stats.scopes.slice(1) as s (s.trackId)}
-						<tr><th scope="row"><TrackChip color={trackColors[s.trackId!]} size={12} /> {s.name}</th><td class="num">{s.participation.registered}</td><td class="num">{s.participation.started}</td><td class="num">{s.participation.finished}</td><td class="num">{s.participation.resigned}</td></tr>
+						<tr
+							><th scope="row"><TrackChip color={trackColors[s.trackId!]} size={12} /> {s.name}</th><td class="num">{s.participation.registered}</td><td
+								class="num">{s.participation.started}</td
+							><td class="num">{s.participation.finished}</td><td class="num">{s.participation.resigned}</td></tr
+						>
 					{/each}
 				</tbody>
 			</table>
@@ -74,12 +97,30 @@
 						<div class="st-body">
 							<Histogram buckets={s.buckets} label="Fördelning för {s.name}: {s.points.n} patruller, median {num(s.points.median)} av {s.max}" />
 							<dl class="nums">
-								<div><dt>Median</dt><dd>{num(s.points.median)}</dd></div>
-								<div><dt>Snitt</dt><dd>{num(s.points.mean)}</dd></div>
-								<div><dt>Min–max</dt><dd>{s.points.min}–{s.points.max}</dd></div>
-								<div><dt>Std.avv.</dt><dd>{num(s.points.sd)}</dd></div>
-								<div><dt>Patruller</dt><dd>{s.points.n}</dd></div>
-								{#if s.styleMean !== null}<div><dt>Stil, snitt</dt><dd>{num(s.styleMean)}</dd></div>{/if}
+								<div>
+									<dt>Median</dt>
+									<dd>{num(s.points.median)}</dd>
+								</div>
+								<div>
+									<dt>Snitt</dt>
+									<dd>{num(s.points.mean)}</dd>
+								</div>
+								<div>
+									<dt>Min–max</dt>
+									<dd>{s.points.min}–{s.points.max}</dd>
+								</div>
+								<div>
+									<dt>Std.avv.</dt>
+									<dd>{num(s.points.sd)}</dd>
+								</div>
+								<div>
+									<dt>Patruller</dt>
+									<dd>{s.points.n}</dd>
+								</div>
+								{#if s.styleMean !== null}<div>
+										<dt>Stil, snitt</dt>
+										<dd>{num(s.styleMean)}</dd>
+									</div>{/if}
 							</dl>
 						</div>
 						<p class="max small muted">Max {s.max} poäng</p>
@@ -97,18 +138,34 @@
 	<section class="block" aria-labelledby="h-time">
 		<h2 id="h-time">Tider</h2>
 		{#if t.timedPatrols === 0}
-			<p class="muted">Inga tider{scope.trackId ? ' i klassen' : ''} ännu. Tider finns bara för rapporter från funktionärernas telefoner (pappersprotokoll och ändringar i ledningen saknar tid).</p>
+			<p class="muted">
+				Inga tider{scope.trackId ? ' i klassen' : ''} ännu. Tider finns bara för rapporter från funktionärernas telefoner (pappersprotokoll och ändringar i ledningen
+				saknar tid).
+			</p>
 		{:else}
-			<p class="muted small">Från funktionärernas telefoner: {t.timedPatrols} {t.timedPatrols === 1 ? 'patrull' : 'patruller'} med tider. Pappersprotokoll saknar tid och räknas inte.</p>
+			<p class="muted small">
+				Från funktionärernas telefoner: {t.timedPatrols}
+				{t.timedPatrols === 1 ? 'patrull' : 'patruller'} med tider. Pappersprotokoll saknar tid och räknas inte.
+			</p>
 			{#if t.course.length}
 				<h3>Tid på banan</h3>
 				<p class="muted small">Från första till sista kontrollen{t.course.length > 1 ? ' per dag' : ''}.</p>
 				<div class="table-wrap">
 					<table class="plain" data-testid="course-times">
-						<thead><tr>{#if t.course.length > 1 || t.course[0].day}<th scope="col">Dag</th>{/if}<th scope="col" class="num">Snabbast</th><th scope="col" class="num">Median</th><th scope="col" class="num">Långsammast</th><th scope="col" class="num" title="Antal patruller">Antal</th></tr></thead>
+						<thead
+							><tr
+								>{#if t.course.length > 1 || t.course[0].day}<th scope="col">Dag</th>{/if}<th scope="col" class="num">Snabbast</th><th scope="col" class="num"
+									>Median</th
+								><th scope="col" class="num">Långsammast</th><th scope="col" class="num" title="Antal patruller">Antal</th></tr
+							></thead
+						>
 						<tbody>
 							{#each t.course as c, i (i)}
-								<tr>{#if t.course.length > 1 || c.day}<th scope="row">{c.day ?? '–'}</th>{/if}<td class="num">{minutes(c.minutes.min)}</td><td class="num">{minutes(Math.round(c.minutes.median))}</td><td class="num">{minutes(c.minutes.max)}</td><td class="num">{c.minutes.n}</td></tr>
+								<tr
+									>{#if t.course.length > 1 || c.day}<th scope="row">{c.day ?? '–'}</th>{/if}<td class="num">{minutes(c.minutes.min)}</td><td class="num"
+										>{minutes(Math.round(c.minutes.median))}</td
+									><td class="num">{minutes(c.minutes.max)}</td><td class="num">{c.minutes.n}</td></tr
+								>
 							{/each}
 						</tbody>
 					</table>
@@ -122,12 +179,23 @@
 				{#snippet legTable(legs: typeof t.legs, testid: string)}
 					<div class="table-wrap">
 						<table class="plain" data-testid={testid}>
-							<thead><tr><th scope="col">Sträcka</th><th scope="col" class="num">Snabbast</th><th scope="col" class="num">Median</th><th scope="col" class="num">Långsammast</th><th scope="col" class="num" title="Antal patruller">Antal</th></tr></thead>
+							<thead
+								><tr
+									><th scope="col">Sträcka</th><th scope="col" class="num">Snabbast</th><th scope="col" class="num">Median</th><th scope="col" class="num"
+										>Långsammast</th
+									><th scope="col" class="num" title="Antal patruller">Antal</th></tr
+								></thead
+							>
 							<tbody>
 								{#each legs as l (l.from + l.to)}
 									<tr>
-										<th scope="row"><span class="code">{l.from}</span> → <span class="code">{l.to}</span> <span class="muted small legname">{l.fromName} → {l.toName}</span></th>
-										<td class="num">{minutes(l.minutes.min)}</td><td class="num">{minutes(Math.round(l.minutes.median))}</td><td class="num">{minutes(l.minutes.max)}</td><td class="num">{l.minutes.n}</td>
+										<th scope="row"
+											><span class="code">{l.from}</span> → <span class="code">{l.to}</span>
+											<span class="muted small legname">{l.fromName} → {l.toName}</span></th
+										>
+										<td class="num">{minutes(l.minutes.min)}</td><td class="num">{minutes(Math.round(l.minutes.median))}</td><td class="num"
+											>{minutes(l.minutes.max)}</td
+										><td class="num">{l.minutes.n}</td>
 									</tr>
 								{/each}
 							</tbody>

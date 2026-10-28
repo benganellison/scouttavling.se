@@ -23,13 +23,16 @@ const USAGE = `Usage:
   site-admin list`;
 
 function operator(): string {
-	const who = process.env.SITE_ADMIN_OPERATOR || process.env.SUDO_USER || (() => {
-		try {
-			return userInfo().username;
-		} catch {
-			return 'unknown';
-		}
-	})();
+	const who =
+		process.env.SITE_ADMIN_OPERATOR ||
+		process.env.SUDO_USER ||
+		(() => {
+			try {
+				return userInfo().username;
+			} catch {
+				return 'unknown';
+			}
+		})();
 	return `cli:${who}`;
 }
 
@@ -68,7 +71,9 @@ try {
 			from site_admin a join app_user u on u.id = a.user_id order by a.granted_at`;
 		if (!rows.length) console.log('No site admins.');
 		for (const r of rows) {
-			console.log(`${r.member_no}\t${r.name}\tgranted ${new Date(r.granted_at).toISOString().slice(0, 16).replace('T', ' ')} by ${r.granted_by}${r.suspended ? '\t(SUSPENDED)' : ''}\t${r.reason}`);
+			console.log(
+				`${r.member_no}\t${r.name}\tgranted ${new Date(r.granted_at).toISOString().slice(0, 16).replace('T', ' ')} by ${r.granted_by}${r.suspended ? '\t(SUSPENDED)' : ''}\t${r.reason}`
+			);
 		}
 	} else {
 		const [u] = await sql`select id, name from app_user where member_no = ${memberNo}`;

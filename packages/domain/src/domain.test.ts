@@ -1,20 +1,65 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import {
-	buildImport, daysBetween, distribute, evaluate, guessColumns, InvalidScoreError, isScoutnetExport,
-	isSensitiveHeader, normalizePhone, parseCsv, parseHtmlTable, parseMembers, parsePatrolCode, patrolCodeUrl, rank,
-	rankOfValue, roleFromName, stationCodes, verifyPatrolCode, type ScoreItemDef
+	buildImport,
+	daysBetween,
+	distribute,
+	evaluate,
+	guessColumns,
+	InvalidScoreError,
+	isScoutnetExport,
+	isSensitiveHeader,
+	normalizePhone,
+	parseCsv,
+	parseHtmlTable,
+	parseMembers,
+	parsePatrolCode,
+	patrolCodeUrl,
+	rank,
+	rankOfValue,
+	roleFromName,
+	stationCodes,
+	verifyPatrolCode,
+	type ScoreItemDef
 } from './index.ts';
 
 const rangeItem = (id: string, max = 20, style = true): ScoreItemDef => ({
-	id, name: id, mode: 'RANGE', min: 0, max, styleEnabled: style, styleMin: 0, styleMax: 5, countsForTiebreak: true
+	id,
+	name: id,
+	mode: 'RANGE',
+	min: 0,
+	max,
+	styleEnabled: style,
+	styleMin: 0,
+	styleMax: 5,
+	countsForTiebreak: true
 });
 const nodbrev: ScoreItemDef = {
-	id: 'nod', name: 'Nödbrev', mode: 'DISTINCT', min: 0, max: 20,
-	distinctValues: [{ value: 0, label: 'Ej inlämnat / öppnat' }, { value: 20, label: 'Oöppnat' }],
-	styleEnabled: false, styleMin: 0, styleMax: 0, countsForTiebreak: true
+	id: 'nod',
+	name: 'Nödbrev',
+	mode: 'DISTINCT',
+	min: 0,
+	max: 20,
+	distinctValues: [
+		{ value: 0, label: 'Ej inlämnat / öppnat' },
+		{ value: 20, label: 'Oöppnat' }
+	],
+	styleEnabled: false,
+	styleMin: 0,
+	styleMax: 0,
+	countsForTiebreak: true
 };
-const lunch: ScoreItemDef = { id: 'lunch', name: 'Rastplatsen', mode: 'CHECKIN', min: 0, max: 0, styleEnabled: false, styleMin: 0, styleMax: 0, countsForTiebreak: false };
+const lunch: ScoreItemDef = {
+	id: 'lunch',
+	name: 'Rastplatsen',
+	mode: 'CHECKIN',
+	min: 0,
+	max: 0,
+	styleEnabled: false,
+	styleMin: 0,
+	styleMax: 0,
+	countsForTiebreak: false
+};
 
 describe('evaluate', () => {
 	it('accepts range values and style', () => {
@@ -50,7 +95,14 @@ describe('rank', () => {
 			[
 				{ id: 'x', number: 1, scores: [{ itemId: 'a', points: 10, stylePoints: 5 }] },
 				{ id: 'y', number: 2, scores: [{ itemId: 'a', points: 15, stylePoints: 0 }] },
-				{ id: 'z', number: 3, scores: [{ itemId: 'a', points: 20, stylePoints: 0 }, { itemId: 'b', points: 0, stylePoints: 0 }] }
+				{
+					id: 'z',
+					number: 3,
+					scores: [
+						{ itemId: 'a', points: 20, stylePoints: 0 },
+						{ itemId: 'b', points: 0, stylePoints: 0 }
+					]
+				}
 			],
 			items
 		);
@@ -60,8 +112,22 @@ describe('rank', () => {
 	it('breaks equal points on number of top scores', () => {
 		const r = rank(
 			[
-				{ id: 'even', number: 1, scores: [{ itemId: 'a', points: 15, stylePoints: 0 }, { itemId: 'b', points: 15, stylePoints: 0 }] },
-				{ id: 'peak', number: 2, scores: [{ itemId: 'a', points: 20, stylePoints: 0 }, { itemId: 'b', points: 10, stylePoints: 0 }] }
+				{
+					id: 'even',
+					number: 1,
+					scores: [
+						{ itemId: 'a', points: 15, stylePoints: 0 },
+						{ itemId: 'b', points: 15, stylePoints: 0 }
+					]
+				},
+				{
+					id: 'peak',
+					number: 2,
+					scores: [
+						{ itemId: 'a', points: 20, stylePoints: 0 },
+						{ itemId: 'b', points: 10, stylePoints: 0 }
+					]
+				}
 			],
 			items
 		);
@@ -87,7 +153,10 @@ describe('rank', () => {
 		const score = fc.record({ itemId: fc.constantFrom('a', 'b'), points: fc.integer({ min: 0, max: 20 }), stylePoints: fc.integer({ min: 0, max: 5 }) });
 		fc.assert(
 			fc.property(fc.array(fc.array(score, { maxLength: 2 }), { minLength: 1, maxLength: 12 }), (lists) => {
-				const r = rank(lists.map((scores, i) => ({ id: `p${i}`, number: i + 1, scores })), items);
+				const r = rank(
+					lists.map((scores, i) => ({ id: `p${i}`, number: i + 1, scores })),
+					items
+				);
 				for (let i = 1; i < r.length; i++) {
 					expect(r[i].place).toBeGreaterThanOrEqual(r[i - 1].place);
 					expect(r[i].total).toBeLessThanOrEqual(r[i - 1].total);
@@ -100,21 +169,36 @@ describe('rank', () => {
 
 describe('station codes', () => {
 	it('uses K1… for single-day competitions', () => {
-		const m = stationCodes([{ id: 'a', dayId: null, order: 2, name: 'Eldstaden' }, { id: 'b', dayId: null, order: 1, name: 'Start' }], []);
+		const m = stationCodes(
+			[
+				{ id: 'a', dayId: null, order: 2, name: 'Eldstaden' },
+				{ id: 'b', dayId: null, order: 1, name: 'Start' }
+			],
+			[]
+		);
 		expect([m.get('b'), m.get('a')]).toEqual(['K1', 'K2']);
 	});
 	it('uses day prefix + order with S/M for start and finish', () => {
-		const days = [{ id: 'f', prefix: 'F' }, { id: 'l', prefix: 'L' }];
+		const days = [
+			{ id: 'f', prefix: 'F' },
+			{ id: 'l', prefix: 'L' }
+		];
 		const st = [
-			{ id: '1', dayId: 'f', order: 1, name: 'Fredag start' }, { id: '2', dayId: 'f', order: 2, name: 'Lägerbygge' },
-			{ id: '3', dayId: 'f', order: 3, name: 'Fredag mål' }, { id: '4', dayId: 'l', order: 4, name: 'Lördag start' },
-			{ id: '5', dayId: 'l', order: 5, name: 'Kanoten' }, { id: '6', dayId: 'l', order: 6, name: 'Matlagning', customCode: 'MAT' }
+			{ id: '1', dayId: 'f', order: 1, name: 'Fredag start' },
+			{ id: '2', dayId: 'f', order: 2, name: 'Lägerbygge' },
+			{ id: '3', dayId: 'f', order: 3, name: 'Fredag mål' },
+			{ id: '4', dayId: 'l', order: 4, name: 'Lördag start' },
+			{ id: '5', dayId: 'l', order: 5, name: 'Kanoten' },
+			{ id: '6', dayId: 'l', order: 6, name: 'Matlagning', customCode: 'MAT' }
 		];
 		const m = stationCodes(st, days);
 		expect(st.map((s) => m.get(s.id))).toEqual(['FS', 'F1', 'FM', 'LS', 'L1', 'MAT']);
 	});
 	it('prefers the explicit role over the name', () => {
-		const days = [{ id: 'f', prefix: 'F' }, { id: 'l', prefix: 'L' }];
+		const days = [
+			{ id: 'f', prefix: 'F' },
+			{ id: 'l', prefix: 'L' }
+		];
 		const st = [
 			{ id: '1', dayId: 'f', order: 1, name: 'Samling', role: 'start' as const },
 			{ id: '2', dayId: 'f', order: 2, name: 'Lägerbygge', role: null },
@@ -128,7 +212,10 @@ describe('station codes', () => {
 		expect(st.map((s) => m.get(s.id))).toEqual(['FS', 'F1', 'FM', 'L1', 'LM']);
 	});
 	it('never gives out a code someone typed by hand', () => {
-		const days = [{ id: 'f', prefix: 'F' }, { id: 'l', prefix: 'L' }];
+		const days = [
+			{ id: 'f', prefix: 'F' },
+			{ id: 'l', prefix: 'L' }
+		];
 		const st = [
 			{ id: '1', dayId: 'l', order: 1, name: 'Kartan' },
 			{ id: '2', dayId: 'l', order: 2, name: 'Kanoten', customCode: 'L1' },
@@ -138,11 +225,23 @@ describe('station codes', () => {
 		const m = stationCodes(st, days);
 		expect(st.map((s) => m.get(s.id))).toEqual(['L3', 'L1', 'L2', 'L4']);
 		// Single day: K-numbers by order, skipping a hand-typed K-code.
-		const one = stationCodes([{ id: 'a', dayId: null, order: 1, name: 'A', customCode: 'K3' }, { id: 'b', dayId: null, order: 2, name: 'B' }, { id: 'c', dayId: null, order: 3, name: 'C' }], []);
+		const one = stationCodes(
+			[
+				{ id: 'a', dayId: null, order: 1, name: 'A', customCode: 'K3' },
+				{ id: 'b', dayId: null, order: 2, name: 'B' },
+				{ id: 'c', dayId: null, order: 3, name: 'C' }
+			],
+			[]
+		);
 		expect(['a', 'b', 'c'].map((id) => one.get(id))).toEqual(['K3', 'K2', 'K4']);
 	});
 	it('derives a role from the name (case-insensitive)', () => {
-		expect([roleFromName('Fredag START'), roleFromName('Lördag Mål '), roleFromName('Målgång'), roleFromName('Eldstaden')]).toEqual(['start', 'finish', null, null]);
+		expect([roleFromName('Fredag START'), roleFromName('Lördag Mål '), roleFromName('Målgång'), roleFromName('Eldstaden')]).toEqual([
+			'start',
+			'finish',
+			null,
+			null
+		]);
 	});
 	it('generates Swedish day names and unique prefixes', () => {
 		expect(daysBetween('2027-05-14', '2027-05-16').map((d) => `${d.name}:${d.prefix}`)).toEqual(['Fredag:F', 'Lördag:L', 'Söndag:S']);
@@ -150,7 +249,12 @@ describe('station codes', () => {
 });
 
 describe('distribute', () => {
-	const stations = Array.from({ length: 14 }, (_, i) => ({ id: `k${i + 1}`, order: i + 1, trackIds: [10, 12].includes(i + 1) ? ['up'] : null, startable: i + 1 !== 7 }));
+	const stations = Array.from({ length: 14 }, (_, i) => ({
+		id: `k${i + 1}`,
+		order: i + 1,
+		trackIds: [10, 12].includes(i + 1) ? ['up'] : null,
+		startable: i + 1 !== 7
+	}));
 	const patrols = [
 		...Array.from({ length: 9 }, (_, i) => ({ id: `s${i}`, trackId: 'sp' })),
 		...Array.from({ length: 14 }, (_, i) => ({ id: `u${i}`, trackId: 'up' }))
@@ -217,7 +321,10 @@ describe('import', () => {
 		expect(kinds).toEqual(expect.arrayContaining(['unknownTrack', 'troopSpelling', 'members', 'skipped', 'phones']));
 	});
 	it('parses semicolon CSV with quotes', () => {
-		expect(parseCsv('Patrullnamn;Klass\n"Lodjuren; bäst";Spårare\n')).toEqual([['Patrullnamn', 'Klass'], ['Lodjuren; bäst', 'Spårare']]);
+		expect(parseCsv('Patrullnamn;Klass\n"Lodjuren; bäst";Spårare\n')).toEqual([
+			['Patrullnamn', 'Klass'],
+			['Lodjuren; bäst', 'Spårare']
+		]);
 	});
 	it('normalises phones and members', () => {
 		expect(normalizePhone('+46 70 333 44 55')).toBe('070-333 44 55');
@@ -227,7 +334,9 @@ describe('import', () => {
 
 describe('style switched off after scores were saved', () => {
 	it('stored style points no longer count in the ranking', () => {
-		const items: ScoreItemDef[] = [{ id: 'k1', name: 'K1', mode: 'RANGE', min: 0, max: 20, styleEnabled: false, styleMin: 0, styleMax: 5, countsForTiebreak: true }];
+		const items: ScoreItemDef[] = [
+			{ id: 'k1', name: 'K1', mode: 'RANGE', min: 0, max: 20, styleEnabled: false, styleMin: 0, styleMax: 5, countsForTiebreak: true }
+		];
 		const r = rank(
 			[
 				{ id: 'early', number: 1, scores: [{ itemId: 'k1', points: 5, stylePoints: 3 }] },
@@ -235,7 +344,10 @@ describe('style switched off after scores were saved', () => {
 			],
 			items
 		);
-		expect(r.map((x) => [x.id, x.total, x.stylePoints])).toEqual([['late', 6, 0], ['early', 5, 0]]);
+		expect(r.map((x) => [x.id, x.total, x.stylePoints])).toEqual([
+			['late', 6, 0],
+			['early', 5, 0]
+		]);
 	});
 });
 

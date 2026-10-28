@@ -38,12 +38,14 @@
 	let addRole = $state<'organiser' | 'owner'>('organiser');
 	let memberNo = $state('');
 
-	const f = $derived((form && typeof form === 'object' && (form as { section?: string }).section === 'members' ? form : null) as null | {
-		ok?: boolean;
-		message?: string;
-		errors?: Record<string, string>;
-		memberNo?: string;
-	});
+	const f = $derived(
+		(form && typeof form === 'object' && (form as { section?: string }).section === 'members' ? form : null) as null | {
+			ok?: boolean;
+			message?: string;
+			errors?: Record<string, string>;
+			memberNo?: string;
+		}
+	);
 	const errors = $derived(f?.errors ?? {});
 	// After a failed add, keep what was typed (the server echoes it back).
 	$effect(() => {
@@ -54,13 +56,15 @@
 	const platform = $derived(power === 'platform');
 	const canOwners = $derived(power === 'owner' || power === 'platform');
 	const canAdd = $derived(power !== null);
-	const done = () => async ({ update, result }: { update: (o?: { reset?: boolean }) => Promise<void>; result: { type: string } }) => {
-		await update({ reset: false });
-		if (result.type === 'success') {
-			confirming = null;
-			memberNo = '';
-		}
-	};
+	const done =
+		() =>
+		async ({ update, result }: { update: (o?: { reset?: boolean }) => Promise<void>; result: { type: string } }) => {
+			await update({ reset: false });
+			if (result.type === 'success') {
+				confirming = null;
+				memberNo = '';
+			}
+		};
 	const roleText = (r: string) => (r === 'owner' ? 'Ägare' : 'Arrangör');
 	const ask = (userId: string, kind: Kind) => (confirming = confirming?.userId === userId && confirming.kind === kind ? null : { userId, kind });
 	const isAsking = (userId: string, kind?: Kind) => confirming?.userId === userId && (!kind || confirming.kind === kind);
@@ -72,7 +76,13 @@
 	{#if platform}
 		<div class="field reason">
 			<label for="mp-reason">Anledning (krävs, minst 10 tecken)</label>
-			<textarea id="mp-reason" rows="2" bind:value={reason} aria-invalid={errors.reason ? 'true' : undefined} aria-describedby="mp-reason-help" placeholder="t.ex. Ärende från distriktet: ägaren har slutat"></textarea>
+			<textarea
+				id="mp-reason"
+				rows="2"
+				bind:value={reason}
+				aria-invalid={errors.reason ? 'true' : undefined}
+				aria-describedby="mp-reason-help"
+				placeholder="t.ex. Ärende från distriktet: ägaren har slutat"></textarea>
 			<span id="mp-reason-help" class="muted small">Sparas i händelseloggen. Skriv inte namn på patrullmedlemmar.</span>
 			{#if errors.reason}<span class="error-text" role="alert" id="err-reason">{errors.reason}</span>{/if}
 		</div>
@@ -98,7 +108,11 @@
 					{:else if !self && canOwners}
 						{#if m.role === 'organiser'}
 							<form method="POST" action="{action}?/memberRole" use:enhance={done}>
-								<input type="hidden" name="userId" value={m.userId} /><input type="hidden" name="role" value="owner" /><input type="hidden" name="reason" value={reason} />
+								<input type="hidden" name="userId" value={m.userId} /><input type="hidden" name="role" value="owner" /><input
+									type="hidden"
+									name="reason"
+									value={reason}
+								/>
 								<button class="btn btn-ghost sm">Gör till ägare</button>
 							</form>
 							{#if power === 'owner'}
@@ -106,7 +120,11 @@
 							{/if}
 						{:else}
 							<form method="POST" action="{action}?/memberRole" use:enhance={done}>
-								<input type="hidden" name="userId" value={m.userId} /><input type="hidden" name="role" value="organiser" /><input type="hidden" name="reason" value={reason} />
+								<input type="hidden" name="userId" value={m.userId} /><input type="hidden" name="role" value="organiser" /><input
+									type="hidden"
+									name="reason"
+									value={reason}
+								/>
 								<button class="btn btn-ghost sm" disabled={onlyOwner(m)}>Gör till arrangör</button>
 							</form>
 							{#if platform}
@@ -120,7 +138,11 @@
 				</div>
 				{#if onlyOwner(m) && power}
 					<span class="muted small full" data-testid="only-owner">
-						{platform ? 'Enda ägaren. Använd "Ersätt ägare" för att byta i ett steg.' : self ? `Du är enda ägaren. Lägg till en ägare innan du lämnar ${scopeText}.` : 'Enda ägaren.'}
+						{platform
+							? 'Enda ägaren. Använd "Ersätt ägare" för att byta i ett steg.'
+							: self
+								? `Du är enda ägaren. Lägg till en ägare innan du lämnar ${scopeText}.`
+								: 'Enda ägaren.'}
 					</span>
 				{/if}
 
@@ -182,7 +204,15 @@
 			<input type="hidden" name="reason" value={reason} />
 			<div class="field grow">
 				<label for="memberNo">Bjud in med medlemsnummer</label>
-				<input id="memberNo" name="memberNo" inputmode="numeric" bind:value={memberNo} placeholder="t.ex. 3000002" aria-invalid={errors.memberNo ? 'true' : undefined} aria-describedby="mn-help" />
+				<input
+					id="memberNo"
+					name="memberNo"
+					inputmode="numeric"
+					bind:value={memberNo}
+					placeholder="t.ex. 3000002"
+					aria-invalid={errors.memberNo ? 'true' : undefined}
+					aria-describedby="mn-help"
+				/>
 			</div>
 			{#if canOwners}
 				<div class="field">
@@ -196,7 +226,9 @@
 				<input type="hidden" name="role" value="organiser" />
 			{/if}
 			<button class="btn btn-accent">{addRole === 'owner' ? 'Lägg till ägare' : 'Lägg till arrangör'}</button>
-			<span id="mn-help" class="muted small full">Personen måste ha loggat in på scouttavling.se minst en gång. Ägare kan ändra allt, även vilka som är ägare. Arrangörer kan ändra allt utom ägarna.</span>
+			<span id="mn-help" class="muted small full"
+				>Personen måste ha loggat in på scouttavling.se minst en gång. Ägare kan ändra allt, även vilka som är ägare. Arrangörer kan ändra allt utom ägarna.</span
+			>
 			{#if errors.memberNo}<span class="error-text full" role="alert">{errors.memberNo}</span>{/if}
 		</form>
 	{/if}

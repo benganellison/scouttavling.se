@@ -23,7 +23,12 @@ export const db = drizzle(client, { schema });
  * Own single connection for /healthz: a busy main pool (sync bursts) must not make the health check
  * fail, or Traefik would take the only app instance out of service.
  */
-export const healthSql = (g.__healthClient ??= postgres(DATABASE_URL, { max: 1, idle_timeout: 60, connect_timeout: 3, connection: { statement_timeout: 2000 } }));
+export const healthSql = (g.__healthClient ??= postgres(DATABASE_URL, {
+	max: 1,
+	idle_timeout: 60,
+	connect_timeout: 3,
+	connection: { statement_timeout: 2000 }
+}));
 
 /** Closes both pools (graceful shutdown; see hooks.server.ts). */
 export const closeDb = () => Promise.all([client.end({ timeout: 5 }), healthSql.end({ timeout: 2 })]);

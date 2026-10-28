@@ -13,9 +13,13 @@
 	let { data, form } = $props();
 
 	const c = $derived(data.competition);
-	const errs = (section: string): Record<string, string> => (form && form.section === section && 'errors' in form ? (form.errors as Record<string, string>) : {});
+	const errs = (section: string): Record<string, string> =>
+		form && form.section === section && 'errors' in form ? (form.errors as Record<string, string>) : {};
 	const ok = (section: string) => Boolean(form && form.section === section && 'ok' in form && form.ok);
-	const keep = () => async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) => update({ reset: false });
+	const keep =
+		() =>
+		async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) =>
+			update({ reset: false });
 	const ownerOptions = $derived(
 		data.groups.some((g) => g.groupNo === c.ownerGroupNo) || !c.ownerGroupNo
 			? data.groups
@@ -29,8 +33,11 @@
 	const eA = $derived(errs('appearance'));
 
 	/** What "Standard" would give each class (its own colour ignored, the others kept). */
-	const trackDefault = (id: string) => trackColors(data.tracks.map((t) => (t.id === id ? { ...t, color: null } : t)), data.classTemplate)[id];
-
+	const trackDefault = (id: string) =>
+		trackColors(
+			data.tracks.map((t) => (t.id === id ? { ...t, color: null } : t)),
+			data.classTemplate
+		)[id];
 </script>
 
 <svelte:head><title>Inställningar · {c.name}</title></svelte:head>
@@ -44,7 +51,6 @@
 <section class="card sec" aria-labelledby="h-basics">
 	<h2 id="h-basics">Grundinfo</h2>
 	<form method="POST" action="?/basics" class="stack" use:enhance={keep} novalidate>
-		
 		<div class="field">
 			<label for="name">Namn</label>
 			<input id="name" name="name" value={c.name} aria-invalid={eB.name ? 'true' : undefined} aria-describedby={eB.name ? 'err-name' : undefined} />
@@ -54,7 +60,14 @@
 			{#if !c.multiDay}
 				<div class="field">
 					<label for="date">Datum</label>
-					<input id="date" name="date" type="date" value={c.startDate} aria-invalid={eB.date ? 'true' : undefined} aria-describedby={eB.date ? 'err-date' : undefined} />
+					<input
+						id="date"
+						name="date"
+						type="date"
+						value={c.startDate}
+						aria-invalid={eB.date ? 'true' : undefined}
+						aria-describedby={eB.date ? 'err-date' : undefined}
+					/>
 					{#if eB.date}<span class="error-text" id="err-date">{eB.date}</span>{/if}
 				</div>
 			{/if}
@@ -64,19 +77,37 @@
 			</div>
 			<div class="field">
 				<label for="hqPhone">Telefon till tävlingsledningen</label>
-				<input id="hqPhone" name="hqPhone" type="tel" value={c.hqPhone ?? ''} aria-invalid={eB.hqPhone ? 'true' : undefined} aria-describedby={eB.hqPhone ? 'err-hqPhone' : undefined} />
+				<input
+					id="hqPhone"
+					name="hqPhone"
+					type="tel"
+					value={c.hqPhone ?? ''}
+					aria-invalid={eB.hqPhone ? 'true' : undefined}
+					aria-describedby={eB.hqPhone ? 'err-hqPhone' : undefined}
+				/>
 				{#if eB.hqPhone}<span class="error-text" id="err-hqPhone">{eB.hqPhone}</span>{/if}
 			</div>
 			<div class="field">
 				<label for="owner">Arrangör</label>
-				<select id="owner" name="owner" value={c.ownerGroupNo ?? ''} aria-invalid={eB.owner ? 'true' : undefined} aria-describedby={eB.owner ? 'err-owner' : undefined}>
+				<select
+					id="owner"
+					name="owner"
+					value={c.ownerGroupNo ?? ''}
+					aria-invalid={eB.owner ? 'true' : undefined}
+					aria-describedby={eB.owner ? 'err-owner' : undefined}
+				>
 					{#each ownerOptions as g (g.groupNo)}<option value={g.groupNo}>{g.name}</option>{/each}
 				</select>
 				{#if eB.owner}<span class="error-text" id="err-owner">{eB.owner}</span>{/if}
 			</div>
 		</div>
 		<div class="toggles">
-			<Toggle name="styleEnabled" checked={c.styleEnabled} label="Använd stilpoäng" description="Av = stilpoäng försvinner på funktionärens skärm, protokoll och resultat." />
+			<Toggle
+				name="styleEnabled"
+				checked={c.styleEnabled}
+				label="Använd stilpoäng"
+				description="Av = stilpoäng försvinner på funktionärens skärm, protokoll och resultat."
+			/>
 			<Toggle name="publicResults" checked={c.publicResults} label="Publika resultat" description="Resultatlistan syns för alla under dagen." />
 			<Toggle
 				name="stationResultsLive"
@@ -105,38 +136,100 @@
 		<div class="grid2">
 			<div class="field">
 				<label for="registrationOpensOn">Anmälan öppnar</label>
-				<input id="registrationOpensOn" name="registrationOpensOn" type="date" value={c.registrationOpensOn ?? ''} aria-invalid={eR.registrationOpensOn ? 'true' : undefined} aria-describedby={eR.registrationOpensOn ? 'err-registrationOpensOn' : undefined} />
-				{#if eR.registrationOpensOn}<span class="error-text" id="err-registrationOpensOn">{eR.registrationOpensOn}</span>{:else}<span class="muted small">Tomt = direkt</span>{/if}
+				<input
+					id="registrationOpensOn"
+					name="registrationOpensOn"
+					type="date"
+					value={c.registrationOpensOn ?? ''}
+					aria-invalid={eR.registrationOpensOn ? 'true' : undefined}
+					aria-describedby={eR.registrationOpensOn ? 'err-registrationOpensOn' : undefined}
+				/>
+				{#if eR.registrationOpensOn}<span class="error-text" id="err-registrationOpensOn">{eR.registrationOpensOn}</span>{:else}<span class="muted small"
+						>Tomt = direkt</span
+					>{/if}
 			</div>
 			<div class="field">
 				<label for="registrationClosesOn">Sista anmälningsdag</label>
-				<input id="registrationClosesOn" name="registrationClosesOn" type="date" value={c.registrationClosesOn ?? ''} aria-invalid={eR.registrationClosesOn ? 'true' : undefined} aria-describedby={eR.registrationClosesOn ? 'err-registrationClosesOn' : undefined} />
-				{#if eR.registrationClosesOn}<span class="error-text" id="err-registrationClosesOn">{eR.registrationClosesOn}</span>{:else}<span class="muted small">Tomt = till och med tävlingsdagen</span>{/if}
+				<input
+					id="registrationClosesOn"
+					name="registrationClosesOn"
+					type="date"
+					value={c.registrationClosesOn ?? ''}
+					aria-invalid={eR.registrationClosesOn ? 'true' : undefined}
+					aria-describedby={eR.registrationClosesOn ? 'err-registrationClosesOn' : undefined}
+				/>
+				{#if eR.registrationClosesOn}<span class="error-text" id="err-registrationClosesOn">{eR.registrationClosesOn}</span>{:else}<span class="muted small"
+						>Tomt = till och med tävlingsdagen</span
+					>{/if}
 			</div>
 			<div class="field">
 				<label for="maxPatrols">Max antal patruller</label>
-				<input id="maxPatrols" name="maxPatrols" inputmode="numeric" value={c.maxPatrols ?? ''} placeholder="Obegränsat" aria-invalid={eR.maxPatrols ? 'true' : undefined} aria-describedby={eR.maxPatrols ? 'err-maxPatrols' : undefined} />
+				<input
+					id="maxPatrols"
+					name="maxPatrols"
+					inputmode="numeric"
+					value={c.maxPatrols ?? ''}
+					placeholder="Obegränsat"
+					aria-invalid={eR.maxPatrols ? 'true' : undefined}
+					aria-describedby={eR.maxPatrols ? 'err-maxPatrols' : undefined}
+				/>
 				{#if eR.maxPatrols}<span class="error-text" id="err-maxPatrols">{eR.maxPatrols}</span>{/if}
 			</div>
 			<div class="field">
 				<label for="feePerPatrol">Avgift per patrull (kr)</label>
-				<input id="feePerPatrol" name="feePerPatrol" inputmode="numeric" value={c.feePerPatrol ?? ''} placeholder="Ingen avgift" aria-invalid={eR.feePerPatrol ? 'true' : undefined} aria-describedby="feePerPatrol-help" />
-				{#if eR.feePerPatrol}<span class="error-text" id="err-feePerPatrol">{eR.feePerPatrol}</span>{:else}<span class="muted small" id="feePerPatrol-help">Bocka i "Betald" på Patruller när pengarna har kommit in.</span>{/if}
+				<input
+					id="feePerPatrol"
+					name="feePerPatrol"
+					inputmode="numeric"
+					value={c.feePerPatrol ?? ''}
+					placeholder="Ingen avgift"
+					aria-invalid={eR.feePerPatrol ? 'true' : undefined}
+					aria-describedby="feePerPatrol-help"
+				/>
+				{#if eR.feePerPatrol}<span class="error-text" id="err-feePerPatrol">{eR.feePerPatrol}</span>{:else}<span class="muted small" id="feePerPatrol-help"
+						>Bocka i "Betald" på Patruller när pengarna har kommit in.</span
+					>{/if}
 			</div>
 		</div>
 		<div class="field">
 			<label for="infoText">Information på tävlingssidan</label>
-			<textarea id="infoText" name="infoText" rows="5" maxlength="4000" placeholder="Samlingstid, vad patrullerna ska ta med, startavgift …" aria-invalid={eR.infoText ? 'true' : undefined} aria-describedby={eR.infoText ? 'err-infoText' : undefined}>{c.infoText ?? ''}</textarea>
+			<textarea
+				id="infoText"
+				name="infoText"
+				rows="5"
+				maxlength="4000"
+				placeholder="Samlingstid, vad patrullerna ska ta med, startavgift …"
+				aria-invalid={eR.infoText ? 'true' : undefined}
+				aria-describedby={eR.infoText ? 'err-infoText' : undefined}>{c.infoText ?? ''}</textarea
+			>
 			{#if eR.infoText}<span class="error-text" id="err-infoText">{eR.infoText}</span>{/if}
 		</div>
 		<div class="field">
 			<label for="confirmationText">Text i bekräftelsen</label>
-			<textarea id="confirmationText" name="confirmationText" rows="3" maxlength="1000" placeholder="Visas när en patrull har anmält sig, t.ex. hur avgiften betalas." aria-invalid={eR.confirmationText ? 'true' : undefined} aria-describedby={eR.confirmationText ? 'err-confirmationText' : undefined}>{c.confirmationText ?? ''}</textarea>
+			<textarea
+				id="confirmationText"
+				name="confirmationText"
+				rows="3"
+				maxlength="1000"
+				placeholder="Visas när en patrull har anmält sig, t.ex. hur avgiften betalas."
+				aria-invalid={eR.confirmationText ? 'true' : undefined}
+				aria-describedby={eR.confirmationText ? 'err-confirmationText' : undefined}>{c.confirmationText ?? ''}</textarea
+			>
 			{#if eR.confirmationText}<span class="error-text" id="err-confirmationText">{eR.confirmationText}</span>{/if}
 		</div>
 		<div class="toggles">
-			<Toggle name="followEnabled" checked={c.followEnabled} label="Följ patrullen" description="Ledare och föräldrar kan följa sin patrull live via patrullens egen länk." />
-			<Toggle name="followShowScores" checked={c.followShowScores} label="Visa poäng och placering" description="Av = följ-sidan visar bara vilka kontroller patrullen klarat." />
+			<Toggle
+				name="followEnabled"
+				checked={c.followEnabled}
+				label="Följ patrullen"
+				description="Ledare och föräldrar kan följa sin patrull live via patrullens egen länk."
+			/>
+			<Toggle
+				name="followShowScores"
+				checked={c.followShowScores}
+				label="Visa poäng och placering"
+				description="Av = följ-sidan visar bara vilka kontroller patrullen klarat."
+			/>
 		</div>
 		<div class="act">
 			<button class="btn btn-primary" disabled={!canEdit}>Spara anmälan</button>
@@ -165,7 +258,7 @@
 	<section class="card sec" aria-labelledby="h-days">
 		<h2 id="h-days">Dagar</h2>
 		<p class="muted lead">Prefixet används i kontrollkoderna, t.ex. F → FS, F1 … FM.</p>
-		
+
 		<form method="POST" action="?/days" class="stack" use:enhance={keep} novalidate id="days-form">
 			<ul class="days">
 				{#each data.days as d (d.id)}
@@ -180,7 +273,14 @@
 						</div>
 						<div class="field pre">
 							<label for="prefix_{d.id}">Prefix</label>
-							<input id="prefix_{d.id}" name="prefix_{d.id}" value={d.prefix} maxlength="3" class="prefix" aria-invalid={eD[`prefix_${d.id}`] ? 'true' : undefined} />
+							<input
+								id="prefix_{d.id}"
+								name="prefix_{d.id}"
+								value={d.prefix}
+								maxlength="3"
+								class="prefix"
+								aria-invalid={eD[`prefix_${d.id}`] ? 'true' : undefined}
+							/>
 						</div>
 						<button
 							class="btn btn-ghost rm"
@@ -209,8 +309,11 @@
 
 <section class="card sec" id="klasser" aria-labelledby="h-tracks">
 	<h2 id="h-tracks">Klasser</h2>
-	<p class="muted lead">Varje patrull tävlar i en klass och får en egen resultatlista. Klassfärgen är en markering i listor, diagram och utskrifter (aldrig textfärg). Spårare–Rover får åldersgruppens färg och Ledare Scoutblå automatiskt.</p>
-	
+	<p class="muted lead">
+		Varje patrull tävlar i en klass och får en egen resultatlista. Klassfärgen är en markering i listor, diagram och utskrifter (aldrig textfärg). Spårare–Rover
+		får åldersgruppens färg och Ledare Scoutblå automatiskt.
+	</p>
+
 	<form method="POST" action="?/tracks" class="stack" use:enhance={keep} novalidate>
 		<ul class="tracks">
 			{#each data.tracks as t (t.id)}
@@ -221,9 +324,24 @@
 						<input id="track_{t.id}" name="track_{t.id}" value={t.name} aria-invalid={eT[`track_${t.id}`] ? 'true' : undefined} />
 					</div>
 					<span class="muted small">{data.trackPatrols[t.id] ?? 0} patruller</span>
-					<button class="btn btn-ghost rm" formaction="?/removeTrack" name="id" value={t.id} disabled={!canEdit || (data.trackPatrols[t.id] ?? 0) > 0} aria-label="Ta bort klassen {t.name}">Ta bort</button>
+					<button
+						class="btn btn-ghost rm"
+						formaction="?/removeTrack"
+						name="id"
+						value={t.id}
+						disabled={!canEdit || (data.trackPatrols[t.id] ?? 0) > 0}
+						aria-label="Ta bort klassen {t.name}">Ta bort</button
+					>
 					<div class="full">
-						<ColorField id="color-{t.id}" name="color_{t.id}" label="Färg för {t.name}" value={t.color ?? ''} fallback={trackDefault(t.id)} compact disabled={!canEdit} />
+						<ColorField
+							id="color-{t.id}"
+							name="color_{t.id}"
+							label="Färg för {t.name}"
+							value={t.color ?? ''}
+							fallback={trackDefault(t.id)}
+							compact
+							disabled={!canEdit}
+						/>
 					</div>
 					{#if eT[`track_${t.id}`]}<span class="error-text full">{eT[`track_${t.id}`]}</span>{/if}
 				</li>
@@ -231,7 +349,13 @@
 		</ul>
 		<div class="field">
 			<label for="newTrack">Ny klass</label>
-			<input id="newTrack" name="newTrack" placeholder="t.ex. Rover" aria-invalid={eT.newTrack ? 'true' : undefined} aria-describedby={eT.newTrack ? 'err-newTrack' : undefined} />
+			<input
+				id="newTrack"
+				name="newTrack"
+				placeholder="t.ex. Rover"
+				aria-invalid={eT.newTrack ? 'true' : undefined}
+				aria-describedby={eT.newTrack ? 'err-newTrack' : undefined}
+			/>
 			{#if eT.newTrack}<span class="error-text" id="err-newTrack">{eT.newTrack}</span>{/if}
 		</div>
 		{#if eT.tracks}<span class="error-text" role="alert" id="err-tracks">{eT.tracks}</span>{/if}
@@ -256,7 +380,9 @@
 {#if data.roles.includes('owner')}
 	<section class="card sec" id="logg" aria-labelledby="h-audit">
 		<h2 id="h-audit">Händelselogg</h2>
-		<p class="muted lead">Ändringar av ägare och arrangörer, borttagning av personuppgifter och allt plattformsadministratören gör med tävlingen. Loggen kan inte ändras.</p>
+		<p class="muted lead">
+			Ändringar av ägare och arrangörer, borttagning av personuppgifter och allt plattformsadministratören gör med tävlingen. Loggen kan inte ändras.
+		</p>
 		{#if data.notices.length}
 			<div class="notices" data-testid="access-notices">
 				<h3>Tillfällig åtkomst från plattformsadmin (30 dagar)</h3>
@@ -265,7 +391,9 @@
 						<li>
 							<strong>{n.adminName}</strong>
 							{n.active ? 'har åtkomst' : 'hade åtkomst'} som arrangör
-							{new Date(n.grantedAt).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Stockholm' })}–{new Date(n.until).toLocaleTimeString('sv-SE', { timeStyle: 'short', timeZone: 'Europe/Stockholm' })}.
+							{new Date(n.grantedAt).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Stockholm' })}–{new Date(
+								n.until
+							).toLocaleTimeString('sv-SE', { timeStyle: 'short', timeZone: 'Europe/Stockholm' })}.
 							<span class="muted">Anledning: {n.reason}</span>
 						</li>
 					{/each}

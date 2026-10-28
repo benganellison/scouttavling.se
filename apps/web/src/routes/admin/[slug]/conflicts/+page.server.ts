@@ -36,7 +36,14 @@ export async function load(event) {
 	// One query for all open conflicts (not one per conflict: a phone with a wrong clock can park hundreds).
 	const revs = rows.length
 		? await db
-				.select({ patrolId: schema.score.patrolId, itemId: schema.score.itemId, version: schema.scoreRevision.version, deviceId: schema.scoreRevision.deviceId, userId: schema.scoreRevision.userId, origin: schema.scoreRevision.origin })
+				.select({
+					patrolId: schema.score.patrolId,
+					itemId: schema.score.itemId,
+					version: schema.scoreRevision.version,
+					deviceId: schema.scoreRevision.deviceId,
+					userId: schema.scoreRevision.userId,
+					origin: schema.scoreRevision.origin
+				})
 				.from(schema.scoreRevision)
 				.innerJoin(schema.score, eq(schema.score.id, schema.scoreRevision.scoreId))
 				.where(
@@ -55,21 +62,46 @@ export async function load(event) {
 		return r ? { deviceId: r.deviceId, userId: r.userId, origin: r.origin } : null;
 	});
 	const userIds = [...new Set([...authors.map((a) => a?.userId), ...rows.map(({ c }) => (c.incoming as Side).userId)].filter((x): x is string => !!x))];
-	const users = userIds.length ? await db.select({ id: schema.appUser.id, name: schema.appUser.name }).from(schema.appUser).where(inArray(schema.appUser.id, userIds)) : [];
+	const users = userIds.length
+		? await db.select({ id: schema.appUser.id, name: schema.appUser.name }).from(schema.appUser).where(inArray(schema.appUser.id, userIds))
+		: [];
 	const userName = new Map(users.map((u) => [u.id, u.name]));
 	/** Who reported: device display name, the organiser's name, or "Papper". */
 	const who = (x: Side): string | null =>
-		x.deviceId ? (devName.get(x.deviceId) ?? 'Okänd enhet') : x.userId && userName.get(x.userId) ? (x.origin === 'paper' ? `Papper (${userName.get(x.userId)})` : userName.get(x.userId)!) : x.origin === 'paper' ? 'Papper' : null;
-	const where = new Map(stations.flatMap((s) => s.items.map((i) => [i.id, s.items.length > 1 ? `${s.code} ${s.name} · ${i.name}` : `${s.code} ${s.name}`] as const)));
+		x.deviceId
+			? (devName.get(x.deviceId) ?? 'Okänd enhet')
+			: x.userId && userName.get(x.userId)
+				? x.origin === 'paper'
+					? `Papper (${userName.get(x.userId)})`
+					: userName.get(x.userId)!
+				: x.origin === 'paper'
+					? 'Papper'
+					: null;
+	const where = new Map(
+		stations.flatMap((s) => s.items.map((i) => [i.id, s.items.length > 1 ? `${s.code} ${s.name} · ${i.name}` : `${s.code} ${s.name}`] as const))
+	);
 	const side = (x: Side) => ({
-		points: x.points ?? null, stylePoints: x.stylePoints ?? 0, state: x.state ?? 'active', origin: x.origin ?? null,
-		device: who(x), reason: x.reason ?? null
+		points: x.points ?? null,
+		stylePoints: x.stylePoints ?? 0,
+		state: x.state ?? 'active',
+		origin: x.origin ?? null,
+		device: who(x),
+		reason: x.reason ?? null
 	});
 	return {
 		comp: { slug: comp.slug, name: comp.name },
 		conflicts: rows.map(({ c, patrolNumber, patrolName }, i) => ({
-			id: c.id, kind: c.kind, time: formatTime(c.createdAt), patrol: `${patrolNumber} ${patrolName}`, patrolNumber,
-			where: where.get(c.itemId) ?? 'Okänd kontroll', existing: side({ ...(c.existing as Side), ...(authors[i] ? { deviceId: authors[i]!.deviceId, userId: authors[i]!.userId, origin: (c.existing as Side).origin ?? authors[i]!.origin } : {}) }), incoming: side({ ...(c.incoming as Side), ...((c.incoming as { type?: string }).type === 'VoidScore' ? { state: 'void' } : {}) })
+			id: c.id,
+			kind: c.kind,
+			time: formatTime(c.createdAt),
+			patrol: `${patrolNumber} ${patrolName}`,
+			patrolNumber,
+			where: where.get(c.itemId) ?? 'Okänd kontroll',
+			existing: side({
+				...(c.existing as Side),
+				...(authors[i] ? { deviceId: authors[i]!.deviceId, userId: authors[i]!.userId, origin: (c.existing as Side).origin ?? authors[i]!.origin } : {})
+			}),
+			incoming: side({ ...(c.incoming as Side), ...((c.incoming as { type?: string }).type === 'VoidScore' ? { state: 'void' } : {}) })
 		}))
 	};
 }
@@ -105,7 +137,16 @@ export const actions = {
 		const c = await openConflict(comp.id, id);
 		if (!c) return fail(404, { message: 'Konflikten är redan löst' });
 		const inc = c.incoming as Side & { type?: string };
-		const base = { competitionId: comp.id, patrolId: c.patrolId, itemId: c.itemId, baseVersion: null, origin: 'admin' as const, userId: user.id, deviceId: null, force: true };
+		const base = {
+			competitionId: comp.id,
+			patrolId: c.patrolId,
+			itemId: c.itemId,
+			baseVersion: null,
+			origin: 'admin' as const,
+			userId: user.id,
+			deviceId: null,
+			force: true
+		};
 		// A quarantined undo ("Ångra" on the phone) carries no points: using it means removing the score.
 		if (inc.type === 'VoidScore') {
 			await voidScore({ ...base, reason: 'Konflikt löst: ångringen från kontrollen används' });

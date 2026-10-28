@@ -14,7 +14,15 @@
 	let patrolName = $state(init?.patrolName ?? '');
 	let troop = $state(init?.troop ?? '');
 	let trackId = $state(init?.trackId ?? '');
-	let members = $state(init?.members.length ? init.members : [{ firstName: '', lastName: '' }, { firstName: '', lastName: '' }, { firstName: '', lastName: '' }]);
+	let members = $state(
+		init?.members.length
+			? init.members
+			: [
+					{ firstName: '', lastName: '' },
+					{ firstName: '', lastName: '' },
+					{ firstName: '', lastName: '' }
+				]
+	);
 	let contactName = $state(init?.contactName ?? '');
 	let contactPhone = $state(init?.contactPhone ?? '');
 	let contactEmail = $state(init?.contactEmail ?? '');
@@ -45,7 +53,10 @@
 		// Blank rows are ignored; errors are mapped back to the row the user sees.
 		const rowOf = members.flatMap((m, i) => (m.firstName.trim() || m.lastName.trim() ? [i] : []));
 		const raw: RawRegistration = { patrolName, troop, trackId, contactName, contactPhone, contactEmail, members: rowOf.map((i) => members[i]) };
-		const r = validateRegistration(raw, data.tracks.map((t) => t.id));
+		const r = validateRegistration(
+			raw,
+			data.tracks.map((t) => t.id)
+		);
 		const errs: FormErrors = {};
 		if (!r.ok)
 			for (const [k, msg] of Object.entries(r.errors)) {
@@ -100,7 +111,9 @@
 	{#if done}
 		<section class="card done" aria-labelledby="h-done" data-testid="confirmation">
 			<span class="badge" aria-hidden="true">
-				<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+				<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+					><path d="M5 12.5l4.5 4.5L19 7.5" /></svg
+				>
 			</span>
 			<h1 id="h-done" tabindex="-1">{done.patrolName} är anmäld!</h1>
 			<p class="lead">Patrull <strong class="nr" data-testid="patrol-number">{done.number}</strong> · {done.track}</p>
@@ -108,14 +121,21 @@
 
 		<section class="card save" aria-labelledby="h-save">
 			<h2 id="h-save">Spara länken</h2>
-			<p>Med den här länken ser du patrullpasset med QR-koden och kan ändra scouter och kontaktuppgifter fram till att anmälan stänger. <strong>Bokmärk den eller skicka den till dig själv nu</strong> – den visas bara här.</p>
+			<p>
+				Med den här länken ser du patrullpasset med QR-koden och kan ändra scouter och kontaktuppgifter fram till att anmälan stänger. <strong
+					>Bokmärk den eller skicka den till dig själv nu</strong
+				> – den visas bara här.
+			</p>
 			<CopyLink url={done.manageUrl} label="Patrullpass och ändringar" testid="manage-link" />
 			<a class="btn btn-accent wide" href={done.manageUrl}>Öppna patrullpasset</a>
 		</section>
 
 		<section class="card" aria-labelledby="h-follow">
 			<h2 id="h-follow">Följ patrullen</h2>
-			<p class="muted">Dela den här länken med ledare och föräldrar. Den visar var patrullen är och hur det går under tävlingsdagen, men inga namn på scouterna eller kontaktuppgifter. Dela den bara med dem som ska följa patrullen.</p>
+			<p class="muted">
+				Dela den här länken med ledare och föräldrar. Den visar var patrullen är och hur det går under tävlingsdagen, men inga namn på scouterna eller
+				kontaktuppgifter. Dela den bara med dem som ska följa patrullen.
+			</p>
 			<CopyLink url={done.followUrl} label="Följ-länk" testid="follow-link" />
 			{#if !done.followEnabled}<p class="muted small">Arrangören slår på Följ patrullen närmare tävlingen. Länken fungerar då.</p>{/if}
 		</section>
@@ -171,12 +191,31 @@
 				<legend><h1 id={step === 1 ? 'step-title' : undefined} tabindex="-1">Patrullen</h1></legend>
 				<div class="field">
 					<label for="patrolName">Patrullens namn</label>
-					<input id="patrolName" name="patrolName" bind:value={patrolName} autocomplete="off" maxlength="40" aria-invalid={errors.patrolName ? 'true' : undefined} aria-describedby={errors.patrolName ? 'e-patrolName' : 'h-patrolName'} />
-					{#if errors.patrolName}<span id="e-patrolName" class="error-text">{errors.patrolName}</span>{:else}<span id="h-patrolName" class="muted small">Visas i resultaten och arkivet. Använd inte scouternas namn.</span>{/if}
+					<input
+						id="patrolName"
+						name="patrolName"
+						bind:value={patrolName}
+						autocomplete="off"
+						maxlength="40"
+						aria-invalid={errors.patrolName ? 'true' : undefined}
+						aria-describedby={errors.patrolName ? 'e-patrolName' : 'h-patrolName'}
+					/>
+					{#if errors.patrolName}<span id="e-patrolName" class="error-text">{errors.patrolName}</span>{:else}<span id="h-patrolName" class="muted small"
+							>Visas i resultaten och arkivet. Använd inte scouternas namn.</span
+						>{/if}
 				</div>
 				<div class="field">
 					<label for="troop">Kår</label>
-					<input id="troop" name="troop" bind:value={troop} autocomplete="organization" placeholder="t.ex. Ekbackens scoutkår" maxlength="80" aria-invalid={errors.troop ? 'true' : undefined} aria-describedby={errors.troop ? 'e-troop' : undefined} />
+					<input
+						id="troop"
+						name="troop"
+						bind:value={troop}
+						autocomplete="organization"
+						placeholder="t.ex. Ekbackens scoutkår"
+						maxlength="80"
+						aria-invalid={errors.troop ? 'true' : undefined}
+						aria-describedby={errors.troop ? 'e-troop' : undefined}
+					/>
 					{#if errors.troop}<span id="e-troop" class="error-text">{errors.troop}</span>{/if}
 				</div>
 				<div class="field" role="radiogroup" aria-labelledby="l-track" aria-describedby={errors.trackId ? 'e-track' : undefined}>
@@ -202,20 +241,49 @@
 
 			<fieldset class="step" hidden={js && step !== 3}>
 				<legend><h1 id={step === 3 ? 'step-title' : undefined} tabindex="-1">Kontaktperson</h1></legend>
-				<p class="muted lead">Ledaren som arrangören kan nå under tävlingen. Namn och telefon syns för arrangören och för funktionärerna vid start och mål, så att de kan ringa om något händer på banan.</p>
+				<p class="muted lead">
+					Ledaren som arrangören kan nå under tävlingen. Namn och telefon syns för arrangören och för funktionärerna vid start och mål, så att de kan ringa om
+					något händer på banan.
+				</p>
 				<div class="field">
 					<label for="contactName">Namn</label>
-					<input id="contactName" name="contactName" bind:value={contactName} autocomplete="name" aria-invalid={errors.contactName ? 'true' : undefined} aria-describedby={errors.contactName ? 'err-contactName' : undefined} />
+					<input
+						id="contactName"
+						name="contactName"
+						bind:value={contactName}
+						autocomplete="name"
+						aria-invalid={errors.contactName ? 'true' : undefined}
+						aria-describedby={errors.contactName ? 'err-contactName' : undefined}
+					/>
 					{#if errors.contactName}<span class="error-text" id="err-contactName">{errors.contactName}</span>{/if}
 				</div>
 				<div class="field">
 					<label for="contactPhone">Mobilnummer</label>
-					<input id="contactPhone" name="contactPhone" type="tel" inputmode="tel" bind:value={contactPhone} autocomplete="tel" placeholder="070-123 45 67" aria-invalid={errors.contactPhone ? 'true' : undefined} aria-describedby={errors.contactPhone ? 'err-contactPhone' : undefined} />
+					<input
+						id="contactPhone"
+						name="contactPhone"
+						type="tel"
+						inputmode="tel"
+						bind:value={contactPhone}
+						autocomplete="tel"
+						placeholder="070-123 45 67"
+						aria-invalid={errors.contactPhone ? 'true' : undefined}
+						aria-describedby={errors.contactPhone ? 'err-contactPhone' : undefined}
+					/>
 					{#if errors.contactPhone}<span class="error-text" id="err-contactPhone">{errors.contactPhone}</span>{/if}
 				</div>
 				<div class="field">
 					<label for="contactEmail">E-post</label>
-					<input id="contactEmail" name="contactEmail" type="email" inputmode="email" bind:value={contactEmail} autocomplete="email" aria-invalid={errors.contactEmail ? 'true' : undefined} aria-describedby={errors.contactEmail ? 'err-contactEmail' : undefined} />
+					<input
+						id="contactEmail"
+						name="contactEmail"
+						type="email"
+						inputmode="email"
+						bind:value={contactEmail}
+						autocomplete="email"
+						aria-invalid={errors.contactEmail ? 'true' : undefined}
+						aria-describedby={errors.contactEmail ? 'err-contactEmail' : undefined}
+					/>
 					{#if errors.contactEmail}<span class="error-text" id="err-contactEmail">{errors.contactEmail}</span>{/if}
 				</div>
 				<div class="hp" aria-hidden="true">
@@ -234,9 +302,14 @@
 					<button class="btn btn-accent grow" disabled={sending}>{sending ? 'Skickar…' : 'Skicka anmälan'}</button>
 				{/if}
 			</div>
-			<p class="muted small privacy">Uppgifterna sparas av {data.comp.organiser ?? 'arrangören'}. <a href="/personuppgifter?t={data.comp.slug}">Så hanterar vi personuppgifter</a></p>
+			<p class="muted small privacy">
+				Uppgifterna sparas av {data.comp.organiser ?? 'arrangören'}. <a href="/personuppgifter?t={data.comp.slug}">Så hanterar vi personuppgifter</a>
+			</p>
 		</form>
-		{#if data.window.spotsLeft !== null}<p class="muted center small">{data.window.spotsLeft} {data.window.spotsLeft === 1 ? 'plats kvar' : 'platser kvar'}</p>{/if}
+		{#if data.window.spotsLeft !== null}<p class="muted center small">
+				{data.window.spotsLeft}
+				{data.window.spotsLeft === 1 ? 'plats kvar' : 'platser kvar'}
+			</p>{/if}
 	{/if}
 </PublicShell>
 

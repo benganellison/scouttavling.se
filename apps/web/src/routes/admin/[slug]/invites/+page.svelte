@@ -73,7 +73,10 @@
 
 		<section class="panel" aria-labelledby="inv-h">
 			<div>
-				<span class="eyebrow">Inbjudan{#if sel.generation > 1} · kod {sel.generation}{/if}</span>
+				<span class="eyebrow"
+					>Inbjudan{#if sel.generation > 1}
+						· kod {sel.generation}{/if}</span
+				>
 				<h2 id="inv-h">{isSF ? 'Start & mål' : `${sel.code} · ${sel.name}`}</h2>
 			</div>
 			{#if sel.qr && sel.link}
@@ -92,9 +95,21 @@
 				{#if !confirmRotate}
 					<button type="button" class="rotate" onclick={() => (confirmRotate = true)}>Skapa ny kod (gamla slutar fungera)</button>
 				{:else}
-					<form method="POST" action="?s={sel.id}&/rotate" class="confirm" use:enhance={() => async ({ update }) => { await update(); confirmRotate = false; }}>
+					<form
+						method="POST"
+						action="?s={sel.id}&/rotate"
+						class="confirm"
+						use:enhance={() =>
+							async ({ update }) => {
+								await update();
+								confirmRotate = false;
+							}}
+					>
 						<input type="hidden" name="target" value={sel.id} />
-						<span>Den gamla QR-koden och länken slutar fungera, och telefoner som redan gått med kopplas från: de måste skanna den nya koden. Utskrivna skyltar måste skrivas ut igen. Vill du bara stänga ute en telefon? Koppla från den under Telefoner.</span>
+						<span
+							>Den gamla QR-koden och länken slutar fungera, och telefoner som redan gått med kopplas från: de måste skanna den nya koden. Utskrivna skyltar
+							måste skrivas ut igen. Vill du bara stänga ute en telefon? Koppla från den under Telefoner.</span
+						>
 						<div class="row">
 							<button class="btn btn-accent btn-sm">Ja, skapa ny kod</button>
 							<button type="button" class="btn btn-onforest btn-sm" onclick={() => (confirmRotate = false)}>Avbryt</button>
@@ -103,7 +118,9 @@
 				{/if}
 			{:else}
 				<p class="hint">
-					{sel.hasInvite ? 'Den här koden kan inte visas igen. Skapa en ny kod för att få en QR-kod.' : 'Ingen inbjudan ännu. Skapa en kod och ge den till funktionären — via skylten, sms eller e-post.'}
+					{sel.hasInvite
+						? 'Den här koden kan inte visas igen. Skapa en ny kod för att få en QR-kod.'
+						: 'Ingen inbjudan ännu. Skapa en kod och ge den till funktionären — via skylten, sms eller e-post.'}
 				</p>
 				<form method="POST" action="?s={sel.id}&/rotate" use:enhance>
 					<input type="hidden" name="target" value={sel.id} />
@@ -118,19 +135,32 @@
 			{#if data.phones.length === 0}
 				<p class="muted small">Ingen telefon har gått med ännu.</p>
 			{:else}
-				<p class="muted small">Koppla från en telefon som har kommit bort eller inte ska vara med. Den får inga fler patruller eller meddelanden, och det den skickar hamnar hos tävlingsledningen för granskning.</p>
+				<p class="muted small">
+					Koppla från en telefon som har kommit bort eller inte ska vara med. Den får inga fler patruller eller meddelanden, och det den skickar hamnar hos
+					tävlingsledningen för granskning.
+				</p>
 				<ul>
 					{#each data.phones as ph (ph.id)}
 						<li data-testid="phone">
 							<div class="who">
 								<strong>{ph.name}</strong>
 								<span class="muted small">
-									Med sedan {fmt(ph.joinedAt)}{#if ph.lastSeenAt} · senast hörd {fmt(ph.lastSeenAt)}{/if}
+									Med sedan {fmt(ph.joinedAt)}{#if ph.lastSeenAt}
+										· senast hörd {fmt(ph.lastSeenAt)}{/if}
 								</span>
 								{#if ph.oldCode}<span class="pill pill-warn small">Gammal kod: får inga uppgifter längre</span>{/if}
 							</div>
 							{#if confirmPhone === ph.id}
-								<form method="POST" action="?s={sel.id}&/disconnect" class="confirm-row" use:enhance={() => async ({ update }) => { await update(); confirmPhone = null; }}>
+								<form
+									method="POST"
+									action="?s={sel.id}&/disconnect"
+									class="confirm-row"
+									use:enhance={() =>
+										async ({ update }) => {
+											await update();
+											confirmPhone = null;
+										}}
+								>
 									<input type="hidden" name="device" value={ph.id} />
 									<!-- svelte-ignore a11y_autofocus -->
 									<button class="btn btn-sm btn-danger" autofocus>Ja, koppla från {ph.name}</button>

@@ -28,4 +28,3 @@ export interface PatrolFormData {
 	status: PatrolStatus;
 	members: { firstName: string; lastName: string; troopText: string }[];
 }
-

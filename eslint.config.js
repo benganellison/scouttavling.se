@@ -40,14 +40,19 @@ export default ts.config(
 		ignores: ['**/*.test.ts'],
 		rules: {
 			'no-restricted-imports': restrict([
-				{ group: ['node:*', 'drizzle-orm', 'drizzle-orm/*', 'postgres', '$app/*', '@sveltejs/*', 'svelte', 'svelte/*'], message: 'packages/domain is pure: no I/O, database or SvelteKit.' }
+				{
+					group: ['node:*', 'drizzle-orm', 'drizzle-orm/*', 'postgres', '$app/*', '@sveltejs/*', 'svelte', 'svelte/*'],
+					message: 'packages/domain is pure: no I/O, database or SvelteKit.'
+				}
 			])
 		}
 	},
 	{
 		files: ['apps/web/src/lib/**/*.{ts,svelte}'],
 		rules: {
-			'no-restricted-imports': restrict([{ group: ['**/routes/*', '**/routes/**'], message: 'src/lib must not depend on route files: move the shared code into src/lib.' }])
+			'no-restricted-imports': restrict([
+				{ group: ['**/routes/*', '**/routes/**'], message: 'src/lib must not depend on route files: move the shared code into src/lib.' }
+			])
 		}
 	},
 	{
@@ -55,7 +60,10 @@ export default ts.config(
 		rules: {
 			'no-restricted-imports': restrict([
 				{ group: ['**/routes/*', '**/routes/**'], message: 'src/lib must not depend on route files: move the shared code into src/lib.' },
-				{ group: ['#lib/ui/*', '#lib/ui/**', '**/lib/ui/**'], message: 'Server code must not import UI modules: move the helper to a neutral module (e.g. #lib/time.ts).' }
+				{
+					group: ['#lib/ui/*', '#lib/ui/**', '**/lib/ui/**'],
+					message: 'Server code must not import UI modules: move the helper to a neutral module (e.g. #lib/time.ts).'
+				}
 			])
 		}
 	},

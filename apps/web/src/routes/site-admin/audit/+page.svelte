@@ -7,7 +7,10 @@
 <svelte:head><title>Händelselogg · Plattformsadmin</title></svelte:head>
 
 <h1 class="sa-h1">Händelselogg</h1>
-<p class="muted lead">Allt som rör ägare, plattformsadmin och borttagning av personuppgifter. Loggen kan inte ändras eller raderas. Namn visas som de är i dag; loggen sparar bara id:n.</p>
+<p class="muted lead">
+	Allt som rör ägare, plattformsadmin och borttagning av personuppgifter. Loggen kan inte ändras eller raderas. Namn visas som de är i dag; loggen sparar bara
+	id:n.
+</p>
 
 <form method="GET" class="filters card">
 	<div class="field">

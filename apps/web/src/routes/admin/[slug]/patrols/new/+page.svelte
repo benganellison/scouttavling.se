@@ -7,8 +7,17 @@
 
 	const initial = $derived<PatrolFormData>(
 		(form?.values as PatrolFormData | undefined) ?? {
-			name: '', number: data.nextNumber, trackId: data.tracks[0]?.id ?? '', troop: '', contactName: '', contactPhone: '',
-			contactEmail: '', contactMemberNo: '', paid: false, status: 'registered', members: []
+			name: '',
+			number: data.nextNumber,
+			trackId: data.tracks[0]?.id ?? '',
+			troop: '',
+			contactName: '',
+			contactPhone: '',
+			contactEmail: '',
+			contactMemberNo: '',
+			paid: false,
+			status: 'registered',
+			members: []
 		}
 	);
 </script>

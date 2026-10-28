@@ -43,7 +43,10 @@ export const actions = {
 				.select({ id: schema.patrol.id, name: schema.patrol.name, troop: schema.patrol.troop, contactMemberNo: schema.patrol.contactMemberNo })
 				.from(schema.patrol)
 				.where(eq(schema.patrol.competitionId, comp.id));
-			const [top] = await tx.select({ n: max(schema.patrol.number) }).from(schema.patrol).where(eq(schema.patrol.competitionId, comp.id));
+			const [top] = await tx
+				.select({ n: max(schema.patrol.number) })
+				.from(schema.patrol)
+				.where(eq(schema.patrol.competitionId, comp.id));
 			let next = top?.n ? top.n + 1 : 101;
 			let created = 0;
 			let updated = 0;
@@ -93,7 +96,12 @@ export const actions = {
 			await recordChange(tx, comp.id, 'patrol', null);
 			const linked = rows.filter((r) => r.contactMemberNo).length;
 			const unique = new Set(touched).size;
-			const memberRows = unique ? await tx.select({ id: schema.member.id }).from(schema.member).where(inArray(schema.member.patrolId, [...new Set(touched)])) : [];
+			const memberRows = unique
+				? await tx
+						.select({ id: schema.member.id })
+						.from(schema.member)
+						.where(inArray(schema.member.patrolId, [...new Set(touched)]))
+				: [];
 			return { imported: unique, created, updated, linked, members: memberRows.length };
 		});
 		return { done: result };

@@ -30,7 +30,9 @@
 						<button type="button" class="row" aria-expanded={open === m.id} onclick={() => toggle(m.id, m.read)}>
 							<span class="dot" aria-hidden="true"></span>
 							<span class="body">
-								<span class="title">{m.title}{#if !m.read}<span class="sr-only"> (oläst)</span>{/if}</span>
+								<span class="title"
+									>{m.title}{#if !m.read}<span class="sr-only"> (oläst)</span>{/if}</span
+								>
 								<span class="meta">{m.important ? 'Viktigt · ' : ''}{hhmm(m.createdAt)}</span>
 								{#if open === m.id}<span class="text">{m.body}</span>{/if}
 							</span>

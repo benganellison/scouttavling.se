@@ -84,7 +84,11 @@
 		<p class="note" data-testid="contrast-note" aria-live="polite">
 			<span class="demo" style="background:{effective};color:{r.text ?? '#ffffff'}" aria-hidden="true">{r.text ? 'Aa' : ''}</span>
 			{#if r.text}
-				<span><strong>{r.text === '#ffffff' ? 'Vit' : 'Svart'} text</strong> på färgen ({r.ratio.toFixed(1)}:1). {onWhite >= 4.5 ? `Läsbar som text på vitt (${onWhite.toFixed(1)}:1).` : `Inte läsbar som text på vitt (${onWhite.toFixed(1)}:1), används bara som yta och dekor.`}</span>
+				<span
+					><strong>{r.text === '#ffffff' ? 'Vit' : 'Svart'} text</strong> på färgen ({r.ratio.toFixed(1)}:1). {onWhite >= 4.5
+						? `Läsbar som text på vitt (${onWhite.toFixed(1)}:1).`
+						: `Inte läsbar som text på vitt (${onWhite.toFixed(1)}:1), används bara som yta och dekor.`}</span
+				>
 			{:else}
 				<span><strong>Bara dekor.</strong> Varken svart eller vit text når 4,5:1 ({r.ratio.toFixed(1)}:1), så färgen används aldrig bakom text.</span>
 			{/if}

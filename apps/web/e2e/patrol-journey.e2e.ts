@@ -163,7 +163,10 @@ test('5: follow page off → admin turns it on → live update on a new score', 
 		await expect(adminPage.locator('form.item').first()).toBeVisible({ timeout: 1000 });
 	}).toPass({ timeout: 15_000 });
 	const form = adminPage.locator('form.item').first();
-	await form.locator('label.chip', { hasText: /^\s*14\s*$/ }).first().click();
+	await form
+		.locator('label.chip', { hasText: /^\s*14\s*$/ })
+		.first()
+		.click();
 	const style = form.locator('label.chip', { hasText: /^\s*3\s*$/ });
 	if ((await style.count()) > 1) await style.nth(1).click();
 	await form.getByLabel('Anledning').fill('rapport från papper');
@@ -211,7 +214,16 @@ test('6: not yet open, full and closed registration', async ({ page }) => {
 
 	// A direct POST is refused server-side too.
 	const res = await page.request.post(`/t/${SLUG}/anmal`, {
-		form: { patrolName: 'Lodjuren hack', troop: 'X kår', trackId: '00000000-0000-4000-8000-000000000000', firstName: 'A', lastName: 'B', contactName: 'AB', contactPhone: '0701234567', contactEmail: 'a@b.se' },
+		form: {
+			patrolName: 'Lodjuren hack',
+			troop: 'X kår',
+			trackId: '00000000-0000-4000-8000-000000000000',
+			firstName: 'A',
+			lastName: 'B',
+			contactName: 'AB',
+			contactPhone: '0701234567',
+			contactEmail: 'a@b.se'
+		},
 		headers: { origin: new URL(page.url()).origin, accept: 'application/json', 'x-sveltekit-action': 'true' }
 	});
 	expect(JSON.stringify(await res.json())).not.toContain('"done"');
@@ -253,7 +265,11 @@ test('fix: conflicts name the reporter; a report after closing is kept for HQ, w
 		await expect(p.getByText('Sparat!')).toBeVisible();
 	};
 	await score(128);
-	await expect.poll(async () => (await sql`select count(*)::int as n from score where patrol_id = ${await patrolId(128)} and origin = 'device'`)[0].n, { timeout: 20_000 }).toBeGreaterThan(0);
+	await expect
+		.poll(async () => (await sql`select count(*)::int as n from score where patrol_id = ${await patrolId(128)} and origin = 'device'`)[0].n, {
+			timeout: 20_000
+		})
+		.toBeGreaterThan(0);
 
 	// A conflict on that score: the existing side must show the device name, the new side the organiser.
 	const [s] = await sql`select s.id, s.item_id, s.version, s.points from score s where s.patrol_id = ${await patrolId(128)} and s.origin = 'device'`;
@@ -280,7 +296,8 @@ test('fix: conflicts name the reporter; a report after closing is kept for HQ, w
 	await p.goto(`/f/${SLUG}/log`);
 	await expect(p.getByText('Väntar på granskning av tävlingsledningen.').first()).toBeVisible({ timeout: 20_000 });
 	await shot(p, 'phone-log');
-	const [q] = await sql`select c.incoming->>'reason' as reason from score_conflict c join patrol pa on pa.id = c.patrol_id where c.kind = 'quarantine' and pa.number = 133 and c.status = 'open' and c.competition_id = (select id from competition where slug = ${SLUG}) order by c.created_at desc limit 1`;
+	const [q] =
+		await sql`select c.incoming->>'reason' as reason from score_conflict c join patrol pa on pa.id = c.patrol_id where c.kind = 'quarantine' and pa.number = 133 and c.status = 'open' and c.competition_id = (select id from competition where slug = ${SLUG}) order by c.created_at desc limit 1`;
 	expect(q?.reason).toBe('Tävlingen är avslutad');
 	await sql`update competition set status = 'live' where slug = ${SLUG}`;
 	await phone.close();

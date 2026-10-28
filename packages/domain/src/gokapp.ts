@@ -33,7 +33,14 @@ export function itemFromStation(s: GokappStation): ItemShape {
 	if (s.usedistinctscores) {
 		const values = parseDistinct(s.distinctscores);
 		if (values.length) {
-			return { mode: 'DISTINCT', min: Math.min(...values), max: Math.max(...values), distinctValues: values.map((value) => ({ value })), countsForTiebreak: true, ...style };
+			return {
+				mode: 'DISTINCT',
+				min: Math.min(...values),
+				max: Math.max(...values),
+				distinctValues: values.map((value) => ({ value })),
+				countsForTiebreak: true,
+				...style
+			};
 		}
 	}
 	return { mode: 'RANGE', min: s.minscore, max: s.maxscore, distinctValues: null, countsForTiebreak: true, ...style };
@@ -118,7 +125,16 @@ export function fromWallClock(s: string, timeZone = 'Europe/Stockholm'): Date | 
 	const guess = Date.UTC(y, mo - 1, d, h, mi, se || 0);
 	const offset = (t: number) => {
 		const p = Object.fromEntries(
-			new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+			new Intl.DateTimeFormat('en-US', {
+				timeZone,
+				hourCycle: 'h23',
+				year: 'numeric',
+				month: '2-digit',
+				day: '2-digit',
+				hour: '2-digit',
+				minute: '2-digit',
+				second: '2-digit'
+			})
 				.formatToParts(new Date(t))
 				.map((x) => [x.type, x.value])
 		);
@@ -143,7 +159,10 @@ export function competitionDays(saved: (Date | null)[], minShare = 0.03, timeZon
 		counts.set(day, (counts.get(day) ?? 0) + 1);
 		n++;
 	}
-	return [...counts].filter(([, c]) => c >= n * minShare).map(([d]) => d).sort();
+	return [...counts]
+		.filter(([, c]) => c >= n * minShare)
+		.map(([d]) => d)
+		.sort();
 }
 
 /** Swedish date of an instant (for placing a station on a day). */

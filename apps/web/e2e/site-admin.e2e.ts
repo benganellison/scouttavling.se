@@ -39,7 +39,8 @@ async function open(p: Page, path: string) {
 	return r;
 }
 
-const cli = (...args: string[]) => run('npm', ['run', '-s', `site-admin:${args[0]}`, '--', ...args.slice(1)], { env: { ...process.env, SITE_ADMIN_OPERATOR: 'e2e' } });
+const cli = (...args: string[]) =>
+	run('npm', ['run', '-s', `site-admin:${args[0]}`, '--', ...args.slice(1)], { env: { ...process.env, SITE_ADMIN_OPERATOR: 'e2e' } });
 
 async function competition(slug: string, name: string, ownerNo: string) {
 	const [owner] = await sql`select id from app_user where member_no = ${ownerNo}`;
@@ -99,7 +100,10 @@ test('1. an owner adds a co-owner and transfers ownership; the last owner cannot
 	await expect(bengt.locator('#logg')).toHaveCount(0);
 	await bengt.context().close();
 
-	for (const [name, viewport] of [['desktop', { width: 1280, height: 900 }], ['phone', PHONE]] as const) {
+	for (const [name, viewport] of [
+		['desktop', { width: 1280, height: 900 }],
+		['phone', PHONE]
+	] as const) {
 		const anna = await login(browser, 'Anna', viewport);
 		await open(anna, `/admin/${OWNERS}/settings`);
 		const s = anna.locator('#agare');
@@ -183,7 +187,10 @@ test('2. the CLI makes Bengt site admin, who replaces a gone owner, suspends, ta
 	await expect(bengt.getByTestId('access-banner')).toContainText('Ägaren bad om hjälp med kontrollerna');
 
 	// The (new) owner sees who had access and why.
-	for (const [name, viewport] of [['desktop', { width: 1280, height: 900 }], ['phone', PHONE]] as const) {
+	for (const [name, viewport] of [
+		['desktop', { width: 1280, height: 900 }],
+		['phone', PHONE]
+	] as const) {
 		const anna = await login(browser, 'Anna', viewport);
 		await open(anna, `/admin/${GONE}`);
 		await expect(anna.getByTestId('access-notice')).toContainText('Plattformsadmin Bengt Ellison har åtkomst till tävlingen');
@@ -217,7 +224,10 @@ test('3. a non-admin and a logged-out visitor get 404 on /site-admin', async ({ 
 		expect((await open(anna, path))?.status()).toBe(404);
 	}
 	await expect(anna.getByRole('heading', { level: 1 })).toHaveText('Sidan finns inte');
-	const forged = await anna.request.post(`/site-admin/c/${GONE}?/suspend`, { form: { suspend: '1', reason: 'Försöker utan behörighet' }, headers: { origin: new URL(anna.url()).origin } });
+	const forged = await anna.request.post(`/site-admin/c/${GONE}?/suspend`, {
+		form: { suspend: '1', reason: 'Försöker utan behörighet' },
+		headers: { origin: new URL(anna.url()).origin }
+	});
 	expect(forged.status()).toBe(404);
 	const [c] = await sql`select suspended_at from competition where slug = ${GONE}`;
 	expect(c.suspended_at).toBeNull();

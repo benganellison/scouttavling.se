@@ -18,7 +18,27 @@ export async function load(event) {
 		classColorTemplate(comp.id),
 		// Owners are told about every site-admin "Tillfällig åtkomst" (active, or ended in the last 7 days).
 		roles.includes('owner') ? accessNotices(comp.id, 7) : [],
-		comp.seriesId ? db.select({ slug: schema.series.slug, name: schema.series.name }).from(schema.series).where(eq(schema.series.id, comp.seriesId)).then((r) => r[0] ?? null) : null
+		comp.seriesId
+			? db
+					.select({ slug: schema.series.slug, name: schema.series.name })
+					.from(schema.series)
+					.where(eq(schema.series.id, comp.seriesId))
+					.then((r) => r[0] ?? null)
+			: null
 	]);
-	return { competition: comp, series, days, tracks, classTemplate, trackColors: trackColors(tracks, classTemplate), branding, readOnly: !!comp.anonymisedAt, suspended: !!comp.suspendedAt, access, notices, roles, user: { id: user.id, name: user.name, memberNo: user.memberNo } };
+	return {
+		competition: comp,
+		series,
+		days,
+		tracks,
+		classTemplate,
+		trackColors: trackColors(tracks, classTemplate),
+		branding,
+		readOnly: !!comp.anonymisedAt,
+		suspended: !!comp.suspendedAt,
+		access,
+		notices,
+		roles,
+		user: { id: user.id, name: user.name, memberNo: user.memberNo }
+	};
 }

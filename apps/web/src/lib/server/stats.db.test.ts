@@ -47,7 +47,15 @@ describe.skipIf(!ok)('statistics (database)', async () => {
 			.returning();
 		const at = (hhmm: string) => new Date(`2027-05-15T${hhmm}:00+02:00`);
 		const w = (p: number, i: number, value: number, origin: 'device' | 'paper' | 'admin', when?: string, baseVersion: number | null = null) =>
-			writeScore({ competitionId: comp.id, patrolId: patrols[p].id, itemId: items[i].id, raw: { value, style: null }, baseVersion, origin, at: when ? at(when) : null });
+			writeScore({
+				competitionId: comp.id,
+				patrolId: patrols[p].id,
+				itemId: items[i].id,
+				raw: { value, style: null },
+				baseVersion,
+				origin,
+				at: when ? at(when) : null
+			});
 
 		// Patrol 1: three phone reports. Patrol 2: two phone reports, then HQ corrects one. Patrol 3: paper only.
 		await w(0, 0, 12, 'device', '10:00');
@@ -58,7 +66,10 @@ describe.skipIf(!ok)('statistics (database)', async () => {
 		expect((await w(1, 1, 14, 'admin', undefined, 1)).result).toBe('accepted');
 		await w(2, 0, 18, 'paper');
 
-		const scored = await db.select({ p: schema.score.patrolId, i: schema.score.itemId, at: schema.score.scoredAt, origin: schema.score.origin }).from(schema.score).where(eq(schema.score.competitionId, comp.id));
+		const scored = await db
+			.select({ p: schema.score.patrolId, i: schema.score.itemId, at: schema.score.scoredAt, origin: schema.score.origin })
+			.from(schema.score)
+			.where(eq(schema.score.competitionId, comp.id));
 		const of = (p: number, i: number) => scored.find((s) => s.p === patrols[p].id && s.i === items[i].id)!;
 		expect(of(0, 1).at).toEqual(at('10:30'));
 		expect(of(1, 1).origin).toBe('admin');
@@ -66,7 +77,11 @@ describe.skipIf(!ok)('statistics (database)', async () => {
 		expect(of(2, 0).at).toBeNull(); // paper has no time
 
 		// Payments: ticking sets the date once, re-saving keeps it, unticking clears it.
-		const pay = (p: number, paid: boolean) => db.update(schema.patrol).set({ paid, paidAt: paidAtFor(paid) }).where(eq(schema.patrol.id, patrols[p].id));
+		const pay = (p: number, paid: boolean) =>
+			db
+				.update(schema.patrol)
+				.set({ paid, paidAt: paidAtFor(paid) })
+				.where(eq(schema.patrol.id, patrols[p].id));
 		const paidAt = async (p: number) => (await db.select({ a: schema.patrol.paidAt }).from(schema.patrol).where(eq(schema.patrol.id, patrols[p].id)))[0].a;
 		await pay(0, true);
 		const first = await paidAt(0);
@@ -103,7 +118,10 @@ describe.skipIf(!ok)('statistics (database)', async () => {
 		const after = await loadStats(closed);
 		expect(after.stationsShown).toBe(true);
 		expect(after.scopes).toEqual(stats.scopes);
-		const left = await db.select({ at: schema.score.scoredAt }).from(schema.score).where(and(eq(schema.score.competitionId, comp.id), eq(schema.score.patrolId, patrols[0].id)));
+		const left = await db
+			.select({ at: schema.score.scoredAt })
+			.from(schema.score)
+			.where(and(eq(schema.score.competitionId, comp.id), eq(schema.score.patrolId, patrols[0].id)));
 		expect(left.every((s) => s.at instanceof Date)).toBe(true);
 	});
 });

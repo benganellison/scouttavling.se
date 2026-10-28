@@ -1,16 +1,39 @@
 import { describe, expect, it } from 'vitest';
-import { canEditRegistration, dayMonth, readForm, registrationWindow, stepOf, validateManage, validateRegistration, windowText, type WindowInput } from './rules.ts';
+import {
+	canEditRegistration,
+	dayMonth,
+	readForm,
+	registrationWindow,
+	stepOf,
+	validateManage,
+	validateRegistration,
+	windowText,
+	type WindowInput
+} from './rules.ts';
 import { RateLimiter } from '../server/rateLimit.ts';
 
 const TRACK = '0190f3a0-0000-4000-8000-000000000001';
 const base: WindowInput = {
-	status: 'live', registrationOpen: true, registrationOpensOn: '2027-02-01', registrationClosesOn: '2027-05-01',
-	endDate: '2027-05-15', maxPatrols: 10, patrolCount: 3, today: '2027-03-01'
+	status: 'live',
+	registrationOpen: true,
+	registrationOpensOn: '2027-02-01',
+	registrationClosesOn: '2027-05-01',
+	endDate: '2027-05-15',
+	maxPatrols: 10,
+	patrolCount: 3,
+	today: '2027-03-01'
 };
 const valid = {
-	patrolName: 'Uttrarna', troop: 'Ekbackens scoutkår', trackId: TRACK,
-	members: [{ firstName: 'Alva', lastName: 'Ek' }, { firstName: 'Noah', lastName: 'Lind' }],
-	contactName: 'Maria Ek', contactPhone: '070-123 45 67', contactEmail: 'Maria@Example.org'
+	patrolName: 'Uttrarna',
+	troop: 'Ekbackens scoutkår',
+	trackId: TRACK,
+	members: [
+		{ firstName: 'Alva', lastName: 'Ek' },
+		{ firstName: 'Noah', lastName: 'Lind' }
+	],
+	contactName: 'Maria Ek',
+	contactPhone: '070-123 45 67',
+	contactEmail: 'Maria@Example.org'
 };
 
 describe('registrationWindow', () => {
@@ -70,10 +93,9 @@ describe('validateRegistration', () => {
 		if (!r.ok) expect(r.errors.trackId).toBe('Välj en klass');
 	});
 	it('reports field errors with step-mapped keys', () => {
-		const r = validateRegistration(
-			{ ...valid, patrolName: 'A', members: [{ firstName: 'Alva', lastName: '' }], contactPhone: '12', contactEmail: 'nope' },
-			[TRACK]
-		);
+		const r = validateRegistration({ ...valid, patrolName: 'A', members: [{ firstName: 'Alva', lastName: '' }], contactPhone: '12', contactEmail: 'nope' }, [
+			TRACK
+		]);
 		expect(r.ok).toBe(false);
 		if (r.ok) return;
 		expect(Object.keys(r.errors).sort()).toEqual(['contactEmail', 'contactPhone', 'member_0_lastName', 'patrolName']);

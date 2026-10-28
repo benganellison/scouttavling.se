@@ -37,12 +37,28 @@
 			<div class="grid2">
 				<div class="stack tight">
 					<label class="label" for="name">Namn</label>
-					<input id="name" name="name" class="field" value={v?.name ?? p.name} aria-invalid={e.name ? 'true' : undefined} aria-describedby={e.name ? 'err-name' : undefined} />
+					<input
+						id="name"
+						name="name"
+						class="field"
+						value={v?.name ?? p.name}
+						aria-invalid={e.name ? 'true' : undefined}
+						aria-describedby={e.name ? 'err-name' : undefined}
+					/>
 					{#if e.name}<span class="error-text" id="err-name">{e.name}</span>{/if}
 				</div>
 				<div class="stack tight">
 					<label class="label" for="slug">Adress</label>
-					<div class="prefix"><span class="muted">{page.data.siteHost}/</span><input id="slug" name="slug" class="field" value={v?.slug ?? p.slug} aria-invalid={e.slug ? 'true' : undefined} aria-describedby={e.slug ? 'err-slug' : undefined} /></div>
+					<div class="prefix">
+						<span class="muted">{page.data.siteHost}/</span><input
+							id="slug"
+							name="slug"
+							class="field"
+							value={v?.slug ?? p.slug}
+							aria-invalid={e.slug ? 'true' : undefined}
+							aria-describedby={e.slug ? 'err-slug' : undefined}
+						/>
+					</div>
 					{#if e.slug}<span class="error-text" id="err-slug">{e.slug}</span>{/if}
 				</div>
 			</div>
@@ -94,7 +110,9 @@
 					<li>Kontaktpersoner och telefonnummer</li>
 				</ul>
 			</div>
-			<p class="muted small roles" data-testid="roles-note">Ägare och arrangörer följer med till det nya året; roller för ledningscentral och start &amp; mål gör det inte.</p>
+			<p class="muted small roles" data-testid="roles-note">
+				Ägare och arrangörer följer med till det nya året; roller för ledningscentral och start &amp; mål gör det inte.
+			</p>
 			<div class="act">
 				<button class="btn btn-accent">Skapa {p.name}</button>
 				<a class="btn btn-ghost" href="/admin/{c.slug}">Avbryt</a>

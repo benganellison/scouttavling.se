@@ -4,10 +4,20 @@ import { SCOUTBLA, templateColor, trackColors } from './colors.ts';
 
 const img = (id: string, kind: AssetMeta['kind'], width = 400, height = 100): AssetMeta => ({ id, kind, width, height });
 const edition = (o: Partial<{ accentColor: string | null; coverFit: 'contain' | 'cover' | null; assets: AssetMeta[] }> = {}) => ({
-	name: 'GökOpen 2027', ownerGroupName: 'Granlidens scoutkår', accentColor: null, coverFit: null, assets: [], ...o
+	name: 'GökOpen 2027',
+	ownerGroupName: 'Granlidens scoutkår',
+	accentColor: null,
+	coverFit: null,
+	assets: [],
+	...o
 });
 const series = (o: Partial<{ accentColor: string | null; coverFit: 'contain' | 'cover' | null; assets: AssetMeta[] }> = {}) => ({
-	name: 'GökOpen', slug: 'gokopen', accentColor: null, coverFit: null, assets: [], ...o
+	name: 'GökOpen',
+	slug: 'gokopen',
+	accentColor: null,
+	coverFit: null,
+	assets: [],
+	...o
 });
 
 describe('resolveBranding', () => {

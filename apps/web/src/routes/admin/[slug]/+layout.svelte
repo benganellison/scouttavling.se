@@ -8,7 +8,9 @@
 	const ROLE_TEXT: Record<string, string> = { owner: 'Tävlingsledare', organiser: 'Arrangör', hq: 'Ledningscentral', startfinish: 'Start & mål' };
 	const fmtTime = (d: Date | string) => new Date(d).toLocaleTimeString('sv-SE', { timeStyle: 'short', timeZone: 'Europe/Stockholm' });
 	const fmtDateTime = (d: Date | string) => new Date(d).toLocaleString('sv-SE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Stockholm' });
-	const roleText = $derived(data.access ? 'Plattformsadmin (tillfällig)' : ROLE_TEXT[data.roles.includes('owner') ? 'owner' : (data.roles[0] ?? 'organiser')] ?? 'Arrangör');
+	const roleText = $derived(
+		data.access ? 'Plattformsadmin (tillfällig)' : (ROLE_TEXT[data.roles.includes('owner') ? 'owner' : (data.roles[0] ?? 'organiser')] ?? 'Arrangör')
+	);
 </script>
 
 <a class="skip-link" href="#innehall">Hoppa till innehållet</a>
@@ -41,7 +43,10 @@
 		{#if data.suspended}
 			<div class="banner banner-bad" role="alert" data-testid="suspended-banner">
 				<strong>Tävlingen är tillfälligt avstängd</strong>
-				<span>Plattformsadministratören har stängt av tävlingen. Du kan se allt men inte ändra något, och funktionärernas telefoner synkar inte. Kontakta info@scouttavling.se.</span>
+				<span
+					>Plattformsadministratören har stängt av tävlingen. Du kan se allt men inte ändra något, och funktionärernas telefoner synkar inte. Kontakta
+					info@scouttavling.se.</span
+				>
 			</div>
 		{/if}
 		{@render children()}

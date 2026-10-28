@@ -6,11 +6,50 @@ function data(): GokappData {
 	const at = (hhmm: string) => new Date(`2023-05-13T${hhmm}:00Z`);
 	return {
 		configName: 'Påhittade Hajken',
-		tracks: [{ id: 1, name: 'Spårare' }, { id: 2, name: 'Upptäckare' }],
+		tracks: [
+			{ id: 1, name: 'Spårare' },
+			{ id: 2, name: 'Upptäckare' }
+		],
 		stations: [
-			{ id: 10, stationnumber: 1, stationname: 'Eldstaden', alltracks: true, minscore: 0, maxscore: 20, minstylescore: 0, maxstylescore: 5, waypoint: false, usedistinctscores: false, distinctscores: null },
-			{ id: 11, stationnumber: 2, stationname: 'Rastplats', alltracks: true, minscore: 0, maxscore: 0, minstylescore: 0, maxstylescore: 0, waypoint: true, usedistinctscores: false, distinctscores: null },
-			{ id: 12, stationnumber: 3, stationname: 'Nödbrev', alltracks: false, minscore: 0, maxscore: 20, minstylescore: 0, maxstylescore: 0, waypoint: false, usedistinctscores: true, distinctscores: '0,20' }
+			{
+				id: 10,
+				stationnumber: 1,
+				stationname: 'Eldstaden',
+				alltracks: true,
+				minscore: 0,
+				maxscore: 20,
+				minstylescore: 0,
+				maxstylescore: 5,
+				waypoint: false,
+				usedistinctscores: false,
+				distinctscores: null
+			},
+			{
+				id: 11,
+				stationnumber: 2,
+				stationname: 'Rastplats',
+				alltracks: true,
+				minscore: 0,
+				maxscore: 0,
+				minstylescore: 0,
+				maxstylescore: 0,
+				waypoint: true,
+				usedistinctscores: false,
+				distinctscores: null
+			},
+			{
+				id: 12,
+				stationnumber: 3,
+				stationname: 'Nödbrev',
+				alltracks: false,
+				minscore: 0,
+				maxscore: 20,
+				minstylescore: 0,
+				maxstylescore: 0,
+				waypoint: false,
+				usedistinctscores: true,
+				distinctscores: '0,20'
+			}
 		],
 		stationTracks: [{ station_id: 12, tracks_id: 2 }],
 		patrols: [
@@ -42,17 +81,78 @@ const OPTS = { series: 'pahittade-hajken', seriesName: 'Påhittade Hajken', year
 const CURRENT: Record<string, string[]> = {
 	config: ['id', 'name', 'allowpublicresult', 'phone', 'use_qr'],
 	track: ['id', 'name'],
-	station: ['id', 'stationnumber', 'stationname', 'alltracks', 'minscore', 'maxscore', 'minstylescore', 'maxstylescore', 'stationcontact', 'stationphone', 'waypoint', 'usedistinctscores', 'distinctscores', 'user_id'],
+	station: [
+		'id',
+		'stationnumber',
+		'stationname',
+		'alltracks',
+		'minscore',
+		'maxscore',
+		'minstylescore',
+		'maxstylescore',
+		'stationcontact',
+		'stationphone',
+		'waypoint',
+		'usedistinctscores',
+		'distinctscores',
+		'user_id'
+	],
 	station_track: ['station_id', 'tracks_id'],
-	patrol: ['patrolid', 'externalid', 'patrolname', 'troop', 'fk_track', 'starttime', 'endtime', 'members', 'note', 'leadercontact', 'contactmail', 'leadercontactphone', 'status', 'date_registered', 'paid', 'fk_station'],
+	patrol: [
+		'patrolid',
+		'externalid',
+		'patrolname',
+		'troop',
+		'fk_track',
+		'starttime',
+		'endtime',
+		'members',
+		'note',
+		'leadercontact',
+		'contactmail',
+		'leadercontactphone',
+		'status',
+		'date_registered',
+		'paid',
+		'fk_station'
+	],
 	score: ['id', 'station_id', 'patrol_id', 'score_point', 'style_point', 'visited_waypoint', 'last_saved'],
 	users: ['id', 'username', 'password']
 };
 const V2023: Record<string, string[]> = {
 	config: ['id', 'allowpublicresult', 'name', 'phone'],
 	track: ['trackid', 'trackname'],
-	station: ['stationid', 'maxscore', 'maxstylescore', 'minscore', 'minstylescore', 'stationcontact', 'stationname', 'stationnumber', 'stationphone', 'stationuser', 'waypoint'],
-	patrol: ['patrolid', 'date_registered', 'endtime', 'externalid', 'leadercontact', 'contactmail', 'leaderContactPhone', 'members', 'note', 'paid', 'patrolname', 'starttime', 'status', 'troop', 'fk_station', 'fk_track'],
+	station: [
+		'stationid',
+		'maxscore',
+		'maxstylescore',
+		'minscore',
+		'minstylescore',
+		'stationcontact',
+		'stationname',
+		'stationnumber',
+		'stationphone',
+		'stationuser',
+		'waypoint'
+	],
+	patrol: [
+		'patrolid',
+		'date_registered',
+		'endtime',
+		'externalid',
+		'leadercontact',
+		'contactmail',
+		'leaderContactPhone',
+		'members',
+		'note',
+		'paid',
+		'patrolname',
+		'starttime',
+		'status',
+		'troop',
+		'fk_station',
+		'fk_track'
+	],
 	score: ['scoreid', 'lastSaved', 'scorepoint', 'stylepoint', 'visitedWaypoint', 'fk_patrol', 'fk_station'],
 	users: ['id', 'username', 'password']
 };
@@ -60,12 +160,18 @@ const cols = (v: Record<string, string[]>) => Object.entries(v).flatMap(([t, cs]
 
 describe('gokapp import: what is read', () => {
 	it('no allowlisted column name holds personal data', () => {
-		for (const fields of Object.values(FIELDS)) for (const { cols: names } of Object.values(fields)) for (const n of names) expect(NEVER_READ).not.toContain(n.toLowerCase());
+		for (const fields of Object.values(FIELDS))
+			for (const { cols: names } of Object.values(fields)) for (const n of names) expect(NEVER_READ).not.toContain(n.toLowerCase());
 	});
-	for (const [name, version] of [['current', CURRENT], ['2023', V2023]] as const) {
+	for (const [name, version] of [
+		['current', CURRENT],
+		['2023', V2023]
+	] as const) {
 		it(`builds SELECTs without a personal column for the ${name} schema`, () => {
 			const reads = buildReads(cols(version));
-			expect(Object.keys(reads).sort()).toEqual(name === '2023' ? ['config', 'patrol', 'score', 'station', 'track'] : ['config', 'patrol', 'score', 'station', 'station_track', 'track']);
+			expect(Object.keys(reads).sort()).toEqual(
+				name === '2023' ? ['config', 'patrol', 'score', 'station', 'track'] : ['config', 'patrol', 'score', 'station', 'station_track', 'track']
+			);
 			for (const q of Object.values(reads)) {
 				expect(q).not.toMatch(/\*/);
 				const words = q!.toLowerCase().match(/[a-z_]+/g)!;
@@ -74,7 +180,9 @@ describe('gokapp import: what is read', () => {
 		});
 	}
 	it('maps the 2023 names and refuses a database without gokapp tables', () => {
-		expect(buildReads(cols(V2023)).score).toBe('SELECT `fk_patrol` AS `patrol_id`, `fk_station` AS `station_id`, `scorepoint` AS `score_point`, `stylepoint` AS `style_point`, `visitedWaypoint` AS `visited_waypoint`, `lastSaved` AS `last_saved` FROM `score`');
+		expect(buildReads(cols(V2023)).score).toBe(
+			'SELECT `fk_patrol` AS `patrol_id`, `fk_station` AS `station_id`, `scorepoint` AS `score_point`, `stylepoint` AS `style_point`, `visitedWaypoint` AS `visited_waypoint`, `lastSaved` AS `last_saved` FROM `score`'
+		);
 		expect(() => buildReads([{ t: 'foo', c: 'id' }])).toThrow(/track/);
 	});
 	it('reads a 2023 database: only the column list and the built SELECTs, BIT(1) as booleans', async () => {
@@ -82,8 +190,13 @@ describe('gokapp import: what is read', () => {
 		const reads = buildReads(cols(V2023));
 		const rows = new Map<string, unknown[]>([
 			[COLUMNS_QUERY, cols(V2023)],
-			[reads.config!, [{ name: 'X' }]], [reads.track!, [{ id: 1, name: 'Spårare' }]], [reads.patrol!, []],
-			[reads.station!, [{ id: 1, stationnumber: 1, stationname: 'A', minscore: 0, maxscore: 20, minstylescore: 0, maxstylescore: 5, waypoint: Buffer.from([0]) }]],
+			[reads.config!, [{ name: 'X' }]],
+			[reads.track!, [{ id: 1, name: 'Spårare' }]],
+			[reads.patrol!, []],
+			[
+				reads.station!,
+				[{ id: 1, stationnumber: 1, stationname: 'A', minscore: 0, maxscore: 20, minstylescore: 0, maxstylescore: 5, waypoint: Buffer.from([0]) }]
+			],
 			[reads.score!, [{ patrol_id: 1, station_id: 1, score_point: 5, style_point: 1, visited_waypoint: Buffer.from([1]), last_saved: null }]]
 		]);
 		const d = await readGokapp({ query: async (sql: string) => (asked.push(sql), [rows.get(sql) ?? [], []]) });

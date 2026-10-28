@@ -22,8 +22,17 @@ export async function load({ params, locals, setHeaders }) {
 		kind: 'competition' as const,
 		preview,
 		comp: {
-			slug: comp.slug, name: comp.name, startDate: comp.startDate, endDate: comp.endDate, multiDay: comp.multiDay, location: comp.location,
-			organiser: comp.ownerGroupName, infoText: comp.infoText, publicResults: comp.publicResults, status: comp.status, maxPatrols: comp.maxPatrols
+			slug: comp.slug,
+			name: comp.name,
+			startDate: comp.startDate,
+			endDate: comp.endDate,
+			multiDay: comp.multiDay,
+			location: comp.location,
+			organiser: comp.ownerGroupName,
+			infoText: comp.infoText,
+			publicResults: comp.publicResults,
+			status: comp.status,
+			maxPatrols: comp.maxPatrols
 		},
 		series: series ? { slug: series.slug, name: series.name } : null,
 		branding,
@@ -41,9 +50,17 @@ async function seriesPage(slug: string, setHeaders: (h: Record<string, string>) 
 	if (current) {
 		const w = windowFor(current, currentPatrols);
 		cur = {
-			slug: current.slug, name: current.name, year: editionYearOf(current), startDate: current.startDate, endDate: current.endDate,
-			multiDay: current.multiDay, location: current.location, status: current.status, publicResults: current.publicResults,
-			patrols: currentPatrols, maxPatrols: current.maxPatrols,
+			slug: current.slug,
+			name: current.name,
+			year: editionYearOf(current),
+			startDate: current.startDate,
+			endDate: current.endDate,
+			multiDay: current.multiDay,
+			location: current.location,
+			status: current.status,
+			publicResults: current.publicResults,
+			patrols: currentPatrols,
+			maxPatrols: current.maxPatrols,
 			window: { state: w.state, spotsLeft: w.spotsLeft, text: windowText(w, w.today) }
 		};
 	}

@@ -6,8 +6,10 @@
 
 	let { data, form } = $props();
 	const c = $derived(data.comp);
-	const res = (section: string) => (form && 'section' in form && form.section === section ? (form as { ok?: boolean; message?: string; error?: string }) : null);
-	const dt = (d: Date | string | null) => (d ? new Date(d).toLocaleString('sv-SE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Stockholm' }) : '–');
+	const res = (section: string) =>
+		form && 'section' in form && form.section === section ? (form as { ok?: boolean; message?: string; error?: string }) : null;
+	const dt = (d: Date | string | null) =>
+		d ? new Date(d).toLocaleString('sv-SE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Stockholm' }) : '–';
 	const time = (d: Date | string) => new Date(d).toLocaleTimeString('sv-SE', { timeStyle: 'short', timeZone: 'Europe/Stockholm' });
 	const HINT = 'Sparas i händelseloggen och visas för ägarna. Skriv inte namn på patrullmedlemmar.';
 </script>
@@ -23,18 +25,41 @@
 		{#if c.anonymised}<span class="pill">Personuppgifter borttagna</span>{/if}
 	</div>
 	<dl class="facts">
-		<div><dt>Adress</dt><dd><a href="/t/{c.slug}">/t/{c.slug}</a></dd></div>
-		<div><dt>Serie</dt><dd>{#if data.series}<a href="/site-admin/s/{data.series.slug}">{data.series.name}</a>{:else}Fristående{/if}</dd></div>
-		<div><dt>Kår/distrikt</dt><dd>{c.ownerGroupName ?? '–'}</dd></div>
-		<div><dt>Patruller</dt><dd>{c.patrols}</dd></div>
-		<div><dt>Senast aktiv</dt><dd>{dt(c.lastActivity)}</dd></div>
-		<div><dt>Personuppgifter kvar</dt><dd>{c.anonymised ? 'Nej' : `${data.personalDataLeft} patruller`}</dd></div>
+		<div>
+			<dt>Adress</dt>
+			<dd><a href="/t/{c.slug}">/t/{c.slug}</a></dd>
+		</div>
+		<div>
+			<dt>Serie</dt>
+			<dd>
+				{#if data.series}<a href="/site-admin/s/{data.series.slug}">{data.series.name}</a>{:else}Fristående{/if}
+			</dd>
+		</div>
+		<div>
+			<dt>Kår/distrikt</dt>
+			<dd>{c.ownerGroupName ?? '–'}</dd>
+		</div>
+		<div>
+			<dt>Patruller</dt>
+			<dd>{c.patrols}</dd>
+		</div>
+		<div>
+			<dt>Senast aktiv</dt>
+			<dd>{dt(c.lastActivity)}</dd>
+		</div>
+		<div>
+			<dt>Personuppgifter kvar</dt>
+			<dd>{c.anonymised ? 'Nej' : `${data.personalDataLeft} patruller`}</dd>
+		</div>
 	</dl>
 </header>
 
 <section class="card sa-sec" aria-labelledby="h-access" data-testid="access-section">
 	<h2 id="h-access">Tillfällig åtkomst</h2>
-	<p class="muted">Du ser inte tävlingens administrationssidor automatiskt. Ta tillfällig åtkomst som arrangör när du behöver hjälpa ägarna. Den loggas, ägarna ser den med din anledning, och den upphör av sig själv.</p>
+	<p class="muted">
+		Du ser inte tävlingens administrationssidor automatiskt. Ta tillfällig åtkomst som arrangör när du behöver hjälpa ägarna. Den loggas, ägarna ser den med din
+		anledning, och den upphör av sig själv.
+	</p>
 	{#if data.access}
 		<div class="active" role="status">
 			<strong>Du har åtkomst till {time(data.access.expiresAt)}.</strong>
@@ -51,7 +76,8 @@
 		<form method="POST" action="?/access" class="stack" use:enhance>
 			<div class="field">
 				<label for="acc-reason">Anledning (krävs, minst 10 tecken)</label>
-				<textarea id="acc-reason" name="reason" rows="2" aria-describedby="acc-help" placeholder="t.ex. Ägaren bad om hjälp med kontrollerna (mejl 25/10)"></textarea>
+				<textarea id="acc-reason" name="reason" rows="2" aria-describedby="acc-help" placeholder="t.ex. Ägaren bad om hjälp med kontrollerna (mejl 25/10)"
+				></textarea>
 				<span id="acc-help" class="muted small">{HINT}</span>
 			</div>
 			<div class="row-form">
@@ -78,7 +104,13 @@
 
 <section class="card sa-sec" aria-labelledby="h-members">
 	<h2 id="h-members">Ägare och arrangörer</h2>
-	<MembersPanel members={data.members} meId={data.admin.id} power="platform" {form} lead="Lägg till, ändra eller ta bort ägare, t.ex. när ägaren har slutat. Tävlingen har alltid minst en ägare." />
+	<MembersPanel
+		members={data.members}
+		meId={data.admin.id}
+		power="platform"
+		{form}
+		lead="Lägg till, ändra eller ta bort ägare, t.ex. när ägaren har slutat. Tävlingen har alltid minst en ägare."
+	/>
 </section>
 
 <section class="card sa-sec" aria-labelledby="h-susp">
@@ -110,11 +142,15 @@
 	{:else if c.status !== 'closed'}
 		<p class="muted">Går bara när tävlingen är avslutad. Be ägaren avsluta den först.</p>
 	{:else}
-		<p class="muted">Samma borttagning som ägarna gör (t.ex. en begäran som distriktet skickat vidare). Namn, kontaktuppgifter, funktionärer och meddelanden tas bort; resultaten finns kvar. Det går inte att ångra, och uppgifterna försvinner ur säkerhetskopiorna först när de roteras bort (högst cirka 8 veckor).</p>
+		<p class="muted">
+			Samma borttagning som ägarna gör (t.ex. en begäran som distriktet skickat vidare). Namn, kontaktuppgifter, funktionärer och meddelanden tas bort;
+			resultaten finns kvar. Det går inte att ångra, och uppgifterna försvinner ur säkerhetskopiorna först när de roteras bort (högst cirka 8 veckor).
+		</p>
 		<form method="POST" action="?/anonymise" class="stack" use:enhance>
 			<div class="field">
 				<label for="pd-reason">Anledning (krävs, minst 10 tecken)</label>
-				<textarea id="pd-reason" name="reason" rows="2" aria-describedby="pd-help" placeholder="t.ex. Begäran från Göteborgs scoutdistrikt, ärende 2026-14"></textarea>
+				<textarea id="pd-reason" name="reason" rows="2" aria-describedby="pd-help" placeholder="t.ex. Begäran från Göteborgs scoutdistrikt, ärende 2026-14"
+				></textarea>
 				<span id="pd-help" class="muted small">{HINT} Loggen behåller bara id:n och anledningen.</span>
 			</div>
 			<div class="field">

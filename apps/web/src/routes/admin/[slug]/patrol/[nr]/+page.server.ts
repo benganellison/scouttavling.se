@@ -11,7 +11,11 @@ const pts = (p: number, s: number) => (s ? `${p} + ${s}` : `${p}`);
 async function loadPatrol(competitionId: string, nrParam: string) {
 	const nr = Number(nrParam);
 	if (!Number.isInteger(nr)) error(404, 'Patrullen finns inte');
-	const [p] = await db.select().from(schema.patrol).where(and(eq(schema.patrol.competitionId, competitionId), eq(schema.patrol.number, nr))).limit(1);
+	const [p] = await db
+		.select()
+		.from(schema.patrol)
+		.where(and(eq(schema.patrol.competitionId, competitionId), eq(schema.patrol.number, nr)))
+		.limit(1);
 	if (!p) error(404, 'Patrullen finns inte');
 	return p;
 }
@@ -39,7 +43,12 @@ export async function load(event) {
 				.from(schema.scoreRevision)
 				.leftJoin(schema.device, eq(schema.device.id, schema.scoreRevision.deviceId))
 				.leftJoin(schema.appUser, eq(schema.appUser.id, schema.scoreRevision.userId))
-				.where(inArray(schema.scoreRevision.scoreId, scores.map((s) => s.id)))
+				.where(
+					inArray(
+						schema.scoreRevision.scoreId,
+						scores.map((s) => s.id)
+					)
+				)
 				.orderBy(asc(schema.scoreRevision.version))
 		: [];
 
@@ -85,23 +94,41 @@ export async function load(event) {
 	return {
 		comp: { slug: comp.slug, name: comp.name },
 		patrol: {
-			number: p.number, name: p.name, troop: p.troop, status: p.status, contactName: p.contactName, contactPhone: p.contactPhone,
-			track: track?.name ?? 'Ingen klass', trackCount: results.tracks.find((t) => t.trackId === p.trackId)?.rows.length ?? 0,
+			number: p.number,
+			name: p.name,
+			troop: p.troop,
+			status: p.status,
+			contactName: p.contactName,
+			contactPhone: p.contactPhone,
+			track: track?.name ?? 'Ingen klass',
+			trackCount: results.tracks.find((t) => t.trackId === p.trackId)?.rows.length ?? 0,
 			startStation: stations.find((s) => s.id === p.startStationId) ?? null,
 			/** "I läger · klar för dagen 18:42". */
-			campAt: p.status === 'camp' ? (() => {
-				const last = statusEvents.filter(({ e }) => e.status === 'camp').map(({ e }) => e.at).sort((a, b) => b.getTime() - a.getTime())[0];
-				return last ? formatTime(last) : null;
-			})() : null
+			campAt:
+				p.status === 'camp'
+					? (() => {
+							const last = statusEvents
+								.filter(({ e }) => e.status === 'camp')
+								.map(({ e }) => e.at)
+								.sort((a, b) => b.getTime() - a.getTime())[0];
+							return last ? formatTime(last) : null;
+						})()
+					: null
 		},
 		members: members.map((m) => `${m.firstName} ${m.lastName}`.trim()),
 		result: row ? { place: row.place, total: row.total, scorePoints: row.scorePoints, stylePoints: row.stylePoints, tied: row.tied } : null,
 		stations: stations.map((st) => ({
-			id: st.id, code: st.code, name: st.name, checkpoint: st.checkpoint, applies: stationAppliesTo(st, p.trackId),
+			id: st.id,
+			code: st.code,
+			name: st.name,
+			checkpoint: st.checkpoint,
+			applies: stationAppliesTo(st, p.trackId),
 			items: st.items.map((it) => {
 				const s = byItem.get(it.id);
 				return {
-					id: it.id, name: it.name, def: itemDef(it, comp),
+					id: it.id,
+					name: it.name,
+					def: itemDef(it, comp),
 					score: s ? { points: s.points, stylePoints: s.stylePoints, raw: s.raw, version: s.version, state: s.state } : null,
 					version: s?.version ?? null
 				};
@@ -127,8 +154,14 @@ export const actions = {
 		const reason = String(f.get('reason') ?? '').trim() || null;
 		if (f.get('value') === null && item.mode !== 'CHECKIN' && item.mode !== 'AUTO_ON_SCAN') return fail(400, { itemId, message: 'Välj poäng' });
 		const res = await writeScore({
-			competitionId: comp.id, patrolId: p.id, itemId, raw: { value, style }, baseVersion: baseRaw === '' ? null : Number(baseRaw),
-			origin: 'admin', userId: user.id, reason
+			competitionId: comp.id,
+			patrolId: p.id,
+			itemId,
+			raw: { value, style },
+			baseVersion: baseRaw === '' ? null : Number(baseRaw),
+			origin: 'admin',
+			userId: user.id,
+			reason
 		});
 		if (res.result === 'rejected') return fail(400, { itemId, message: res.reason });
 		if (res.result === 'conflict') return fail(409, { itemId, message: 'Poängen ändrades av någon annan samtidigt. Ändringen ligger nu under Konflikter.' });

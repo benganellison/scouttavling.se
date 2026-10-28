@@ -8,20 +8,64 @@ type Input = import('./live.ts').ResultsInput;
 
 /** Mirrors scripts/seed.ts for GökOpen 2027 (Upptäckare class and the first five RANGE stations). */
 function seedLike(): Input {
-	const stations = Array.from({ length: 8 }, (_, i) => ({ id: `st${i + 1}`, name: `Kontroll ${i + 1}`, sort: i + 1, allTracks: true, trackIds: [] as string[] }));
+	const stations = Array.from({ length: 8 }, (_, i) => ({
+		id: `st${i + 1}`,
+		name: `Kontroll ${i + 1}`,
+		sort: i + 1,
+		allTracks: true,
+		trackIds: [] as string[]
+	}));
 	const items = stations.map((s, i) => ({
-		id: `it${i + 1}`, stationId: s.id, sort: 1, name: `Kontroll ${i + 1}`, mode: (i === 2 ? 'DISTINCT' : 'RANGE') as 'RANGE' | 'DISTINCT',
-		min: 0, max: 20, distinctValues: i === 2 ? [0, 5, 10, 15, 20].map((value) => ({ value })) : null, countMultiplier: null,
-		styleEnabled: true, styleMin: 0, styleMax: 5, countsForTiebreak: true
+		id: `it${i + 1}`,
+		stationId: s.id,
+		sort: 1,
+		name: `Kontroll ${i + 1}`,
+		mode: (i === 2 ? 'DISTINCT' : 'RANGE') as 'RANGE' | 'DISTINCT',
+		min: 0,
+		max: 20,
+		distinctValues: i === 2 ? [0, 5, 10, 15, 20].map((value) => ({ value })) : null,
+		countMultiplier: null,
+		styleEnabled: true,
+		styleMin: 0,
+		styleMax: 5,
+		countsForTiebreak: true
 	}));
 	const range = items.filter((i) => i.mode === 'RANGE');
 	const sheet: Record<number, [number, number][]> = {
-		112: [[18, 4], [15, 3], [20, 4], [12, 3]],
-		137: [[18, 4], [15, 3], [20, 4], [12, 3]],
-		123: [[20, 5], [19, 4], [18, 5], [17, 4], [16, 4]],
-		115: [[17, 4], [20, 5], [16, 4], [18, 3]],
-		119: [[9, 2], [12, 3]],
-		144: [[14, 3], [11, 2], [13, 3]]
+		112: [
+			[18, 4],
+			[15, 3],
+			[20, 4],
+			[12, 3]
+		],
+		137: [
+			[18, 4],
+			[15, 3],
+			[20, 4],
+			[12, 3]
+		],
+		123: [
+			[20, 5],
+			[19, 4],
+			[18, 5],
+			[17, 4],
+			[16, 4]
+		],
+		115: [
+			[17, 4],
+			[20, 5],
+			[16, 4],
+			[18, 3]
+		],
+		119: [
+			[9, 2],
+			[12, 3]
+		],
+		144: [
+			[14, 3],
+			[11, 2],
+			[13, 3]
+		]
 	};
 	const patrols = [112, 115, 119, 123, 137, 144].map((n) => ({ id: `p${n}`, number: n, name: `Patrull ${n}`, troop: 'Kår', trackId: 'upp', status: 'active' }));
 	const scores = Object.entries(sheet).flatMap(([nr, rows]) =>
@@ -67,14 +111,21 @@ describe('computeResults', () => {
 });
 
 describe('points per station', () => {
-	it('lists each points station in order with its max, and the patrol\'s points (null = not reported)', () => {
+	it("lists each points station in order with its max, and the patrol's points (null = not reported)", () => {
 		const [upp] = computeResults(seedLike());
 		expect(upp.stations.map((s) => s.name)).toEqual(Array.from({ length: 8 }, (_, i) => `Kontroll ${i + 1}`));
 		expect(upp.stations[0]).toEqual({ id: 'st1', name: 'Kontroll 1', sort: 1, max: 20, styleMax: 5 });
 		const r112 = upp.rows.find((r) => r.number === 112)!;
 		// 112 reported at the first four RANGE stations: st1, st2, st4, st5 (st3 is DISTINCT).
 		expect(r112.perStation).toEqual([
-			{ points: 18, stylePoints: 4 }, { points: 15, stylePoints: 3 }, null, { points: 20, stylePoints: 4 }, { points: 12, stylePoints: 3 }, null, null, null
+			{ points: 18, stylePoints: 4 },
+			{ points: 15, stylePoints: 3 },
+			null,
+			{ points: 20, stylePoints: 4 },
+			{ points: 12, stylePoints: 3 },
+			null,
+			null,
+			null
 		]);
 		const sum = r112.perStation.reduce((n, c) => n + (c ? c.points + c.stylePoints : 0), 0);
 		expect(sum).toBe(r112.total);

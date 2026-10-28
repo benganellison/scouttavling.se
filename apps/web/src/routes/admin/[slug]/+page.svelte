@@ -17,16 +17,16 @@
 		c.anonymisedAt
 			? 'Tävlingen är arkiverad'
 			: c.status === 'closed'
-			? 'Tävlingen är avslutad'
-			: left > 1
-				? `${left} dagar kvar`
-				: left === 1
-					? 'I morgon!'
-					: left === 0
-						? 'Tävlingsdag idag'
-						: daysUntil(c.endDate) >= 0
-							? 'Tävlingen pågår'
-							: 'Tävlingsdagarna är passerade'
+				? 'Tävlingen är avslutad'
+				: left > 1
+					? `${left} dagar kvar`
+					: left === 1
+						? 'I morgon!'
+						: left === 0
+							? 'Tävlingsdag idag'
+							: daysUntil(c.endDate) >= 0
+								? 'Tävlingen pågår'
+								: 'Tävlingsdagarna är passerade'
 	);
 
 	type State = 'done' | 'warn' | 'todo';
@@ -88,7 +88,11 @@
 			{
 				state: s.stations === 0 ? 'todo' : vol.length === 0 ? 'done' : 'warn',
 				title: vol.length ? `${vol.length} ${vol.length === 1 ? 'kontroll saknar' : 'kontroller saknar'} funktionär` : 'Funktionärer',
-				desc: vol.length ? vol.slice(0, 4).join(', ') + (vol.length > 4 ? ` och ${vol.length - 4} till` : '') : s.stations ? 'Alla kontroller har en inbjudan' : 'Skapa kontroller först',
+				desc: vol.length
+					? vol.slice(0, 4).join(', ') + (vol.length > 4 ? ` och ${vol.length - 4} till` : '')
+					: s.stations
+						? 'Alla kontroller har en inbjudan'
+						: 'Skapa kontroller först',
 				cta: 'Bjud in',
 				href: `${base}/invites`
 			},
@@ -130,129 +134,159 @@
 	{#if c.anonymisedAt}
 		<Kpi label="Scouter" value="–" note="namnen togs bort vid arkivering" />
 	{:else}
-	<Kpi label="Scouter" value={s.members} note={s.patrols ? `snitt ${(s.members / s.patrols).toLocaleString('sv-SE', { maximumFractionDigits: 1 })} per patrull` : ''} />
+		<Kpi
+			label="Scouter"
+			value={s.members}
+			note={s.patrols ? `snitt ${(s.members / s.patrols).toLocaleString('sv-SE', { maximumFractionDigits: 1 })} per patrull` : ''}
+		/>
 	{/if}
 	<Kpi label="Kontroller" value={s.stations} note={s.checkpoints ? `varav ${s.checkpoints} checkpoints` : ''} />
 	{#if c.status === 'closed'}
 		<Kpi label="I mål" value={s.finished} of={s.patrols ? ` / ${s.patrols}` : ''} note="patruller" />
 	{:else}
-	<Kpi
-		label="Utan funktionär"
-		value={s.withoutInvite.length}
-		of={s.stations ? ` / ${s.stations}` : ''}
-		note={s.withoutInvite.length ? 'saknar inbjudan' : s.stations ? 'alla inbjudna' : ''}
-		tone={s.withoutInvite.length ? 'warn' : 'ok'}
-	/>
+		<Kpi
+			label="Utan funktionär"
+			value={s.withoutInvite.length}
+			of={s.stations ? ` / ${s.stations}` : ''}
+			note={s.withoutInvite.length ? 'saknar inbjudan' : s.stations ? 'alla inbjudna' : ''}
+			tone={s.withoutInvite.length ? 'warn' : 'ok'}
+		/>
 	{/if}
 </div>
 
 {#if c.status === 'closed'}
-{#if a && !c.anonymisedAt}
-<section class="card remind" aria-labelledby="pd-h" data-testid="personal-data-reminder">
-	<span class="remind-mark" aria-hidden="true">!</span>
-	<div class="remind-txt">
-		<h2 id="pd-h">{a.personalLeft ? `Personuppgifter finns kvar för ${a.personalLeft} ${a.personalLeft === 1 ? 'patrull' : 'patruller'}` : 'Tävlingen är inte arkiverad än'} – ta bort när resultaten är klara</h2>
-		<p class="d">Scouternas namn, kontaktuppgifter, patrullernas länkar, funktionärer och meddelanden behövs inte längre. Poäng, patrullnamn, kårer och resultat sparas.</p>
-	</div>
-	{#if a.isOwner}
-		<a class="btn btn-primary" href="{base}/anonymise">Ta bort personuppgifter</a>
-	{:else}
-		<p class="ask" data-testid="ask-owner">
-			{a.ownerNames.length ? `Be ägaren (${a.ownerNames.join(', ')})` : 'Be ägaren'} ta bort personuppgifterna. Bara tävlingens ägare kan göra det.
-		</p>
-	{/if}
-</section>
-{/if}
-<section class="card closed" aria-labelledby="closed-h" data-testid="closed-summary">
-	<div class="cl-head">
-		<h2 id="closed-h">{c.anonymisedAt ? 'Tävlingen är arkiverad' : 'Tävlingen är avslutad'}</h2>
-		{#if c.anonymisedAt}<span class="pill archived">Arkiverad</span>{:else}<StatusPill status={c.status} />{/if}
-	</div>
-	{#if c.anonymisedAt}
-		<p class="d" data-testid="archived-note">
-			Personuppgifterna togs bort {new Date(c.anonymisedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })}. Tävlingen är skrivskyddad; resultaten finns kvar oförändrade. {s.finished} av {s.patrols} patruller gick i mål.
-		</p>
-	{:else}
-		<p class="d">Resultaten är låsta för funktionärer. {s.finished} av {s.patrols} patruller gick i mål.</p>
-	{/if}
-	<div class="closed-links">
-		<a class="btn btn-primary" href="{base}/results">Resultat</a>
-		<a class="btn" href="{base}/results.csv" download>Exportera (CSV)</a>
-		{#if c.publicResults}<a class="btn" href="/r/{c.slug}">Publika resultat</a>{/if}
-		{#if !c.anonymisedAt}<a class="btn" href="/r/{c.slug}/ceremony">Prisutdelning</a>{/if}
-		{#if data.series}<a class="btn" href="/admin/series/{data.series.slug}">Serien {data.series.name}</a>{/if}
-	</div>
-	{#if !c.anonymisedAt}
-		<form method="POST" action="?/status" use:enhance class="reopen">
-			<button class="cta" name="to" value="live">Öppna tävlingen igen</button>
-		</form>
-	{/if}
-</section>
-{#if a}
-<section class="card next" aria-labelledby="next-h" data-testid="next-edition">
-	<div class="next-txt">
-		<h2 id="next-h">Nästa år</h2>
-		{#if a.nextExists}
-			<p class="d">{a.nextName} finns redan.</p>
-		{:else}
-			<p class="d">Börja planera {a.nextName} med samma dagar, klasser, kontroller och poängregler. Patruller, poäng och funktionärer följer inte med.</p>
-		{/if}
-	</div>
-	{#if a.nextExists}
-		<a class="btn" href="/admin/{a.nextExists}">Öppna {a.nextName}</a>
-	{:else}
-		<a class="btn btn-accent" href="{base}/next-edition">Skapa {a.nextName}</a>
-	{/if}
-</section>
-{/if}
-{:else}
-<section class="card checklist" aria-labelledby="cl">
-	<div class="cl-head">
-		<h2 id="cl">Att göra innan tävlingsdagen</h2>
-		<span class="count">{doneCount} av {todos.length + 1} klart</span>
-	</div>
-	<ul>
-		{#each todos as t (t.title)}
-			<li class={t.state}>
-				<span class="mark" aria-hidden="true">
-					{#if t.state === 'done'}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>{:else if t.state === 'warn'}!{/if}
-				</span>
-				<span class="sr-only">{t.state === 'done' ? 'Klart:' : t.state === 'warn' ? 'Behöver åtgärdas:' : 'Att göra:'}</span>
-				<div class="txt">
-					<span class="t">{t.title}</span>
-					<span class="d">{t.desc}</span>
-				</div>
-				<div class="ctas">
-					{#if t.cta2}<a class="cta" href={t.href2}>{t.cta2}</a>{/if}
-					{#if t.cta}<a class="cta" class:hot={t.state === 'warn'} href={t.href}>{t.cta}</a>{/if}
-				</div>
-			</li>
-		{/each}
-		<li class={c.status === 'draft' ? 'todo' : 'done'}>
-			<span class="mark" aria-hidden="true">
-				{#if c.status !== 'draft'}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>{/if}
-			</span>
-			<div class="txt">
-				<span class="t">Status <StatusPill status={c.status} /></span>
-				<span class="d">
-					{#if c.status === 'draft'}Gör tävlingen live när allt är klart. Funktionärer kan då rapportera poäng.
-					{:else if c.status === 'live'}Tävlingen är live. Avsluta när prisutdelningen är klar.
-					{:else}Tävlingen är avslutad. Resultaten är låsta för funktionärer.{/if}
-				</span>
+	{#if a && !c.anonymisedAt}
+		<section class="card remind" aria-labelledby="pd-h" data-testid="personal-data-reminder">
+			<span class="remind-mark" aria-hidden="true">!</span>
+			<div class="remind-txt">
+				<h2 id="pd-h">
+					{a.personalLeft
+						? `Personuppgifter finns kvar för ${a.personalLeft} ${a.personalLeft === 1 ? 'patrull' : 'patruller'}`
+						: 'Tävlingen är inte arkiverad än'} – ta bort när resultaten är klara
+				</h2>
+				<p class="d">
+					Scouternas namn, kontaktuppgifter, patrullernas länkar, funktionärer och meddelanden behövs inte längre. Poäng, patrullnamn, kårer och resultat
+					sparas.
+				</p>
 			</div>
-			<form method="POST" action="?/status" class="ctas" use:enhance>
-				{#if c.status === 'draft'}
-					<button class="btn btn-accent sm" name="to" value="live">Gör tävlingen live</button>
-				{:else if c.status === 'live'}
-					<button class="cta" name="to" value="draft">Tillbaka till utkast</button>
-					<button class="btn btn-primary sm" name="to" value="closed">Avsluta</button>
-				{:else}
-					<button class="cta" name="to" value="live">Öppna igen</button>
-				{/if}
+			{#if a.isOwner}
+				<a class="btn btn-primary" href="{base}/anonymise">Ta bort personuppgifter</a>
+			{:else}
+				<p class="ask" data-testid="ask-owner">
+					{a.ownerNames.length ? `Be ägaren (${a.ownerNames.join(', ')})` : 'Be ägaren'} ta bort personuppgifterna. Bara tävlingens ägare kan göra det.
+				</p>
+			{/if}
+		</section>
+	{/if}
+	<section class="card closed" aria-labelledby="closed-h" data-testid="closed-summary">
+		<div class="cl-head">
+			<h2 id="closed-h">{c.anonymisedAt ? 'Tävlingen är arkiverad' : 'Tävlingen är avslutad'}</h2>
+			{#if c.anonymisedAt}<span class="pill archived">Arkiverad</span>{:else}<StatusPill status={c.status} />{/if}
+		</div>
+		{#if c.anonymisedAt}
+			<p class="d" data-testid="archived-note">
+				Personuppgifterna togs bort {new Date(c.anonymisedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })}. Tävlingen är
+				skrivskyddad; resultaten finns kvar oförändrade. {s.finished} av {s.patrols} patruller gick i mål.
+			</p>
+		{:else}
+			<p class="d">Resultaten är låsta för funktionärer. {s.finished} av {s.patrols} patruller gick i mål.</p>
+		{/if}
+		<div class="closed-links">
+			<a class="btn btn-primary" href="{base}/results">Resultat</a>
+			<a class="btn" href="{base}/results.csv" download>Exportera (CSV)</a>
+			{#if c.publicResults}<a class="btn" href="/r/{c.slug}">Publika resultat</a>{/if}
+			{#if !c.anonymisedAt}<a class="btn" href="/r/{c.slug}/ceremony">Prisutdelning</a>{/if}
+			{#if data.series}<a class="btn" href="/admin/series/{data.series.slug}">Serien {data.series.name}</a>{/if}
+		</div>
+		{#if !c.anonymisedAt}
+			<form method="POST" action="?/status" use:enhance class="reopen">
+				<button class="cta" name="to" value="live">Öppna tävlingen igen</button>
 			</form>
-		</li>
-	</ul>
-</section>
+		{/if}
+	</section>
+	{#if a}
+		<section class="card next" aria-labelledby="next-h" data-testid="next-edition">
+			<div class="next-txt">
+				<h2 id="next-h">Nästa år</h2>
+				{#if a.nextExists}
+					<p class="d">{a.nextName} finns redan.</p>
+				{:else}
+					<p class="d">Börja planera {a.nextName} med samma dagar, klasser, kontroller och poängregler. Patruller, poäng och funktionärer följer inte med.</p>
+				{/if}
+			</div>
+			{#if a.nextExists}
+				<a class="btn" href="/admin/{a.nextExists}">Öppna {a.nextName}</a>
+			{:else}
+				<a class="btn btn-accent" href="{base}/next-edition">Skapa {a.nextName}</a>
+			{/if}
+		</section>
+	{/if}
+{:else}
+	<section class="card checklist" aria-labelledby="cl">
+		<div class="cl-head">
+			<h2 id="cl">Att göra innan tävlingsdagen</h2>
+			<span class="count">{doneCount} av {todos.length + 1} klart</span>
+		</div>
+		<ul>
+			{#each todos as t (t.title)}
+				<li class={t.state}>
+					<span class="mark" aria-hidden="true">
+						{#if t.state === 'done'}<svg
+								width="15"
+								height="15"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="3.2"
+								stroke-linecap="round"
+								stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg
+							>{:else if t.state === 'warn'}!{/if}
+					</span>
+					<span class="sr-only">{t.state === 'done' ? 'Klart:' : t.state === 'warn' ? 'Behöver åtgärdas:' : 'Att göra:'}</span>
+					<div class="txt">
+						<span class="t">{t.title}</span>
+						<span class="d">{t.desc}</span>
+					</div>
+					<div class="ctas">
+						{#if t.cta2}<a class="cta" href={t.href2}>{t.cta2}</a>{/if}
+						{#if t.cta}<a class="cta" class:hot={t.state === 'warn'} href={t.href}>{t.cta}</a>{/if}
+					</div>
+				</li>
+			{/each}
+			<li class={c.status === 'draft' ? 'todo' : 'done'}>
+				<span class="mark" aria-hidden="true">
+					{#if c.status !== 'draft'}<svg
+							width="15"
+							height="15"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="3.2"
+							stroke-linecap="round"
+							stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg
+						>{/if}
+				</span>
+				<div class="txt">
+					<span class="t">Status <StatusPill status={c.status} /></span>
+					<span class="d">
+						{#if c.status === 'draft'}Gör tävlingen live när allt är klart. Funktionärer kan då rapportera poäng.
+						{:else if c.status === 'live'}Tävlingen är live. Avsluta när prisutdelningen är klar.
+						{:else}Tävlingen är avslutad. Resultaten är låsta för funktionärer.{/if}
+					</span>
+				</div>
+				<form method="POST" action="?/status" class="ctas" use:enhance>
+					{#if c.status === 'draft'}
+						<button class="btn btn-accent sm" name="to" value="live">Gör tävlingen live</button>
+					{:else if c.status === 'live'}
+						<button class="cta" name="to" value="draft">Tillbaka till utkast</button>
+						<button class="btn btn-primary sm" name="to" value="closed">Avsluta</button>
+					{:else}
+						<button class="cta" name="to" value="live">Öppna igen</button>
+					{/if}
+				</form>
+			</li>
+		</ul>
+	</section>
 {/if}
 
 <style>

@@ -15,7 +15,10 @@ const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screensh
 function databaseUrl() {
 	if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
 	const env = readFileSync(new URL('../.env', import.meta.url), 'utf8');
-	return /^DATABASE_URL=(.*)$/m.exec(env)![1].trim().replace(/^["']|["']$/g, '');
+	return /^DATABASE_URL=(.*)$/m
+		.exec(env)![1]
+		.trim()
+		.replace(/^["']|["']$/g, '');
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -62,8 +65,14 @@ test('live dashboard, patrol edit, results, public page and ceremony', async ({ 
 			await expect(page.locator('form.item').first()).toBeVisible({ timeout: 1000 });
 		}).toPass({ timeout: 15_000 });
 		const form = page.locator('form.item').first();
-		await form.locator('label.chip', { hasText: /^\s*16\s*$/ }).first().click();
-		await form.locator('fieldset', { hasText: 'Stil' }).locator('label.chip', { hasText: /^\s*3\s*$/ }).click();
+		await form
+			.locator('label.chip', { hasText: /^\s*16\s*$/ })
+			.first()
+			.click();
+		await form
+			.locator('fieldset', { hasText: 'Stil' })
+			.locator('label.chip', { hasText: /^\s*3\s*$/ })
+			.click();
 		await form.getByLabel('Anledning').fill('fel patrull vald');
 		await form.getByRole('button', { name: 'Spara ändring' }).click();
 		await expect(form.getByRole('status')).toContainText('sparad');
@@ -72,8 +81,18 @@ test('live dashboard, patrol edit, results, public page and ceremony', async ({ 
 		await shot(page, 'patrol');
 
 		// Put it back so 112/137 tie again.
-		await page.locator('form.item').first().locator('label.chip', { hasText: /^\s*18\s*$/ }).first().click();
-		await page.locator('form.item').first().locator('fieldset', { hasText: 'Stil' }).locator('label.chip', { hasText: /^\s*4\s*$/ }).click();
+		await page
+			.locator('form.item')
+			.first()
+			.locator('label.chip', { hasText: /^\s*18\s*$/ })
+			.first()
+			.click();
+		await page
+			.locator('form.item')
+			.first()
+			.locator('fieldset', { hasText: 'Stil' })
+			.locator('label.chip', { hasText: /^\s*4\s*$/ })
+			.click();
 		await page.locator('form.item').first().getByRole('button', { name: 'Spara ändring' }).click();
 		await expect(page.getByTestId('timeline')).toContainText('var 16 + 3 → 18 + 4');
 

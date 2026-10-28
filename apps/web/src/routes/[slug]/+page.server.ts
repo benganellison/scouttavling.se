@@ -11,7 +11,11 @@ import { isReservedSlug } from '#lib/routing/slugs.ts';
 export async function load({ params, url }) {
 	const slug = params.slug.toLowerCase();
 	if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) || isReservedSlug(slug)) error(404, 'Sidan finns inte');
-	const [comp] = await db.select({ id: schema.competition.id, status: schema.competition.status }).from(schema.competition).where(eq(schema.competition.slug, slug)).limit(1);
+	const [comp] = await db
+		.select({ id: schema.competition.id, status: schema.competition.status })
+		.from(schema.competition)
+		.where(eq(schema.competition.slug, slug))
+		.limit(1);
 	const series = comp ? null : (await db.select({ id: schema.series.id }).from(schema.series).where(eq(schema.series.slug, slug)).limit(1))[0];
 	// A draft is not public yet: same answer as an unknown address, so short links do not reveal it.
 	if ((!comp && !series) || comp?.status === 'draft') error(404, 'Sidan finns inte');

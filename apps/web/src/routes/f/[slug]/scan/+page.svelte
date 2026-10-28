@@ -93,7 +93,13 @@
 			</ul>
 			<div class="keys">
 				{#each keys as k (k)}
-					<button type="button" class="key" class:fn={k === 'C' || k === '⌫'} aria-label={k === 'C' ? 'Rensa' : k === '⌫' ? 'Radera' : k} onclick={() => press(k)}>
+					<button
+						type="button"
+						class="key"
+						class:fn={k === 'C' || k === '⌫'}
+						aria-label={k === 'C' ? 'Rensa' : k === '⌫' ? 'Radera' : k}
+						onclick={() => press(k)}
+					>
 						{#if k === '⌫'}<Icon name="backspace" size={30} />{:else}{k}{/if}
 					</button>
 				{/each}
@@ -121,7 +127,14 @@
 			{#if result}
 				<div class="warn">
 					<Icon name="alert" />
-					<span><strong>Redan rapporterad här</strong> {hhmm(result.at)}{result.by ? ` av ${result.by}` : ''} — {checkin ? 'incheckad' : styleOn ? `${result.points} + ${result.style} p` : `${result.total} p`}. Vill du ändra?</span>
+					<span
+						><strong>Redan rapporterad här</strong>
+						{hhmm(result.at)}{result.by ? ` av ${result.by}` : ''} — {checkin
+							? 'incheckad'
+							: styleOn
+								? `${result.points} + ${result.style} p`
+								: `${result.total} p`}. Vill du ändra?</span
+					>
 				</div>
 			{/if}
 			<!-- svelte-ignore a11y_autofocus -->

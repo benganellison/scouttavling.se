@@ -9,7 +9,18 @@ describe('safeNext (open-redirect guard)', () => {
 		expect(safeNext('/t/gokopen')).toBe('/t/gokopen');
 	});
 	it('refuses everything that a browser would send to another site', () => {
-		for (const bad of ['//evil.example', '/\\evil.example', '/\t/evil.example', '/\n/evil.example', '/%09/evil.example'.replace('%09', '\t'), 'https://evil.example', 'evil.example', '/\r\n//evil', '\\\\evil', '']) {
+		for (const bad of [
+			'//evil.example',
+			'/\\evil.example',
+			'/\t/evil.example',
+			'/\n/evil.example',
+			'/%09/evil.example'.replace('%09', '\t'),
+			'https://evil.example',
+			'evil.example',
+			'/\r\n//evil',
+			'\\\\evil',
+			''
+		]) {
 			const r = safeNext(bad);
 			expect(r, JSON.stringify(bad)).toBe('/admin');
 			expect(new URL(r, 'https://scouttavling.se').origin).toBe('https://scouttavling.se');

@@ -67,15 +67,25 @@ export function windowFor(comp: CompRow, patrolCount: number, now = new Date()) 
 	return {
 		today,
 		...registrationWindow({
-			status: comp.status, registrationOpen: comp.registrationOpen, registrationOpensOn: comp.registrationOpensOn,
-			registrationClosesOn: comp.registrationClosesOn, endDate: comp.endDate, maxPatrols: comp.maxPatrols, patrolCount, today
+			status: comp.status,
+			registrationOpen: comp.registrationOpen,
+			registrationOpensOn: comp.registrationOpensOn,
+			registrationClosesOn: comp.registrationClosesOn,
+			endDate: comp.endDate,
+			maxPatrols: comp.maxPatrols,
+			patrolCount,
+			today
 		})
 	};
 }
 
 export async function tracksWithCounts(competitionId: string) {
 	const [tracks, counts] = await Promise.all([
-		db.select({ id: schema.track.id, name: schema.track.name, color: schema.track.color }).from(schema.track).where(eq(schema.track.competitionId, competitionId)).orderBy(asc(schema.track.sort)),
+		db
+			.select({ id: schema.track.id, name: schema.track.name, color: schema.track.color })
+			.from(schema.track)
+			.where(eq(schema.track.competitionId, competitionId))
+			.orderBy(asc(schema.track.sort)),
 		db
 			.select({ trackId: schema.patrol.trackId, n: sql<number>`count(*)::int` })
 			.from(schema.patrol)
@@ -89,9 +99,7 @@ export async function tracksWithCounts(competitionId: string) {
 
 // ---------- registration ----------
 
-export type RegisterResult =
-	| { ok: true; number: number; manageToken: string; followToken: string }
-	| { ok: false; reason: 'closed' | 'full' };
+export type RegisterResult = { ok: true; number: number; manageToken: string; followToken: string } | { ok: false; reason: 'closed' | 'full' };
 
 /**
  * Creates the patrol in one transaction. The competition row is locked, so the
@@ -105,14 +113,25 @@ export async function registerPatrol(compId: string, data: RegistrationData): Pr
 		const w = windowFor(comp, await spotCount(comp.id, tx));
 		if (w.state === 'full') return { ok: false, reason: 'full' } as const;
 		if (w.state !== 'open') return { ok: false, reason: 'closed' } as const;
-		const [{ n }] = await tx.select({ n: max(schema.patrol.number) }).from(schema.patrol).where(eq(schema.patrol.competitionId, comp.id));
+		const [{ n }] = await tx
+			.select({ n: max(schema.patrol.number) })
+			.from(schema.patrol)
+			.where(eq(schema.patrol.competitionId, comp.id));
 		const number = n ? n + 1 : 101;
 		const [p] = await tx
 			.insert(schema.patrol)
 			.values({
-				competitionId: comp.id, number, name: data.patrolName, troop: data.troop, trackId: data.trackId, status: 'registered',
-				contactName: data.contactName, contactPhone: data.contactPhone, contactEmail: data.contactEmail,
-				manageTokenHash: await sha256(manageToken), followTokenHash: await sha256(followToken),
+				competitionId: comp.id,
+				number,
+				name: data.patrolName,
+				troop: data.troop,
+				trackId: data.trackId,
+				status: 'registered',
+				contactName: data.contactName,
+				contactPhone: data.contactPhone,
+				contactEmail: data.contactEmail,
+				manageTokenHash: await sha256(manageToken),
+				followTokenHash: await sha256(followToken),
 				followTokenEnc: await encryptToken(comp.patrolCodeKey, followToken)
 			})
 			.returning({ id: schema.patrol.id });
@@ -150,7 +169,9 @@ export async function updateRegistration(compId: string, patrolId: string, data:
 		const key = (m: { firstName: string; lastName: string }) => `${m.firstName.trim().toLowerCase()}|${m.lastName.trim().toLowerCase()}`;
 		const troopOf = new Map(before.map((m) => [key(m), m.troopText]));
 		await tx.delete(schema.member).where(eq(schema.member.patrolId, patrolId));
-		await tx.insert(schema.member).values(data.members.map((m) => ({ patrolId, firstName: m.firstName, lastName: m.lastName, troopText: troopOf.get(key(m)) ?? '' })));
+		await tx
+			.insert(schema.member)
+			.values(data.members.map((m) => ({ patrolId, firstName: m.firstName, lastName: m.lastName, troopText: troopOf.get(key(m)) ?? '' })));
 		await recordChange(tx, compId, 'patrol', patrolId);
 	});
 }

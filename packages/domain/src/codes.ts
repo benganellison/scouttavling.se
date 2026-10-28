@@ -63,7 +63,9 @@ export function stationCodes(stations: CodeStation[], days: CodeDay[]): Map<stri
 			let code: string;
 			if (role === 'start') code = `${day.prefix}S`;
 			else if (role === 'finish') code = `${day.prefix}M`;
-			else do code = `${day.prefix}${++n}`; while (taken.has(code));
+			else
+				do code = `${day.prefix}${++n}`;
+				while (taken.has(code));
 			out.set(s.id, code);
 		}
 	}

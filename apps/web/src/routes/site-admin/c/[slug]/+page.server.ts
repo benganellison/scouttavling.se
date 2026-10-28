@@ -7,8 +7,17 @@ import { listMembers } from '#lib/server/ownership.ts';
 import { memberAction, replaceOwner, type MemberAction } from '#lib/server/memberActions.ts';
 import { personalDataLeft } from '#lib/server/anonymise.ts';
 import {
-	ACCESS_HOURS, DEFAULT_ACCESS_HOURS, SiteAdminError, accessNotices, adminActor, anonymiseOnBehalf, competitionHits, endAccess, grantAccess,
-	requireSiteAdmin, setCompetitionSuspended
+	ACCESS_HOURS,
+	DEFAULT_ACCESS_HOURS,
+	SiteAdminError,
+	accessNotices,
+	adminActor,
+	anonymiseOnBehalf,
+	competitionHits,
+	endAccess,
+	grantAccess,
+	requireSiteAdmin,
+	setCompetitionSuspended
 } from '#lib/server/siteAdmin.ts';
 
 /** A competition as the site admin sees it: people, status, suspension, temporary access, personal data, log. */
@@ -28,11 +37,24 @@ export async function load(event) {
 		accessNotices(c.id, 30),
 		listAudit({ competitionId: c.id, limit: 100 }),
 		personalDataLeft(c.id),
-		c.seriesId ? db.select({ slug: schema.series.slug, name: schema.series.name }).from(schema.series).where(eq(schema.series.id, c.seriesId)).then((r) => r[0] ?? null) : null
+		c.seriesId
+			? db
+					.select({ slug: schema.series.slug, name: schema.series.name })
+					.from(schema.series)
+					.where(eq(schema.series.id, c.seriesId))
+					.then((r) => r[0] ?? null)
+			: null
 	]);
 	return {
 		comp: { ...hit, ownerGroupName: c.ownerGroupName, endDate: c.endDate, suspendedAt: c.suspendedAt, anonymisedAt: c.anonymisedAt },
-		series, members, access, notices, audit, personalDataLeft: left, hours: ACCESS_HOURS, defaultHours: DEFAULT_ACCESS_HOURS
+		series,
+		members,
+		access,
+		notices,
+		audit,
+		personalDataLeft: left,
+		hours: ACCESS_HOURS,
+		defaultHours: DEFAULT_ACCESS_HOURS
 	};
 }
 
@@ -40,7 +62,13 @@ async function members(event: RequestEvent<{ slug: string }>, kind: MemberAction
 	const admin = requireSiteAdmin(event);
 	const c = await comp(event.params.slug);
 	const list = await listMembers({ kind: 'competition', id: c.id });
-	return memberAction(kind, await event.request.formData(), { kind: 'competition', id: c.id }, adminActor(admin, ''), new Map(list.map((m) => [m.userId, m.name])));
+	return memberAction(
+		kind,
+		await event.request.formData(),
+		{ kind: 'competition', id: c.id },
+		adminActor(admin, ''),
+		new Map(list.map((m) => [m.userId, m.name]))
+	);
 }
 
 /** Runs a site-admin step and maps its errors to a form failure for `section`. */
@@ -68,7 +96,11 @@ export const actions = {
 		const c = await comp(event.params.slug);
 		const f = await event.request.formData();
 		const on = f.get('suspend') === '1';
-		return step('suspend', () => setCompetitionSuspended(admin, c.id, on, String(f.get('reason') ?? '')), on ? 'Tävlingen är avstängd.' : 'Tävlingen är öppen igen.');
+		return step(
+			'suspend',
+			() => setCompetitionSuspended(admin, c.id, on, String(f.get('reason') ?? '')),
+			on ? 'Tävlingen är avstängd.' : 'Tävlingen är öppen igen.'
+		);
 	},
 	access: async (event) => {
 		const admin = requireSiteAdmin(event);
@@ -87,10 +119,12 @@ export const actions = {
 		const f = await event.request.formData();
 		const reason = String(f.get('reason') ?? '');
 		const typed = String(f.get('confirm') ?? '').trim();
-		if (c.status !== 'closed') return fail(409, { section: 'anonymise', error: 'Bara en avslutad tävling kan få personuppgifterna borttagna. Be ägaren avsluta den.' });
+		if (c.status !== 'closed')
+			return fail(409, { section: 'anonymise', error: 'Bara en avslutad tävling kan få personuppgifterna borttagna. Be ägaren avsluta den.' });
 		const re = reasonError(reason);
 		if (re) return fail(400, { section: 'anonymise', error: re });
-		if (typed.toLocaleLowerCase('sv-SE') !== c.name.trim().toLocaleLowerCase('sv-SE')) return fail(400, { section: 'anonymise', error: `Skriv tävlingens namn exakt: ${c.name}` });
+		if (typed.toLocaleLowerCase('sv-SE') !== c.name.trim().toLocaleLowerCase('sv-SE'))
+			return fail(400, { section: 'anonymise', error: `Skriv tävlingens namn exakt: ${c.name}` });
 		return step('anonymise', () => anonymiseOnBehalf(admin, c.id, reason), 'Personuppgifterna är borttagna.');
 	}
 };

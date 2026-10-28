@@ -95,7 +95,13 @@ export async function destroySession(cookies: Cookies, url: URL) {
 }
 
 /** Upsert a user from ScoutID claims (or the dev login), keyed on member number. */
-export async function upsertUser(u: { memberNo: string; name: string; email?: string | null; phone?: string | null; groups: { groupNo: string; name: string }[] }) {
+export async function upsertUser(u: {
+	memberNo: string;
+	name: string;
+	email?: string | null;
+	phone?: string | null;
+	groups: { groupNo: string; name: string }[];
+}) {
 	const [row] = await db
 		.insert(schema.appUser)
 		.values({ memberNo: u.memberNo, name: u.name, email: u.email ?? null, phone: u.phone ?? null, groups: u.groups })
@@ -124,7 +130,12 @@ export interface TemporaryAccess {
 /** The site admin's unexpired, not ended temporary access to a competition, or null. */
 export async function activeAccess(userId: string, competitionId: string): Promise<TemporaryAccess | null> {
 	const [a] = await db
-		.select({ id: schema.siteAdminAccess.id, role: schema.siteAdminAccess.role, reason: schema.siteAdminAccess.reason, expiresAt: schema.siteAdminAccess.expiresAt })
+		.select({
+			id: schema.siteAdminAccess.id,
+			role: schema.siteAdminAccess.role,
+			reason: schema.siteAdminAccess.reason,
+			expiresAt: schema.siteAdminAccess.expiresAt
+		})
 		.from(schema.siteAdminAccess)
 		.innerJoin(schema.siteAdmin, eq(schema.siteAdmin.userId, schema.siteAdminAccess.userId))
 		.where(

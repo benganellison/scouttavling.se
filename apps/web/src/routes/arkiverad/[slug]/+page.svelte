@@ -12,7 +12,10 @@
 <PublicShell title={data.comp.name} eyebrow="Arkiverad" branding={data.branding}>
 	<section class="card box" data-testid="archived">
 		<h2>Tävlingen är avslutad och arkiverad</h2>
-		<p>Länken du följde gällde en patrull i {data.comp.name}. När tävlingen arkiverades togs anmälningar, kontaktuppgifter och patrullernas egna länkar bort, så den här sidan visar inte längre någon patrull.</p>
+		<p>
+			Länken du följde gällde en patrull i {data.comp.name}. När tävlingen arkiverades togs anmälningar, kontaktuppgifter och patrullernas egna länkar bort, så
+			den här sidan visar inte längre någon patrull.
+		</p>
 		<div class="links">
 			{#if data.comp.publicResults}<a class="btn btn-primary" href="/r/{data.comp.slug}">Se resultaten</a>{/if}
 			{#if data.series}<a class="btn" href="/t/{data.series.slug}">Mer om {data.series.name}</a>{/if}

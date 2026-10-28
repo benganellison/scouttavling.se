@@ -61,15 +61,22 @@ export const actions = {
 		if (hqPhone.length > 30) errors.hqPhone = 'Telefonnumret är för långt.';
 		if (!comp.multiDay && !ISO.test(date)) errors.date = 'Välj ett datum.';
 		// The current owner stays selectable even if the user is not a member of it.
-		const group = user.groups.find((g) => g.groupNo === ownerNo) ?? (ownerNo === comp.ownerGroupNo ? { groupNo: comp.ownerGroupNo, name: comp.ownerGroupName ?? '' } : null);
+		const group =
+			user.groups.find((g) => g.groupNo === ownerNo) ??
+			(ownerNo === comp.ownerGroupNo ? { groupNo: comp.ownerGroupNo, name: comp.ownerGroupName ?? '' } : null);
 		if (!group) errors.owner = 'Välj en kår eller ett distrikt du tillhör.';
 		if (Object.keys(errors).length) return fail(400, { section: 'basics', errors });
 		await db.transaction(async (tx) => {
 			await tx
 				.update(schema.competition)
 				.set({
-					name, location: location || null, hqPhone: hqPhone || null, ownerGroupNo: group!.groupNo, ownerGroupName: group!.name,
-					styleEnabled: f.get('styleEnabled') === 'on', publicResults: f.get('publicResults') === 'on',
+					name,
+					location: location || null,
+					hqPhone: hqPhone || null,
+					ownerGroupNo: group!.groupNo,
+					ownerGroupName: group!.name,
+					styleEnabled: f.get('styleEnabled') === 'on',
+					publicResults: f.get('publicResults') === 'on',
 					stationResultsLive: f.get('stationResultsLive') === 'on',
 					...(comp.multiDay ? {} : { startDate: date, endDate: date })
 				})
@@ -92,9 +99,10 @@ export const actions = {
 		const errors: Errors = {};
 		if (opensOn && !ISO.test(opensOn)) errors.registrationOpensOn = 'Välj ett datum.';
 		if (closesOn && !ISO.test(closesOn)) errors.registrationClosesOn = 'Välj ett datum.';
-		if (opensOn && closesOn && !errors.registrationOpensOn && !errors.registrationClosesOn && opensOn > closesOn) errors.registrationClosesOn = 'Sista dagen kan inte vara före första dagen.';
+		if (opensOn && closesOn && !errors.registrationOpensOn && !errors.registrationClosesOn && opensOn > closesOn)
+			errors.registrationClosesOn = 'Sista dagen kan inte vara före första dagen.';
 		if (max && (!/^\d{1,4}$/.test(max) || Number(max) < 1)) errors.maxPatrols = 'Skriv ett antal (1–9999) eller lämna tomt.';
-		if (fee && (!/^\d{1,6}$/.test(fee))) errors.feePerPatrol = 'Skriv ett belopp i hela kronor (0–999999) eller lämna tomt.';
+		if (fee && !/^\d{1,6}$/.test(fee)) errors.feePerPatrol = 'Skriv ett belopp i hela kronor (0–999999) eller lämna tomt.';
 		if (infoText.length > 4000) errors.infoText = 'Högst 4000 tecken.';
 		if (confirmationText.length > 1000) errors.confirmationText = 'Högst 1000 tecken.';
 		if (Object.keys(errors).length) return fail(400, { section: 'registration', errors });
@@ -102,9 +110,15 @@ export const actions = {
 			await tx
 				.update(schema.competition)
 				.set({
-					registrationOpen: f.get('registrationOpen') === 'on', registrationOpensOn: opensOn || null, registrationClosesOn: closesOn || null,
-					maxPatrols: max ? Number(max) : null, feePerPatrol: fee ? Number(fee) : null, infoText: infoText || null, confirmationText: confirmationText || null,
-					followEnabled: f.get('followEnabled') === 'on', followShowScores: f.get('followShowScores') === 'on'
+					registrationOpen: f.get('registrationOpen') === 'on',
+					registrationOpensOn: opensOn || null,
+					registrationClosesOn: closesOn || null,
+					maxPatrols: max ? Number(max) : null,
+					feePerPatrol: fee ? Number(fee) : null,
+					infoText: infoText || null,
+					confirmationText: confirmationText || null,
+					followEnabled: f.get('followEnabled') === 'on',
+					followShowScores: f.get('followShowScores') === 'on'
 				})
 				.where(eq(schema.competition.id, comp.id));
 			await recordChange(tx, comp.id, 'competition', comp.id);
@@ -120,7 +134,9 @@ export const actions = {
 		const next = days.map((d) => ({
 			id: d.id,
 			name: String(f.get(`name_${d.id}`) ?? d.name).trim(),
-			prefix: String(f.get(`prefix_${d.id}`) ?? d.prefix).trim().toUpperCase(),
+			prefix: String(f.get(`prefix_${d.id}`) ?? d.prefix)
+				.trim()
+				.toUpperCase(),
 			date: String(f.get(`date_${d.id}`) ?? d.date).trim()
 		}));
 		const prefixes = new Set<string>();
@@ -138,7 +154,10 @@ export const actions = {
 		const sorted = [...next].sort((a, b) => a.date.localeCompare(b.date));
 		await db.transaction(async (tx) => {
 			for (const [i, d] of sorted.entries()) {
-				await tx.update(schema.day).set({ name: d.name, prefix: d.prefix, date: d.date, sort: i + 1 }).where(eq(schema.day.id, d.id));
+				await tx
+					.update(schema.day)
+					.set({ name: d.name, prefix: d.prefix, date: d.date, sort: i + 1 })
+					.where(eq(schema.day.id, d.id));
 			}
 			await tx
 				.update(schema.competition)
@@ -160,7 +179,8 @@ export const actions = {
 		const date = d.toISOString().slice(0, 10);
 		const name = WEEKDAYS[d.getUTCDay()];
 		const used = new Set(days.map((x) => x.prefix));
-		const prefix = [name[0], name.slice(0, 2), `${name[0]}${days.length + 1}`].map((p) => p.toUpperCase()).find((p) => !used.has(p) && /^[A-ZÅÄÖ]{1,3}$/.test(p)) ?? 'X';
+		const prefix =
+			[name[0], name.slice(0, 2), `${name[0]}${days.length + 1}`].map((p) => p.toUpperCase()).find((p) => !used.has(p) && /^[A-ZÅÄÖ]{1,3}$/.test(p)) ?? 'X';
 		await db.transaction(async (tx) => {
 			await tx.insert(schema.day).values({ competitionId: comp.id, date, name, prefix, sort: days.length + 1 });
 			await tx.update(schema.competition).set({ endDate: date }).where(eq(schema.competition.id, comp.id));
@@ -176,13 +196,23 @@ export const actions = {
 		const days = await db.select().from(schema.day).where(eq(schema.day.competitionId, comp.id)).orderBy(asc(schema.day.sort));
 		if (days.length <= 2) return fail(400, { section: 'days', errors: { days: 'En flerdagarstävling behöver minst två dagar.' } as Errors });
 		if (!days.some((d) => d.id === id)) return fail(404, { section: 'days', errors: { days: 'Dagen finns inte.' } as Errors });
-		const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(schema.station).where(eq(schema.station.dayId, id));
+		const [{ n }] = await db
+			.select({ n: sql<number>`count(*)::int` })
+			.from(schema.station)
+			.where(eq(schema.station.dayId, id));
 		if (n > 0) return fail(400, { section: 'days', errors: { days: `Dagen har ${n} kontroller. Flytta eller ta bort dem först.` } as Errors });
 		const rest = days.filter((d) => d.id !== id);
 		await db.transaction(async (tx) => {
 			await tx.delete(schema.day).where(eq(schema.day.id, id));
-			for (const [i, d] of rest.entries()) await tx.update(schema.day).set({ sort: i + 1 }).where(eq(schema.day.id, d.id));
-			await tx.update(schema.competition).set({ startDate: rest[0].date, endDate: rest.at(-1)!.date }).where(eq(schema.competition.id, comp.id));
+			for (const [i, d] of rest.entries())
+				await tx
+					.update(schema.day)
+					.set({ sort: i + 1 })
+					.where(eq(schema.day.id, d.id));
+			await tx
+				.update(schema.competition)
+				.set({ startDate: rest[0].date, endDate: rest.at(-1)!.date })
+				.where(eq(schema.competition.id, comp.id));
 			await recordChange(tx, comp.id, 'competition', comp.id);
 		});
 		return { section: 'days', ok: true };
@@ -222,9 +252,16 @@ export const actions = {
 		const { comp } = await requireCompetition(event, event.params.slug, [...EDIT]);
 		const f = await event.request.formData();
 		const id = String(f.get('id') ?? '');
-		const [t] = await db.select().from(schema.track).where(and(eq(schema.track.id, id), eq(schema.track.competitionId, comp.id))).limit(1);
+		const [t] = await db
+			.select()
+			.from(schema.track)
+			.where(and(eq(schema.track.id, id), eq(schema.track.competitionId, comp.id)))
+			.limit(1);
 		if (!t) return fail(404, { section: 'tracks', errors: { tracks: 'Klassen finns inte.' } as Errors });
-		const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(schema.patrol).where(eq(schema.patrol.trackId, id));
+		const [{ n }] = await db
+			.select({ n: sql<number>`count(*)::int` })
+			.from(schema.patrol)
+			.where(eq(schema.patrol.trackId, id));
 		if (n > 0) return fail(400, { section: 'tracks', errors: { tracks: `${t.name} har ${n} patruller. Flytta dem till en annan klass först.` } as Errors });
 		await db.transaction(async (tx) => {
 			await tx.delete(schema.track).where(eq(schema.track.id, id));
@@ -257,7 +294,8 @@ export const actions = {
 		if (!ASSET_KINDS.includes(kind)) return fail(400, { section: 'appearance', errors: { upload: 'Okänd bildtyp.' } as Errors });
 		const file = f.get('file');
 		if (!(file instanceof File) || file.size === 0) return fail(400, { section: 'appearance', errors: { [kind]: 'Välj en bild först.' } as Errors });
-		if (file.size > MAX_BYTES) return fail(400, { section: 'appearance', errors: { [kind]: 'Bilden är större än 2 MB. Förminska den och försök igen.' } as Errors });
+		if (file.size > MAX_BYTES)
+			return fail(400, { section: 'appearance', errors: { [kind]: 'Bilden är större än 2 MB. Förminska den och försök igen.' } as Errors });
 		const r = await uploadImage({ competitionId: comp.id }, kind, new Uint8Array(await file.arrayBuffer()), user.id, [comp.id]);
 		if (!r.ok) return fail(400, { section: 'appearance', errors: { [kind]: r.reason } as Errors });
 		return { section: 'appearance', ok: true, uploaded: kind };

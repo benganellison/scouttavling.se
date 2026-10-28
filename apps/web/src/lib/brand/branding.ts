@@ -1,6 +1,5 @@
 import { SCOUTBLA, parseHex, readableText } from './colors.ts';
 
-
 /** Per-event branding as sent to pages (no bytes, only URLs). */
 export interface BrandImage {
 	url: string;
@@ -76,7 +75,10 @@ export function resolveBranding(
 	const sources = { accent: accentSrc, coverFit: fitSrc } as Record<BrandPart, BrandSource>;
 	const PART: Record<AssetKind, BrandPart> = { event_logo: 'eventLogo', organiser_logo: 'organiserLogo', cover: 'cover' };
 	for (const kind of ['event_logo', 'organiser_logo', 'cover'] as AssetKind[]) {
-		const [a, src] = pick(edition.assets.find((x) => x.kind === kind), series?.assets.find((x) => x.kind === kind));
+		const [a, src] = pick(
+			edition.assets.find((x) => x.kind === kind),
+			series?.assets.find((x) => x.kind === kind)
+		);
 		if (a) assets.push(a);
 		sources[PART[kind]] = src;
 	}

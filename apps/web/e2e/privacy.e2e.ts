@@ -12,7 +12,10 @@ const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screensh
 function databaseUrl() {
 	if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
 	const env = readFileSync(new URL('../.env', import.meta.url), 'utf8');
-	return /^DATABASE_URL=(.*)$/m.exec(env)![1].trim().replace(/^["']|["']$/g, '');
+	return /^DATABASE_URL=(.*)$/m
+		.exec(env)![1]
+		.trim()
+		.replace(/^["']|["']$/g, '');
 }
 test.describe.configure({ mode: 'serial' });
 
@@ -28,7 +31,7 @@ test('1. the privacy notice is linked at registration and names the kår', async
 	await expect(page.getByRole('link', { name: 'Så hanterar vi personuppgifter' })).toHaveAttribute('href', '/personuppgifter');
 });
 
-test('2. an owner exports the edition\'s personal data; it is audited; others are refused', async ({ page, browser }) => {
+test("2. an owner exports the edition's personal data; it is audited; others are refused", async ({ page, browser }) => {
 	const sql = postgres(databaseUrl(), { max: 1 });
 	try {
 		await login(page, 'Bengt');
@@ -39,7 +42,8 @@ test('2. an owner exports the edition\'s personal data; it is audited; others ar
 		const p104 = data.patrols.find((p: { number: number }) => p.number === 104);
 		expect(p104.contact.phone).toBeTruthy();
 		expect(p104.members.length).toBeGreaterThan(0);
-		const [a] = await sql`select count(*)::int n from audit_log where action = 'competition.export_personal_data' and competition_id = (select id from competition where slug = 'gokopen-2027')`;
+		const [a] =
+			await sql`select count(*)::int n from audit_log where action = 'competition.export_personal_data' and competition_id = (select id from competition where slug = 'gokopen-2027')`;
 		expect(a.n).toBeGreaterThan(0);
 		// Anna is not a member of GökOpen 2027.
 		const other = await browser.newContext();

@@ -13,12 +13,82 @@ const FAKE_PNR = '20120314-9876';
 
 function scoutnetHtml(): string {
 	const pre = 'Anmälan till GökHajk 2027 - ';
-	const headers = ['Medlemsnummer', 'Förnamn', 'Efternamn', 'Personnummer', 'Anmäld', 'Kår', `${pre}Patrullnamn`, `${pre}Vilken klass`, `${pre}Scoutkår`, `${pre}Alla i patrullen`, 'Mobilnummer', 'E-post', 'Betalda skulder'];
+	const headers = [
+		'Medlemsnummer',
+		'Förnamn',
+		'Efternamn',
+		'Personnummer',
+		'Anmäld',
+		'Kår',
+		`${pre}Patrullnamn`,
+		`${pre}Vilken klass`,
+		`${pre}Scoutkår`,
+		`${pre}Alla i patrullen`,
+		'Mobilnummer',
+		'E-post',
+		'Betalda skulder'
+	];
 	const rows = [
-		['3900101', 'Kim', 'Testsson', FAKE_PNR, 'Ja', 'Påhittsby scoutkår', 'Tjädrarna', 'Utmanare', 'Påhittsby scoutkår', 'Alva Testberg, 2012<br>Bo Påhittsson<br>Cleo Exempel', '0701234567', 'kim@example.org', 'Betald'],
-		['3900102', 'Lo', 'Låtsas', '20110505-1111', 'Ja', 'Hittepå scoutkår', 'Järvarna', 'Ledare/Rover', 'Hittepå Scoutkår', 'Dan Fiktiv<br>Eva Uppdikt<br>+ en till?', '070-765 43 21', 'lo@example.org', '-'],
-		['3900103', 'Mo', 'Tänkt', '20100909-2222', 'Ja', 'Hittepå scoutkår', 'Ormvråkarna', 'Äventyrare', 'hittepå scoutkår', 'Fia Fantasi<br>Gus Gissad', '0739998877', 'mo@example.org', 'Betald'],
-		['3900104', 'No', 'Påhitt', '20100101-3333', 'Nej', 'Påhittsby scoutkår', 'Spökena', 'Utmanare', 'Påhittsby scoutkår', 'Ingen Alls', '0700000000', 'no@example.org', '-']
+		[
+			'3900101',
+			'Kim',
+			'Testsson',
+			FAKE_PNR,
+			'Ja',
+			'Påhittsby scoutkår',
+			'Tjädrarna',
+			'Utmanare',
+			'Påhittsby scoutkår',
+			'Alva Testberg, 2012<br>Bo Påhittsson<br>Cleo Exempel',
+			'0701234567',
+			'kim@example.org',
+			'Betald'
+		],
+		[
+			'3900102',
+			'Lo',
+			'Låtsas',
+			'20110505-1111',
+			'Ja',
+			'Hittepå scoutkår',
+			'Järvarna',
+			'Ledare/Rover',
+			'Hittepå Scoutkår',
+			'Dan Fiktiv<br>Eva Uppdikt<br>+ en till?',
+			'070-765 43 21',
+			'lo@example.org',
+			'-'
+		],
+		[
+			'3900103',
+			'Mo',
+			'Tänkt',
+			'20100909-2222',
+			'Ja',
+			'Hittepå scoutkår',
+			'Ormvråkarna',
+			'Äventyrare',
+			'hittepå scoutkår',
+			'Fia Fantasi<br>Gus Gissad',
+			'0739998877',
+			'mo@example.org',
+			'Betald'
+		],
+		[
+			'3900104',
+			'No',
+			'Påhitt',
+			'20100101-3333',
+			'Nej',
+			'Påhittsby scoutkår',
+			'Spökena',
+			'Utmanare',
+			'Påhittsby scoutkår',
+			'Ingen Alls',
+			'0700000000',
+			'no@example.org',
+			'-'
+		]
 	];
 	const tr = (cells: string[], tag: 'th' | 'td') => `<tr>${cells.map((c) => `<${tag}>${c}</${tag}>`).join('')}</tr>`;
 	return `<html><head><meta charset="utf-8"></head><body><table>${tr(headers, 'th')}${rows.map((r) => tr(r, 'td')).join('')}</table></body></html>`;
@@ -33,7 +103,9 @@ test('import, distribute, invite and print', async ({ page }) => {
 	// 2. Import a fake Scoutnet export
 	await page.goto(`/admin/${SLUG}/import`);
 	await page.waitForLoadState('networkidle'); // wait for hydration before using the file input
-	await page.locator('input[type=file]').setInputFiles({ name: 'hajkanmalan.xls', mimeType: 'application/vnd.ms-excel', buffer: Buffer.from(scoutnetHtml(), 'utf-8') });
+	await page
+		.locator('input[type=file]')
+		.setInputFiles({ name: 'hajkanmalan.xls', mimeType: 'application/vnd.ms-excel', buffer: Buffer.from(scoutnetHtml(), 'utf-8') });
 
 	// 3. Sensitive column is listed under "Läses aldrig in"
 	const never = page.locator('section.never');

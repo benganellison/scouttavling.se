@@ -24,10 +24,20 @@
 					<span>{l.patrols.length} patruller startar här</span>
 				</header>
 				<table>
-					<thead><tr><th scope="col">Nr</th><th scope="col">Patrull</th><th scope="col">Klass</th><th scope="col">Kår</th><th scope="col">Kontakt</th><th scope="col">Startat</th></tr></thead>
+					<thead
+						><tr
+							><th scope="col">Nr</th><th scope="col">Patrull</th><th scope="col">Klass</th><th scope="col">Kår</th><th scope="col">Kontakt</th><th scope="col"
+								>Startat</th
+							></tr
+						></thead
+					>
 					<tbody>
 						{#each l.patrols as p (p.nr)}
-							<tr><td class="nr">{p.nr}</td><td class="pn">{p.name}</td><td>{p.track}</td><td>{p.troop}</td><td class="ct">{p.contact}</td><td><span class="box"></span></td></tr>
+							<tr
+								><td class="nr">{p.nr}</td><td class="pn">{p.name}</td><td>{p.track}</td><td>{p.troop}</td><td class="ct">{p.contact}</td><td
+									><span class="box"></span></td
+								></tr
+							>
 						{/each}
 					</tbody>
 				</table>

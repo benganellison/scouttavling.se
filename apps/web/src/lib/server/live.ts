@@ -90,13 +90,20 @@ export function computeResults(input: ResultsInput): TrackResults[] {
 			.map((st) => {
 				const defs = (itemsByStation.get(st.id) ?? []).map((it) => def.get(it.id)!);
 				return {
-					id: st.id, name: st.name, sort: st.sort, max: defs.reduce((n, d) => n + maxPoints(d), 0),
+					id: st.id,
+					name: st.name,
+					sort: st.sort,
+					max: defs.reduce((n, d) => n + maxPoints(d), 0),
 					styleMax: defs.reduce((n, d) => n + (d.styleEnabled ? d.styleMax : 0), 0)
 				};
 			})
 			.filter((c) => c.max > 0 || c.styleMax > 0);
 		const ranked = rank(
-			patrols.map((p) => ({ id: p.id, number: p.number, scores: relevant(p.id).map((s) => ({ itemId: s.itemId, points: s.points, stylePoints: s.stylePoints })) })),
+			patrols.map((p) => ({
+				id: p.id,
+				number: p.number,
+				scores: relevant(p.id).map((s) => ({ itemId: s.itemId, points: s.points, stylePoints: s.stylePoints }))
+			})),
 			items
 		);
 		const rows: ResultRow[] = ranked.map((r, i) => {
@@ -109,9 +116,20 @@ export function computeResults(input: ResultsInput): TrackResults[] {
 				return at.length ? { points: at.reduce((n, s) => n + s.points, 0), stylePoints: at.reduce((n, s) => n + style(s), 0) } : null;
 			});
 			return {
-				patrolId: r.id, number: r.number, name: p.name, troop: p.troop, place: r.place, total: r.total,
-				scorePoints: r.scorePoints, stylePoints: r.stylePoints, tied: r.tied, decidedBy: r.decidedBy,
-				tieNote: tieNote(ranked, i), stationsDone: done.size, stationsTotal: stations.length, perStation
+				patrolId: r.id,
+				number: r.number,
+				name: p.name,
+				troop: p.troop,
+				place: r.place,
+				total: r.total,
+				scorePoints: r.scorePoints,
+				stylePoints: r.stylePoints,
+				tied: r.tied,
+				decidedBy: r.decidedBy,
+				tieNote: tieNote(ranked, i),
+				stationsDone: done.size,
+				stationsTotal: stations.length,
+				perStation
 			};
 		});
 		out.push({ trackId: track.id, name: track.name, stations: columns, rows });
@@ -126,8 +144,17 @@ export function publicTracks(tracks: TrackResults[], withStations: boolean) {
 		name: t.name,
 		stations: withStations ? t.stations.map((s) => ({ name: s.name, max: s.max, styleMax: s.styleMax })) : [],
 		rows: t.rows.map((r) => ({
-			number: r.number, name: r.name, troop: r.troop, place: r.place, total: r.total, scorePoints: r.scorePoints,
-			stylePoints: r.stylePoints, tied: r.tied, tieNote: r.tieNote, stationsDone: r.stationsDone, stationsTotal: r.stationsTotal,
+			number: r.number,
+			name: r.name,
+			troop: r.troop,
+			place: r.place,
+			total: r.total,
+			scorePoints: r.scorePoints,
+			stylePoints: r.stylePoints,
+			tied: r.tied,
+			tieNote: r.tieNote,
+			stationsDone: r.stationsDone,
+			stationsTotal: r.stationsTotal,
 			perStation: withStations ? r.perStation : []
 		}))
 	}));
@@ -174,7 +201,10 @@ const RESULTS_CACHE_MAX = 50;
 
 /** Latest change_log seq for a competition (0 when nothing has been logged). */
 export async function latestSeq(competitionId: string): Promise<number> {
-	const [row] = await db.select({ seq: max(schema.changeLog.seq) }).from(schema.changeLog).where(eq(schema.changeLog.competitionId, competitionId));
+	const [row] = await db
+		.select({ seq: max(schema.changeLog.seq) })
+		.from(schema.changeLog)
+		.where(eq(schema.changeLog.competitionId, competitionId));
 	return Number(row?.seq ?? 0);
 }
 
@@ -183,7 +213,10 @@ export async function latestSeq(competitionId: string): Promise<number> {
  * every `maxStaleMs` (10 s for public pages, 0 for organiser pages). Entries
  * older than a minute are refreshed anyway (covers writes outside change_log).
  */
-export async function getResults(comp: Pick<CompRow, 'id' | 'styleEnabled'> & { status?: string }, maxStaleMs = 0): Promise<{ seq: number; tracks: TrackResults[] }> {
+export async function getResults(
+	comp: Pick<CompRow, 'id' | 'styleEnabled'> & { status?: string },
+	maxStaleMs = 0
+): Promise<{ seq: number; tracks: TrackResults[] }> {
 	const seq = await latestSeq(comp.id);
 	const hit = resultsCache.get(comp.id);
 	const age = hit ? Date.now() - hit.at : Infinity;
@@ -254,7 +287,14 @@ export async function loadResultsInput(comp: Pick<CompRow, 'id' | 'styleEnabled'
 			.innerJoin(schema.station, eq(schema.station.id, schema.scoreItem.stationId))
 			.where(eq(schema.station.competitionId, comp.id)),
 		db
-			.select({ id: schema.patrol.id, number: schema.patrol.number, name: schema.patrol.name, troop: schema.patrol.troop, trackId: schema.patrol.trackId, status: schema.patrol.status })
+			.select({
+				id: schema.patrol.id,
+				number: schema.patrol.number,
+				name: schema.patrol.name,
+				troop: schema.patrol.troop,
+				trackId: schema.patrol.trackId,
+				status: schema.patrol.status
+			})
 			.from(schema.patrol)
 			.where(eq(schema.patrol.competitionId, comp.id)),
 		db
@@ -265,7 +305,13 @@ export async function loadResultsInput(comp: Pick<CompRow, 'id' | 'styleEnabled'
 	return {
 		styleEnabled: comp.styleEnabled,
 		tracks,
-		stations: stations.map((s) => ({ id: s.id, name: s.name, sort: s.sort, allTracks: s.allTracks, trackIds: links.filter((l) => l.stationId === s.id).map((l) => l.trackId) })),
+		stations: stations.map((s) => ({
+			id: s.id,
+			name: s.name,
+			sort: s.sort,
+			allTracks: s.allTracks,
+			trackIds: links.filter((l) => l.stationId === s.id).map((l) => l.trackId)
+		})),
 		items: items.map((r) => r.item),
 		patrols,
 		scores
@@ -321,11 +367,19 @@ export async function loadStations(competitionId: string): Promise<StationInfo[]
 		const its = items.filter((r) => r.item.stationId === s.id).map((r) => r.item);
 		const finish = s.role === 'finish' || its.some((i) => i.mode === 'AUTO_ON_SCAN');
 		return {
-			id: s.id, code: codes.get(s.id) ?? '?', dayId: s.dayId, name: s.name, sort: s.sort, allTracks: s.allTracks,
-			trackIds: links.filter((l) => l.stationId === s.id).map((l) => l.trackId), startable: s.startable, role: s.role,
+			id: s.id,
+			code: codes.get(s.id) ?? '?',
+			dayId: s.dayId,
+			name: s.name,
+			sort: s.sort,
+			allTracks: s.allTracks,
+			trackIds: links.filter((l) => l.stationId === s.id).map((l) => l.trackId),
+			startable: s.startable,
+			role: s.role,
 			finishSets: (finish ? (!lastDay || s.dayId === lastDay.id ? 'finished' : 'camp') : null) as StationInfo['finishSets'],
 			checkpoint: its.length > 0 && its.every((i) => i.mode === 'CHECKIN' || i.mode === 'AUTO_ON_SCAN'),
-			contactPhone: s.contactPhone, items: its
+			contactPhone: s.contactPhone,
+			items: its
 		};
 	});
 }
@@ -378,8 +432,11 @@ export function unseenAlarms(
 		const last = lastByPatrol.get(p.id);
 		if (!last || now - last.getTime() < UNSEEN_ALARM_MS) continue;
 		out.push({
-			key: `unseen:${p.id}:${last.getTime()}`, kind: 'unseen', title: `${p.number} ${p.name} inte sedd på ${formatDuration(minutesSince(last, now))}`,
-			detail: `Senast rapporterad ${formatTime(last)}`, href: `/admin/${slug}/patrol/${p.number}`
+			key: `unseen:${p.id}:${last.getTime()}`,
+			kind: 'unseen',
+			title: `${p.number} ${p.name} inte sedd på ${formatDuration(minutesSince(last, now))}`,
+			detail: `Senast rapporterad ${formatTime(last)}`,
+			href: `/admin/${slug}/patrol/${p.number}`
 		});
 	}
 	return out;
@@ -397,7 +454,10 @@ export async function loadDashboard(comp: CompRow) {
 			.select({ patrolId: schema.score.patrolId, itemId: schema.score.itemId, updatedAt: schema.score.updatedAt })
 			.from(schema.score)
 			.where(and(eq(schema.score.competitionId, comp.id), eq(schema.score.state, 'active'))),
-		db.select().from(schema.device).where(and(eq(schema.device.competitionId, comp.id), isNull(schema.device.revokedAt))),
+		db
+			.select()
+			.from(schema.device)
+			.where(and(eq(schema.device.competitionId, comp.id), isNull(schema.device.revokedAt))),
 		db
 			.select({ patrolId: schema.statusEvent.patrolId, at: max(schema.statusEvent.at) })
 			.from(schema.statusEvent)
@@ -440,8 +500,17 @@ export async function loadDashboard(comp: CompRow) {
 		const state: 'online' | 'stale' | 'offline' | 'none' =
 			devs.length === 0 ? 'none' : offMs === null ? 'offline' : offMs < ONLINE_MS ? 'online' : offMs < OFFLINE_ALARM_MS ? 'stale' : 'offline';
 		return {
-			id: st.id, code: st.code, name: st.name, checkpoint: st.checkpoint, finishSets: st.finishSets, expected, done, devices: devs.length, state,
-			lastSeenAt: last, offlineMinutes: last && state !== 'online' ? minutesSince(last, now) : null
+			id: st.id,
+			code: st.code,
+			name: st.name,
+			checkpoint: st.checkpoint,
+			finishSets: st.finishSets,
+			expected,
+			done,
+			devices: devs.length,
+			state,
+			lastSeenAt: last,
+			offlineMinutes: last && state !== 'online' ? minutesSince(last, now) : null
 		};
 	});
 
@@ -459,32 +528,53 @@ export async function loadDashboard(comp: CompRow) {
 	alarms.push(...unseenAlarms(patrols, lastByPatrol, now, comp.slug));
 	for (const t of tiles.filter((t) => t.state === 'offline')) {
 		alarms.push({
-			key: `offline:${t.id}:${t.lastSeenAt?.getTime() ?? 0}`, kind: 'offline', title: `${t.code} ${t.name} offline`,
+			key: `offline:${t.id}:${t.lastSeenAt?.getTime() ?? 0}`,
+			kind: 'offline',
+			title: `${t.code} ${t.name} offline`,
 			detail: t.lastSeenAt ? `Ingen kontakt sedan ${formatTime(t.lastSeenAt)} (${formatDuration(t.offlineMinutes ?? 0)})` : 'Enheten har aldrig synkat',
 			href: null
 		});
 	}
 	if (conflicts.length > 0) {
 		alarms.push({
-			key: `conflict:${conflicts[0].id}:${conflicts.length}`, kind: 'conflict',
+			key: `conflict:${conflicts[0].id}:${conflicts.length}`,
+			kind: 'conflict',
 			title: conflicts.length === 1 ? '1 öppen poängkonflikt' : `${conflicts.length} öppna poängkonflikter`,
-			detail: 'Två rapporter skiljer sig åt och behöver ett beslut', href: `/admin/${comp.slug}/conflicts`
+			detail: 'Två rapporter skiljer sig åt och behöver ett beslut',
+			href: `/admin/${comp.slug}/conflicts`
 		});
 	}
 
-	return { kpi, tiles, alarms: alarms.filter((a) => !ack.has(a.key)), acknowledged: alarms.filter((a) => ack.has(a.key)).length, feed, seq: await latestSeq(comp.id) };
+	return {
+		kpi,
+		tiles,
+		alarms: alarms.filter((a) => !ack.has(a.key)),
+		acknowledged: alarms.filter((a) => ack.has(a.key)).length,
+		feed,
+		seq: await latestSeq(comp.id)
+	};
 }
 
 /** Latest score reports (revisions), newest first. */
 export async function loadFeed(competitionId: string, limit: number) {
 	const stations = await loadStations(competitionId);
-	const codeOf = new Map(stations.flatMap((s) => s.items.map((i) => [i.id, { code: s.code, station: s.name, item: i.name, multi: s.items.length > 1 }] as const)));
+	const codeOf = new Map(
+		stations.flatMap((s) => s.items.map((i) => [i.id, { code: s.code, station: s.name, item: i.name, multi: s.items.length > 1 }] as const))
+	);
 	const rows = await db
 		.select({
-			id: schema.scoreRevision.id, at: schema.scoreRevision.at, version: schema.scoreRevision.version, points: schema.scoreRevision.points,
-			stylePoints: schema.scoreRevision.stylePoints, state: schema.scoreRevision.state, origin: schema.scoreRevision.origin,
-			itemId: schema.score.itemId, patrolNumber: schema.patrol.number, patrolName: schema.patrol.name,
-			deviceName: schema.device.displayName, userName: schema.appUser.name
+			id: schema.scoreRevision.id,
+			at: schema.scoreRevision.at,
+			version: schema.scoreRevision.version,
+			points: schema.scoreRevision.points,
+			stylePoints: schema.scoreRevision.stylePoints,
+			state: schema.scoreRevision.state,
+			origin: schema.scoreRevision.origin,
+			itemId: schema.score.itemId,
+			patrolNumber: schema.patrol.number,
+			patrolName: schema.patrol.name,
+			deviceName: schema.device.displayName,
+			userName: schema.appUser.name
 		})
 		.from(schema.scoreRevision)
 		.innerJoin(schema.score, eq(schema.score.id, schema.scoreRevision.scoreId))
@@ -497,9 +587,19 @@ export async function loadFeed(competitionId: string, limit: number) {
 	return rows.map((r) => {
 		const c = codeOf.get(r.itemId);
 		return {
-			id: r.id, at: r.at, time: formatTime(r.at), code: c?.code ?? '?', what: c ? (c.multi ? `${c.station} · ${c.item}` : c.station) : '',
-			patrol: `${r.patrolNumber} ${r.patrolName}`, patrolNumber: r.patrolNumber, points: r.points, stylePoints: r.stylePoints,
-			state: r.state, edited: r.version > 1, origin: r.origin, by: r.deviceName ?? (r.userName ? firstName(r.userName) : r.origin === 'paper' ? 'papper' : 'okänd')
+			id: r.id,
+			at: r.at,
+			time: formatTime(r.at),
+			code: c?.code ?? '?',
+			what: c ? (c.multi ? `${c.station} · ${c.item}` : c.station) : '',
+			patrol: `${r.patrolNumber} ${r.patrolName}`,
+			patrolNumber: r.patrolNumber,
+			points: r.points,
+			stylePoints: r.stylePoints,
+			state: r.state,
+			edited: r.version > 1,
+			origin: r.origin,
+			by: r.deviceName ?? (r.userName ? firstName(r.userName) : r.origin === 'paper' ? 'papper' : 'okänd')
 		};
 	});
 }
@@ -726,11 +826,13 @@ export function deviceInAudience(d: { role: string; stationIds: string[] }, audi
 }
 
 export async function devicesFor(competitionId: string) {
-	return db.select().from(schema.device).where(and(eq(schema.device.competitionId, competitionId), isNull(schema.device.revokedAt)));
+	return db
+		.select()
+		.from(schema.device)
+		.where(and(eq(schema.device.competitionId, competitionId), isNull(schema.device.revokedAt)));
 }
 
 export async function readsFor(messageIds: string[]) {
 	if (messageIds.length === 0) return [];
 	return db.select().from(schema.messageRead).where(inArray(schema.messageRead.messageId, messageIds));
 }
-

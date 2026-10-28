@@ -7,17 +7,7 @@
 export type Table = string[][];
 
 export type TargetField =
-	| 'patrolName'
-	| 'trackText'
-	| 'troop'
-	| 'contactName'
-	| 'contactPhone'
-	| 'contactEmail'
-	| 'contactMemberNo'
-	| 'members'
-	| 'registered'
-	| 'paid'
-	| 'ignore';
+	'patrolName' | 'trackText' | 'troop' | 'contactName' | 'contactPhone' | 'contactEmail' | 'contactMemberNo' | 'members' | 'registered' | 'paid' | 'ignore';
 
 export const FIELD_LABELS: Record<TargetField, string> = {
 	patrolName: 'Patrullnamn',
@@ -35,7 +25,8 @@ export const FIELD_LABELS: Record<TargetField, string> = {
 
 /** Columns that must never be read in, whatever the organiser picks. */
 // Anywhere in the column name: health, diet, needs, age, photo consent, guardians, free-text "övrigt".
-const DENY = /^personnummer|^födelse|^kön$|(?<!e-?post)adress|^postnummer|^postort|anhörig|registerutdrag|belastning|^trygga möten|allergi|kost|sjukdom|medicin|hälsa|ålder|särskild|behov|foto|bild|övrigt|kommentar|meddelande|vårdnadshavare|förälder|målsman/i;
+const DENY =
+	/^personnummer|^födelse|^kön$|(?<!e-?post)adress|^postnummer|^postort|anhörig|registerutdrag|belastning|^trygga möten|allergi|kost|sjukdom|medicin|hälsa|ålder|särskild|behov|foto|bild|övrigt|kommentar|meddelande|vårdnadshavare|förälder|målsman/i;
 
 /** Tested on the column's own name (the part after "Anmälan till X - "), so a
  *  free-text member column that merely mentions "födelseår" is still mappable;
@@ -87,14 +78,19 @@ export function parseCsv(text: string): Table {
 	for (let i = 0; i < text.length; i++) {
 		const c = text[i];
 		if (q) {
-			if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
-			else if (c === '"') q = false;
+			if (c === '"' && text[i + 1] === '"') {
+				cell += '"';
+				i++;
+			} else if (c === '"') q = false;
 			else cell += c;
 		} else if (c === '"') q = true;
-		else if (c === sep) { row.push(cell.trim()); cell = ''; }
-		else if (c === '\n' || c === '\r') {
+		else if (c === sep) {
+			row.push(cell.trim());
+			cell = '';
+		} else if (c === '\n' || c === '\r') {
 			if (c === '\r' && text[i + 1] === '\n') i++;
-			row.push(cell.trim()); cell = '';
+			row.push(cell.trim());
+			cell = '';
 			if (row.some((x) => x !== '')) rows.push(row);
 			row = [];
 		} else cell += c;
@@ -146,14 +142,21 @@ export function guessColumns(table: Table): ColumnGuess[] {
 			// Prefer the event-form answers ("Anmälan till X - Scoutkår") over profile columns ("Kår").
 			const short = header.replace(/^.* [-–] /, '');
 			for (const [re, f] of RULES) {
-				if ((re.test(short) || re.test(header)) && !taken.has(f)) { field = f; break; }
+				if ((re.test(short) || re.test(header)) && !taken.has(f)) {
+					field = f;
+					break;
+				}
 			}
 			if (field === 'troop' && header === 'Kår' && headers.some((h) => / [-–] scoutkår$/i.test(h))) field = 'ignore';
 			if (field === 'contactPhone' && header === 'Telefonnummer' && headers.some((h) => /mobilnummer/i.test(h))) field = 'ignore';
 			if (field === 'contactEmail' && header === 'E-post' && headers.some((h) => /epostadress/i.test(h))) field = 'ignore';
 			if (field !== 'ignore') taken.add(field);
 		}
-		const example = table.slice(1).map((r) => r[index]).find((v) => v && v !== '-') ?? '';
+		const example =
+			table
+				.slice(1)
+				.map((r) => r[index])
+				.find((v) => v && v !== '-') ?? '';
 		return { index, header, field, sensitive, example: sensitive ? '' : example };
 	});
 }
@@ -172,7 +175,10 @@ export function normalizePhone(raw: string): string {
 
 /** Key used to detect the same kår spelled differently ("Porthälla Scoutkår" / "porthälla scoutkår"). */
 export function troopKey(name: string): string {
-	return name.toLowerCase().replace(/scoutkår|scoutkåren|kår/g, '').replace(/[^a-zåäö0-9]/g, '');
+	return name
+		.toLowerCase()
+		.replace(/scoutkår|scoutkåren|kår/g, '')
+		.replace(/[^a-zåäö0-9]/g, '');
 }
 
 export interface ParsedMember {
@@ -197,7 +203,8 @@ const DATE_LIKE = [
 	/\(?\b\d{1,2}\s*(?:år|åå|years?)\b\)?/gi, // 12 år, (12 år)
 	/\bf(?:ödd|\.)\s*/gi // "f." / "född" left over
 ];
-const NOT_A_TROOP = /\d|allergi|kost|laktos|gluten|vegan|vegetar|nöt|jordnöt|diabet|astma|epileps|medicin|sjuk|adhd|autism|diagnos|behov|gata|gatan|vägen|väg\b|box\b/i;
+const NOT_A_TROOP =
+	/\d|allergi|kost|laktos|gluten|vegan|vegetar|nöt|jordnöt|diabet|astma|epileps|medicin|sjuk|adhd|autism|diagnos|behov|gata|gatan|vägen|väg\b|box\b/i;
 
 export function parseMembers(text: string): ParsedMember[] {
 	return text
@@ -208,7 +215,10 @@ export function parseMembers(text: string): ParsedMember[] {
 			let clean = line;
 			for (const re of DATE_LIKE) clean = clean.replace(re, ' ');
 			clean = clean.replace(/[()]/g, ' ').replace(/\s{2,}/g, ' ');
-			const parts = clean.split(/[,;]/).map((p) => p.trim()).filter(Boolean);
+			const parts = clean
+				.split(/[,;]/)
+				.map((p) => p.trim())
+				.filter(Boolean);
 			const nameParts = (parts[0] ?? '').split(/\s+/).filter((w) => w && !/\d/.test(w));
 			const rest = parts.slice(1);
 			const troopParts = rest.filter((p) => !NOT_A_TROOP.test(p));
@@ -260,7 +270,10 @@ export function buildImport(table: Table, columns: ColumnGuess[], knownTracks: s
 	let skipped = 0;
 	let phones = 0;
 	for (const r of table.slice(1)) {
-		if (get(r, 'registered').toLowerCase() === 'nej') { skipped++; continue; }
+		if (get(r, 'registered').toLowerCase() === 'nej') {
+			skipped++;
+			continue;
+		}
 		const rawPhone = get(r, 'contactPhone');
 		const phone = normalizePhone(rawPhone);
 		if (rawPhone && phone !== rawPhone) phones++;
@@ -286,10 +299,12 @@ export function buildImport(table: Table, columns: ColumnGuess[], knownTracks: s
 	const byKey = new Map<string, Set<string>>();
 	rows.forEach((r) => r.troop && (byKey.get(troopKey(r.troop)) ?? byKey.set(troopKey(r.troop), new Set()).get(troopKey(r.troop))!).add(r.troop));
 	for (const variants of byKey.values()) {
-		if (variants.size > 1) issues.push({ kind: 'troopSpelling', message: `Samma kår, olika stavning: ${[...variants].map((v) => `”${v}”`).join(' och ')}`, values: [...variants] });
+		if (variants.size > 1)
+			issues.push({ kind: 'troopSpelling', message: `Samma kår, olika stavning: ${[...variants].map((v) => `”${v}”`).join(' och ')}`, values: [...variants] });
 	}
 	const unclear = rows.filter((r) => r.members.some((m) => m.uncertain)).map((r) => r.patrolName);
-	if (unclear.length) issues.push({ kind: 'members', message: `${unclear.length} ${unclear.length === 1 ? 'patrull' : 'patruller'} har oklar medlemslista`, values: unclear });
+	if (unclear.length)
+		issues.push({ kind: 'members', message: `${unclear.length} ${unclear.length === 1 ? 'patrull' : 'patruller'} har oklar medlemslista`, values: unclear });
 	const noName = rows.filter((r) => !r.patrolName).length;
 	if (noName) issues.push({ kind: 'missingName', message: `${noName} rader saknar patrullnamn`, values: [] });
 	if (skipped) issues.push({ kind: 'skipped', message: `${skipped} rad${skipped === 1 ? '' : 'er'} hoppas över (Anmäld = Nej)`, values: [] });

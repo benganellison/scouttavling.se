@@ -18,24 +18,42 @@ const st = new Map(stations.map((s) => [s.id, s]));
 const of = (pid: string) => scores.filter((s) => s[0] === pid);
 
 const items: ScoreItemDef[] = stations.map((s) => ({
-	id: s.id, name: s.id, mode: s.waypoint ? 'CHECKIN' : 'RANGE', min: s.min, max: s.max,
-	styleEnabled: s.styleMax > 0, styleMin: s.styleMin, styleMax: s.styleMax, countsForTiebreak: !s.waypoint
+	id: s.id,
+	name: s.id,
+	mode: s.waypoint ? 'CHECKIN' : 'RANGE',
+	min: s.min,
+	max: s.max,
+	styleEnabled: s.styleMax > 0,
+	styleMin: s.styleMin,
+	styleMax: s.styleMax,
+	countsForTiebreak: !s.waypoint
 }));
 
 const total = (p: string) => of(p).reduce((a, s) => a + s[2] + s[3], 0);
-const gokapp = gokappComparator(scores.map(([patrolId, stationId, points, style]) => ({ patrolId, stationId, points, style })), st);
+const gokapp = gokappComparator(
+	scores.map(([patrolId, stationId, points, style]) => ({ patrolId, stationId, points, style })),
+	st
+);
 
 describe('gokapp parity on Hajk-DM 2023 (anonymised real data)', () => {
 	it('every stored score is valid under the new score rules', () => {
 		for (const [, sid, pts, style] of scores) {
-			expect(() => evaluate(items.find((i) => i.id === sid)!, { value: pts, style })).not.toThrow();
+			expect(() =>
+				evaluate(
+					items.find((i) => i.id === sid)!,
+					{ value: pts, style }
+				)
+			).not.toThrow();
 		}
 	});
 
 	for (const track of fx.tracks as { id: string; name: string }[]) {
 		it(`ranks class ${track.name} exactly like gokapp`, () => {
 			const ids: string[] = fx.patrols.filter((p: { track: string }) => p.track === track.id).map((p: { id: string }) => p.id);
-			const ours = rank(ids.map((id) => ({ id, number: Number(id), scores: of(id).map(([, itemId, p, s]) => ({ itemId, points: p, stylePoints: s })) })), items);
+			const ours = rank(
+				ids.map((id) => ({ id, number: Number(id), scores: of(id).map(([, itemId, p, s]) => ({ itemId, points: p, stylePoints: s })) })),
+				items
+			);
 			const place = new Map(ours.map((r) => [r.id, r.place]));
 			for (const r of ours) expect(r.total, `total for ${r.id}`).toBe(total(r.id));
 			const order = [...ids].sort(gokapp);

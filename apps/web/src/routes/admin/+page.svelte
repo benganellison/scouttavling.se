@@ -19,7 +19,9 @@
 			<h1>Mina tävlingar</h1>
 		</div>
 		<a class="btn btn-accent" href="/admin/new">
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"
+				><path d="M12 5v14M5 12h14" /></svg
+			>
 			Ny tävling
 		</a>
 	</header>
@@ -33,33 +35,33 @@
 		</section>
 	{:else}
 		{#each data.groups as g (g.series?.slug ?? '')}
-		<section class="group" aria-labelledby="g-{g.series?.slug ?? 'single'}" data-testid="group-{g.series?.slug ?? 'single'}">
-			<div class="g-head">
-				<h2 id="g-{g.series?.slug ?? 'single'}">{g.series ? g.series.name : 'Enskilda tävlingar'}</h2>
-				{#if g.series}
-					<span class="muted g-count">{g.competitions.length} år</span>
-					<a class="g-link" href="/admin/series/{g.series.slug}">Hantera serien</a>
-				{/if}
-			</div>
-		<ul class="grid" aria-label={g.series ? `${g.series.name}, alla år` : 'Enskilda tävlingar'}>
-			{#each g.competitions as c (c.slug)}
-				<li>
-					<a class="comp card" href="/admin/{c.slug}">
-						<div class="top">
-							{#if c.anonymised}<span class="pill arch">Arkiverad</span>{:else}<StatusPill status={c.status} />{/if}
-							<span class="kind">{c.multiDay ? 'Flera dagar' : 'En dag'}</span>
-						</div>
-						<h2>{c.name}</h2>
-						<span class="meta">{dateRange(c.startDate, c.endDate)}{c.location ? ` · ${c.location}` : ''}</span>
-						<div class="bottom">
-							<span class="num"><strong>{c.patrols}</strong> {c.patrols === 1 ? 'patrull' : 'patruller'}</span>
-							{#if c.owner}<span class="owner">{c.owner}</span>{/if}
-						</div>
-					</a>
-				</li>
-			{/each}
-		</ul>
-		</section>
+			<section class="group" aria-labelledby="g-{g.series?.slug ?? 'single'}" data-testid="group-{g.series?.slug ?? 'single'}">
+				<div class="g-head">
+					<h2 id="g-{g.series?.slug ?? 'single'}">{g.series ? g.series.name : 'Enskilda tävlingar'}</h2>
+					{#if g.series}
+						<span class="muted g-count">{g.competitions.length} år</span>
+						<a class="g-link" href="/admin/series/{g.series.slug}">Hantera serien</a>
+					{/if}
+				</div>
+				<ul class="grid" aria-label={g.series ? `${g.series.name}, alla år` : 'Enskilda tävlingar'}>
+					{#each g.competitions as c (c.slug)}
+						<li>
+							<a class="comp card" href="/admin/{c.slug}">
+								<div class="top">
+									{#if c.anonymised}<span class="pill arch">Arkiverad</span>{:else}<StatusPill status={c.status} />{/if}
+									<span class="kind">{c.multiDay ? 'Flera dagar' : 'En dag'}</span>
+								</div>
+								<h2>{c.name}</h2>
+								<span class="meta">{dateRange(c.startDate, c.endDate)}{c.location ? ` · ${c.location}` : ''}</span>
+								<div class="bottom">
+									<span class="num"><strong>{c.patrols}</strong> {c.patrols === 1 ? 'patrull' : 'patruller'}</span>
+									{#if c.owner}<span class="owner">{c.owner}</span>{/if}
+								</div>
+							</a>
+						</li>
+					{/each}
+				</ul>
+			</section>
 		{/each}
 	{/if}
 </div>
@@ -142,7 +144,9 @@
 		text-decoration: none;
 		color: var(--ink);
 		padding: 20px 22px;
-		transition: border-color 0.15s, box-shadow 0.15s;
+		transition:
+			border-color 0.15s,
+			box-shadow 0.15s;
 	}
 	.comp:hover {
 		border-color: var(--brand);

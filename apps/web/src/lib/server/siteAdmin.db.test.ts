@@ -37,7 +37,12 @@ describe.skipIf(!ok)('owners, site admin and audit (database)', async () => {
 	const scope = () => ({ kind: 'competition' as const, id: compId });
 	const user = (k: string) => ({ kind: 'user' as const, userId: u[k].id });
 	const owners = async () =>
-		(await db.select().from(schema.competitionMember).where(and(eq(schema.competitionMember.competitionId, compId), eq(schema.competitionMember.role, 'owner')))).length;
+		(
+			await db
+				.select()
+				.from(schema.competitionMember)
+				.where(and(eq(schema.competitionMember.competitionId, compId), eq(schema.competitionMember.role, 'owner')))
+		).length;
 
 	async function cleanup() {
 		await db.delete(schema.competition).where(eq(schema.competition.slug, SLUG));
@@ -48,10 +53,16 @@ describe.skipIf(!ok)('owners, site admin and audit (database)', async () => {
 	beforeAll(async () => {
 		await cleanup();
 		for (const [i, k] of ['anna', 'bo', 'cia', 'admin'].entries()) {
-			const [row] = await db.insert(schema.appUser).values({ memberNo: NOS[i], name: `Test ${k}`, groups: [] }).returning();
+			const [row] = await db
+				.insert(schema.appUser)
+				.values({ memberNo: NOS[i], name: `Test ${k}`, groups: [] })
+				.returning();
 			u[k] = { id: row.id, name: row.name };
 		}
-		const [s] = await db.insert(schema.series).values({ slug: SLUG + '-serie', name: 'Testserie' }).returning();
+		const [s] = await db
+			.insert(schema.series)
+			.values({ slug: SLUG + '-serie', name: 'Testserie' })
+			.returning();
 		seriesId = s.id;
 		const [c] = await db
 			.insert(schema.competition)
@@ -83,7 +94,11 @@ describe.skipIf(!ok)('owners, site admin and audit (database)', async () => {
 		await own.changeMembers(scope(), user('bo'), [{ op: 'set', userId: u.cia.id, role: 'organiser' }]);
 		await own.transferOwnership(scope(), user('anna'), u.bo.id);
 		const list = await own.listMembers(scope());
-		expect(list.map((m) => [m.name, m.role])).toEqual([['Test bo', 'owner'], ['Test anna', 'organiser'], ['Test cia', 'organiser']]);
+		expect(list.map((m) => [m.name, m.role])).toEqual([
+			['Test bo', 'owner'],
+			['Test anna', 'organiser'],
+			['Test cia', 'organiser']
+		]);
 		const rows = await sql`select action, actor_user_id from audit_log where competition_id = ${compId} order by at`;
 		expect(rows.map((r) => r.action)).toEqual(['member.add', 'owner.transfer']);
 	});
@@ -118,7 +133,9 @@ describe.skipIf(!ok)('owners, site admin and audit (database)', async () => {
 		const list = await own.listMembers(s);
 		expect(list.filter((m) => m.role === 'owner')).toHaveLength(1);
 		const owner = list.find((m) => m.role === 'owner')!;
-		await expect(own.changeMembers(s, { kind: 'user', userId: owner.userId }, [{ op: 'remove', userId: owner.userId }])).rejects.toMatchObject({ code: 'last_owner' });
+		await expect(own.changeMembers(s, { kind: 'user', userId: owner.userId }, [{ op: 'remove', userId: owner.userId }])).rejects.toMatchObject({
+			code: 'last_owner'
+		});
 	});
 
 	it('a site admin replaces a gone owner in one step, with a reason', async () => {
@@ -128,7 +145,10 @@ describe.skipIf(!ok)('owners, site admin and audit (database)', async () => {
 		const actor = { ...adminActor, reason: 'Ägaren har slutat, ärende från distriktet' };
 		// Removing first alone would leave zero owners.
 		await expect(own.changeMembers(scope(), actor, [{ op: 'remove', userId: cur.userId }])).rejects.toMatchObject({ code: 'last_owner' });
-		await own.changeMembers(scope(), actor, [{ op: 'set', userId: u.cia.id, role: 'owner' }, { op: 'remove', userId: cur.userId }]);
+		await own.changeMembers(scope(), actor, [
+			{ op: 'set', userId: u.cia.id, role: 'owner' },
+			{ op: 'remove', userId: cur.userId }
+		]);
 		const list = await own.listMembers(scope());
 		expect(list.filter((m) => m.role === 'owner').map((m) => m.name)).toEqual(['Test cia']);
 		const [row] = await sql`select actor_kind, reason from audit_log where competition_id = ${compId} order by at desc limit 1`;
@@ -142,7 +162,9 @@ describe.skipIf(!ok)('owners, site admin and audit (database)', async () => {
 	});
 
 	it('the site-admin gate answers 404 to everyone else', async () => {
-		const asUser = (siteAdmin: boolean | null) => ({ locals: { user: siteAdmin === null ? null : { id: u.cia.id, memberNo: NOS[2], name: 'x', groups: [], csrf: 'c', siteAdmin } } });
+		const asUser = (siteAdmin: boolean | null) => ({
+			locals: { user: siteAdmin === null ? null : { id: u.cia.id, memberNo: NOS[2], name: 'x', groups: [], csrf: 'c', siteAdmin } }
+		});
 		expect(() => sa.requireSiteAdmin(asUser(null))).toThrow(expect.objectContaining({ status: 404 }));
 		expect(() => sa.requireSiteAdmin(asUser(false))).toThrow(expect.objectContaining({ status: 404 }));
 		expect(sa.requireSiteAdmin(asUser(true)).id).toBe(u.cia.id);
@@ -152,7 +174,12 @@ describe.skipIf(!ok)('owners, site admin and audit (database)', async () => {
 		await db.insert(schema.siteAdmin).values({ userId: u.admin.id, grantedBy: 'test', reason: 'integration test' });
 		const admin = { id: u.admin.id, memberNo: NOS[3], name: 'Test admin', groups: [], csrf: 'c', siteAdmin: true };
 		const event = (method = 'GET') =>
-			({ locals: { user: admin }, url: new URL('http://localhost/admin/' + SLUG), route: { id: '/admin/[slug]' }, request: new Request('http://localhost/', { method }) }) as never;
+			({
+				locals: { user: admin },
+				url: new URL('http://localhost/admin/' + SLUG),
+				route: { id: '/admin/[slug]' },
+				request: new Request('http://localhost/', { method })
+			}) as never;
 		// No automatic access.
 		await expect(auth.requireCompetition(event(), SLUG)).rejects.toMatchObject({ status: 403 });
 		await expect(sa.grantAccess(admin, compId, 'kort', 2)).rejects.toThrow(/minst 10/);
@@ -165,7 +192,10 @@ describe.skipIf(!ok)('owners, site admin and audit (database)', async () => {
 		// Owners are told.
 		expect((await sa.accessNotices(compId))[0]).toMatchObject({ adminName: 'Test admin', active: true });
 		// Expiry: no job needed, the read checks the time.
-		await db.update(schema.siteAdminAccess).set({ expiresAt: new Date(Date.now() - 1000) }).where(eq(schema.siteAdminAccess.id, a.id));
+		await db
+			.update(schema.siteAdminAccess)
+			.set({ expiresAt: new Date(Date.now() - 1000) })
+			.where(eq(schema.siteAdminAccess.id, a.id));
 		await expect(auth.requireCompetition(event(), SLUG)).rejects.toMatchObject({ status: 403 });
 		expect((await sa.accessNotices(compId))[0]).toMatchObject({ active: false });
 		await db.delete(schema.siteAdmin).where(eq(schema.siteAdmin.userId, u.admin.id));
@@ -174,7 +204,10 @@ describe.skipIf(!ok)('owners, site admin and audit (database)', async () => {
 	it('a suspended competition refuses field sync, joining and admin writes', async () => {
 		// A real device: invite → redeem with a fresh key → grant.
 		const secret = auth.randomToken(16);
-		const [inv] = await db.insert(schema.invite).values({ competitionId: compId, role: 'startfinish', secretHash: await auth.sha256(secret) }).returning();
+		const [inv] = await db
+			.insert(schema.invite)
+			.values({ competitionId: compId, role: 'startfinish', secretHash: await auth.sha256(secret) })
+			.returning();
 		const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
 		const publicJwk = await crypto.subtle.exportKey('jwk', kp.publicKey);
 		const { grant } = await field.redeemInvite({ secret, displayName: 'Testtelefon', publicJwk });
@@ -187,7 +220,13 @@ describe.skipIf(!ok)('owners, site admin and audit (database)', async () => {
 		await expect(field.redeemInvite({ secret, displayName: 'Telefon 2', publicJwk })).rejects.toMatchObject({ status: 423 });
 		const [owner] = (await own.listMembers(scope())).filter((m) => m.role === 'owner');
 		const ownerUser = { id: owner.userId, memberNo: owner.memberNo, name: owner.name, groups: [], csrf: 'c', siteAdmin: false };
-		const ev = (method: string) => ({ locals: { user: ownerUser }, url: new URL('http://localhost/'), route: { id: '/admin/[slug]/settings' }, request: new Request('http://localhost/', { method }) }) as never;
+		const ev = (method: string) =>
+			({
+				locals: { user: ownerUser },
+				url: new URL('http://localhost/'),
+				route: { id: '/admin/[slug]/settings' },
+				request: new Request('http://localhost/', { method })
+			}) as never;
 		await expect(auth.requireCompetition(ev('POST'), SLUG)).rejects.toMatchObject({ status: 423 });
 		await expect(auth.requireCompetition(ev('GET'), SLUG)).resolves.toBeTruthy();
 
@@ -207,7 +246,8 @@ describe.skipIf(!ok)('owners, site admin and audit (database)', async () => {
 	});
 
 	it('the CLI grants, lists and revokes site admin (and refuses unknown users)', async () => {
-		const cli = (...args: string[]) => run('node', ['scripts/site-admin.ts', ...args], { cwd: WEB, env: { ...process.env, DATABASE_URL: URL_, SITE_ADMIN_OPERATOR: 'vitest' } });
+		const cli = (...args: string[]) =>
+			run('node', ['scripts/site-admin.ts', ...args], { cwd: WEB, env: { ...process.env, DATABASE_URL: URL_, SITE_ADMIN_OPERATOR: 'vitest' } });
 		await expect(cli('grant', NOS[2])).rejects.toMatchObject({ code: 2 });
 		await expect(cli('grant', '7199999', '--reason', 'Testar okänd användare')).rejects.toMatchObject({ stderr: expect.stringMatching(/must log in/) });
 		const g = await cli('grant', NOS[2], '--reason', 'Driftansvarig under test');
@@ -217,7 +257,8 @@ describe.skipIf(!ok)('owners, site admin and audit (database)', async () => {
 		expect(row).toMatchObject({ grantedBy: 'cli:vitest', reason: 'Driftansvarig under test' });
 		expect((await cli('revoke', NOS[2], '--reason', 'Slutar som driftansvarig')).stdout).toMatch(/no longer/);
 		expect(await db.select().from(schema.siteAdmin).where(eq(schema.siteAdmin.userId, u.cia.id))).toHaveLength(0);
-		const logged = await sql`select action, actor_kind, actor_user_id, details from audit_log where target_id = ${u.cia.id} and target_type = 'site_admin' order by at`;
+		const logged =
+			await sql`select action, actor_kind, actor_user_id, details from audit_log where target_id = ${u.cia.id} and target_type = 'site_admin' order by at`;
 		expect(logged.map((r) => [r.action, r.actor_kind, r.actor_user_id, r.details.by])).toEqual([
 			['site_admin.grant', 'cli', null, 'cli:vitest'],
 			['site_admin.revoke', 'cli', null, 'cli:vitest']

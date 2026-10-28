@@ -47,28 +47,40 @@ const tapMarker = () => {
   border-radius:50%;border:4px solid #F26B2A;background:rgba(242,107,42,.25);animation:__tap .6s ease-out forwards}
 @keyframes __tap{from{transform:scale(.4);opacity:1}to{transform:scale(1.4);opacity:0}}`;
 		document.head.appendChild(style);
-		addEventListener('pointerdown', (e) => {
-			const t = document.createElement('div');
-			t.className = '__tap';
-			t.style.left = `${e.clientX}px`;
-			t.style.top = `${e.clientY}px`;
-			document.body.appendChild(t);
-			setTimeout(() => t.remove(), 700);
-		}, true);
+		addEventListener(
+			'pointerdown',
+			(e) => {
+				const t = document.createElement('div');
+				t.className = '__tap';
+				t.style.left = `${e.clientX}px`;
+				t.style.top = `${e.clientY}px`;
+				document.body.appendChild(t);
+				setTimeout(() => t.remove(), 700);
+			},
+			true
+		);
 	};
 	if (document.readyState === 'loading') addEventListener('DOMContentLoaded', install);
 	else install();
 };
 
 /** Caption log per recording: seconds from the recording start. */
-interface Cap { start: number; end: number | null; text: string }
+interface Cap {
+	start: number;
+	end: number | null;
+	text: string;
+}
 const captions: Record<string, Cap[]> = {};
 const actorOf = new Map<Page, string>();
 
 async function actor(browser: Browser, name: string, viewport: { width: number; height: number }, touch = false) {
 	const ctx = await browser.newContext({
-		viewport, locale: 'sv-SE', timezoneId: 'Europe/Stockholm', baseURL: BASE,
-		isMobile: touch && viewport.width < 600, hasTouch: touch,
+		viewport,
+		locale: 'sv-SE',
+		timezoneId: 'Europe/Stockholm',
+		baseURL: BASE,
+		isMobile: touch && viewport.width < 600,
+		hasTouch: touch,
 		recordVideo: { dir: `${OUT}/${name}`, size: viewport }
 	});
 	await ctx.addInitScript(tapMarker);
@@ -141,13 +153,19 @@ test.describe.configure({ mode: 'serial' });
 test.afterEach(async () => {
 	for (const c of open.splice(0)) await c.close().catch(() => undefined);
 	// Merged into the existing files, so one clip can be re-recorded alone (--grep 05).
-	for (const [file, data] of [['timing', timing], ['captions', captions], ['ready', ready]] as const) {
+	for (const [file, data] of [
+		['timing', timing],
+		['captions', captions],
+		['ready', ready]
+	] as const) {
 		const path = `${OUT}/${file}.json`;
 		const prev = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {};
 		writeFileSync(path, JSON.stringify({ ...prev, ...data }, null, 2));
 	}
 });
-test.afterAll(async () => { await sql.end(); });
+test.afterAll(async () => {
+	await sql.end();
+});
 
 test('01 funktionär, även utan täckning', async ({ browser }) => {
 	await clearScores([104, 108], 'Repstegen');
@@ -228,7 +246,10 @@ test('02 ledningscentralen live', async ({ browser }) => {
 	}).toPass({ timeout: 15_000 });
 	const form = hq.locator('form.item').first();
 	await pause(hq, 900);
-	await form.locator('label.chip', { hasText: /^\s*16\s*$/ }).first().click();
+	await form
+		.locator('label.chip', { hasText: /^\s*16\s*$/ })
+		.first()
+		.click();
 	await pause(hq, 700);
 	await form.getByLabel('Anledning').pressSequentially('fel siffra på lappen', { delay: 70 });
 	await pause(hq, 600);

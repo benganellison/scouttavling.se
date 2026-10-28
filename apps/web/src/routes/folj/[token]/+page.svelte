@@ -34,7 +34,10 @@
 				<span class="nr">{data.patrol.number}</span>
 				<div class="who">
 					<h1>{data.patrol.name}</h1>
-					<span class="trk">{data.patrol.troop}{#if data.patrol.track}<span aria-hidden="true"> · </span><TrackChip color={data.trackColor} size={12} />{data.patrol.track}{/if}</span>
+					<span class="trk"
+						>{data.patrol.troop}{#if data.patrol.track}<span aria-hidden="true"> · </span><TrackChip color={data.trackColor} size={12} />{data.patrol
+								.track}{/if}</span
+					>
 				</div>
 			</div>
 		{/if}
@@ -58,7 +61,9 @@
 			</div>
 			{#if data.started || data.finished}
 				<p class="muted small times">
-					{#if data.started}Startade {data.started}{/if}{#if data.started && data.finished} · {/if}{#if data.finished}I mål {data.finished}{/if}
+					{#if data.started}Startade {data.started}{/if}{#if data.started && data.finished}
+						·
+					{/if}{#if data.finished}I mål {data.finished}{/if}
 				</p>
 			{/if}
 			{#if data.placement}
@@ -76,7 +81,16 @@
 				{#each data.stations as s (s.code)}
 					<li class:done={s.done}>
 						<span class="mark" aria-hidden="true">
-							{#if s.done}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>{/if}
+							{#if s.done}<svg
+									width="14"
+									height="14"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="3.4"
+									stroke-linecap="round"
+									stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg
+								>{/if}
 						</span>
 						<span class="sr-only">{s.done ? 'Klar:' : 'Inte besökt:'}</span>
 						<span class="code">{s.code}</span>

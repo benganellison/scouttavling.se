@@ -48,8 +48,15 @@
 			const out = await res.json().catch(() => ({}));
 			if (!res.ok) throw new Error(out.message ?? 'Det gick inte att gå med');
 			await storeJoin({
-				slug: out.slug, grant: out.grant, deviceId: out.deviceId, privateKey: key.privateKey, publicJwk: key.publicJwk,
-				displayName: out.displayName, role: out.role, stations: out.stations, exp: out.exp
+				slug: out.slug,
+				grant: out.grant,
+				deviceId: out.deviceId,
+				privateKey: key.privateKey,
+				publicJwk: key.publicJwk,
+				displayName: out.displayName,
+				role: out.role,
+				stations: out.stations,
+				exp: out.exp
 			});
 			await goto(out.role === 'startfinish' ? `/f/${out.slug}/desk` : `/f/${out.slug}`, { replace: true });
 		} catch (e2) {
@@ -76,7 +83,9 @@
 
 		<div class="intro">
 			<span class="by">{inv.inviter} i tävlingsledningen bjuder in dig till</span>
-			<h1>{#if inv.station}{inv.station.code} · {inv.station.name}{:else}Start &amp; mål{/if}</h1>
+			<h1>
+				{#if inv.station}{inv.station.code} · {inv.station.name}{:else}Start &amp; mål{/if}
+			</h1>
 		</div>
 
 		{#if inv.station}

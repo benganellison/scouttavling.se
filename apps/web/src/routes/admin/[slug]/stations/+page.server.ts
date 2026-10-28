@@ -176,7 +176,11 @@ function displayOrder(stations: (typeof schema.station.$inferSelect)[], days: (t
 
 async function renumber(tx: Tx, ordered: { id: string; sort: number }[]) {
 	for (const [i, s] of ordered.entries()) {
-		if (s.sort !== i + 1) await tx.update(schema.station).set({ sort: i + 1 }).where(eq(schema.station.id, s.id));
+		if (s.sort !== i + 1)
+			await tx
+				.update(schema.station)
+				.set({ sort: i + 1 })
+				.where(eq(schema.station.id, s.id));
 	}
 }
 
@@ -201,7 +205,14 @@ export const actions = {
 			const codes = stationCodes(
 				ctx.stations.map((s) =>
 					s.id === input.id
-						? { id: s.id, dayId: comp.multiDay ? input.dayId : null, order: s.sort, name: input.name, customCode: code || null, role: input.role === undefined ? s.role : input.role }
+						? {
+								id: s.id,
+								dayId: comp.multiDay ? input.dayId : null,
+								order: s.sort,
+								name: input.name,
+								customCode: code || null,
+								role: input.role === undefined ? s.role : input.role
+							}
 						: { id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode }
 				),
 				ctx.days.map((d) => ({ id: d.id, prefix: d.prefix }))
@@ -212,14 +223,22 @@ export const actions = {
 		}
 
 		// Never silently delete registered scores.
-		const existingItems = await db.select({ id: schema.scoreItem.id, name: schema.scoreItem.name }).from(schema.scoreItem).where(eq(schema.scoreItem.stationId, input.id));
+		const existingItems = await db
+			.select({ id: schema.scoreItem.id, name: schema.scoreItem.name })
+			.from(schema.scoreItem)
+			.where(eq(schema.scoreItem.stationId, input.id));
 		const keep = new Set(input.items.map((i) => i.id).filter(Boolean));
 		const removed = existingItems.filter((i) => !keep.has(i.id));
 		if (removed.length) {
 			const [{ n }] = await db
 				.select({ n: sql<number>`count(*)::int` })
 				.from(schema.score)
-				.where(inArray(schema.score.itemId, removed.map((r) => r.id)));
+				.where(
+					inArray(
+						schema.score.itemId,
+						removed.map((r) => r.id)
+					)
+				);
 			if (n > 0) errors.items = `${removed.map((r) => r.name).join(', ')} har registrerade poäng och kan inte tas bort.`;
 		}
 		if (input.items.some((i) => i.id && !existingItems.some((e) => e.id === i.id))) errors.form = 'En del hör inte till den här kontrollen. Ladda om sidan.';
@@ -230,16 +249,35 @@ export const actions = {
 		const scored = input.items.filter((i) => i.id);
 		if (scored.length) {
 			const withScores = new Set(
-				(await db.selectDistinct({ id: schema.score.itemId }).from(schema.score).where(inArray(schema.score.itemId, scored.map((i) => i.id!)))).map((r) => r.id)
+				(
+					await db
+						.selectDistinct({ id: schema.score.itemId })
+						.from(schema.score)
+						.where(
+							inArray(
+								schema.score.itemId,
+								scored.map((i) => i.id!)
+							)
+						)
+				).map((r) => r.id)
 			);
-			const before = await db.select().from(schema.scoreItem).where(inArray(schema.scoreItem.id, [...withScores]));
+			const before = await db
+				.select()
+				.from(schema.scoreItem)
+				.where(inArray(schema.scoreItem.id, [...withScores]));
 			const locked: string[] = [];
 			for (const [i, it] of input.items.entries()) {
 				const old = before.find((b) => b.id === it.id);
 				if (!old) continue;
 				const next = normaliseItem(it, i + 1, input.id);
 				const values = (x: { distinctValues: { value: number }[] | null }) => (x.distinctValues ?? []).map((d) => d.value).join(',');
-				if (next.mode !== old.mode || (next.countMultiplier ?? null) !== (old.countMultiplier ?? null) || values(next) !== values(old) || next.min > old.min || next.max < old.max) {
+				if (
+					next.mode !== old.mode ||
+					(next.countMultiplier ?? null) !== (old.countMultiplier ?? null) ||
+					values(next) !== values(old) ||
+					next.min > old.min ||
+					next.max < old.max
+				) {
 					locked.push(old.name);
 				}
 			}
@@ -273,7 +311,10 @@ export const actions = {
 					// and deleting the item would delete that score with it.
 					const ids = removed.map((r) => r.id);
 					await tx.select({ id: schema.scoreItem.id }).from(schema.scoreItem).where(inArray(schema.scoreItem.id, ids)).for('update');
-					const [{ n }] = await tx.select({ n: sql<number>`count(*)::int` }).from(schema.score).where(inArray(schema.score.itemId, ids));
+					const [{ n }] = await tx
+						.select({ n: sql<number>`count(*)::int` })
+						.from(schema.score)
+						.where(inArray(schema.score.itemId, ids));
 					if (n > 0) throw new ScoresArrived();
 					await tx.delete(schema.scoreItem).where(inArray(schema.scoreItem.id, ids));
 				}
@@ -297,7 +338,8 @@ export const actions = {
 				await recordChange(tx, comp.id, 'station', input.id);
 			});
 		} catch (e) {
-			if (e instanceof ScoresArrived) return fail(409, { stationId: input.id, errors: { items: 'En del fick precis poäng och kan inte tas bort. Ladda om sidan.' } });
+			if (e instanceof ScoresArrived)
+				return fail(409, { stationId: input.id, errors: { items: 'En del fick precis poäng och kan inte tas bort. Ladda om sidan.' } });
 			throw e;
 		}
 		return { saved: input.id, at: Date.now() };
@@ -315,7 +357,9 @@ export const actions = {
 				.insert(schema.station)
 				.values({ competitionId: comp.id, dayId, sort: ctx.stations.length + 1, name })
 				.returning();
-			await tx.insert(schema.scoreItem).values({ stationId: st.id, sort: 1, name, mode: 'RANGE', min: 0, max: 20, styleEnabled: true, countsForTiebreak: true });
+			await tx
+				.insert(schema.scoreItem)
+				.values({ stationId: st.id, sort: 1, name, mode: 'RANGE', min: 0, max: 20, styleEnabled: true, countsForTiebreak: true });
 			// Multi-day: insert before that day's finish station.
 			const ordered = displayOrder(ctx.stations, ctx.days);
 			const mal = ordered.find((s) => s.dayId === dayId && s.role === 'finish');
@@ -333,7 +377,11 @@ export const actions = {
 		const { comp } = await requireCompetition(event, event.params.slug, [...EDIT_ROLES]);
 		const f = await event.request.formData();
 		const id = String(f.get('id') ?? '');
-		const [st] = await db.select().from(schema.station).where(and(eq(schema.station.id, id), eq(schema.station.competitionId, comp.id))).limit(1);
+		const [st] = await db
+			.select()
+			.from(schema.station)
+			.where(and(eq(schema.station.id, id), eq(schema.station.competitionId, comp.id)))
+			.limit(1);
 		if (!st) return fail(404, { stationId: id, errors: { form: 'Kontrollen finns inte.' } as Errors });
 		const [{ n }] = await db
 			.select({ n: sql<number>`count(*)::int` })

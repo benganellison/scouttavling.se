@@ -86,9 +86,7 @@ export function stationTimes(visits: Visit[]): Times {
 	const courseMinutes = new Map<string | null, number[]>();
 	for (const list of byPatrolDay.values()) {
 		const seen = new Set<string>();
-		const ordered = [...list]
-			.sort((a, b) => a.at.getTime() - b.at.getTime())
-			.filter((v) => (seen.has(v.stationId) ? false : (seen.add(v.stationId), true)));
+		const ordered = [...list].sort((a, b) => a.at.getTime() - b.at.getTime()).filter((v) => (seen.has(v.stationId) ? false : (seen.add(v.stationId), true)));
 		for (let i = 1; i < ordered.length; i++) {
 			const k = `${ordered[i - 1].stationId}|${ordered[i].stationId}`;
 			legMinutes.set(k, [...(legMinutes.get(k) ?? []), minutesBetween(ordered[i - 1].at, ordered[i].at)]);

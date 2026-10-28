@@ -78,11 +78,7 @@ export function rank(patrols: RankPatrol[], items: ScoreItemDef[]): RankedPatrol
 		const prev = out[i - 1];
 		row.tied = (!!next && next.place === row.place) || (!!prev && prev.place === row.place);
 		if (!next) return;
-		row.decidedBy =
-			next.place === row.place ? 'tie'
-			: row.total !== next.total ? 'total'
-			: row.scorePoints !== next.scorePoints ? 'scorePoints'
-			: 'tiebreak';
+		row.decidedBy = next.place === row.place ? 'tie' : row.total !== next.total ? 'total' : row.scorePoints !== next.scorePoints ? 'scorePoints' : 'tiebreak';
 	});
 	return out;
 }

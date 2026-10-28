@@ -32,7 +32,6 @@ import { daysUntil, todayIso } from '#lib/time.ts';
 export { daysUntil, todayIso };
 export { slugify } from '#lib/routing/slugs.ts';
 
-
 export type CompStatus = 'draft' | 'live' | 'closed';
 
 export const STATUS_LABEL: Record<CompStatus, string> = { draft: 'Utkast', live: 'Live', closed: 'Avslutad' };
@@ -105,7 +104,10 @@ export function tracksText(allTracks: boolean, selected: string[], all: { id: st
 	if (selected.length === 0) return 'Ingen klass';
 	const missing = all.filter((t) => !selected.includes(t.id));
 	if (missing.length === 1 && all.length > 2) return `Ej ${missing[0].name}`;
-	return all.filter((t) => selected.includes(t.id)).map((t) => t.name).join(', ');
+	return all
+		.filter((t) => selected.includes(t.id))
+		.map((t) => t.name)
+		.join(', ');
 }
 
 export interface NavItem {

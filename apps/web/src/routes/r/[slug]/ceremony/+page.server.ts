@@ -3,7 +3,9 @@ import { formatTime, getResults, type TrackResults } from '#lib/server/live.ts';
 import { loadBranding, loadTrackColors } from '#lib/server/assets.ts';
 
 /** Frozen ceremony snapshots per competition + class; `?fresh=1` takes a new one. */
-const snapshots: Map<string, { at: Date; track: TrackResults }> = ((globalThis as unknown as { __ceremony?: Map<string, { at: Date; track: TrackResults }> }).__ceremony ??= new Map());
+const snapshots: Map<string, { at: Date; track: TrackResults }> = ((
+	globalThis as unknown as { __ceremony?: Map<string, { at: Date; track: TrackResults }> }
+).__ceremony ??= new Map());
 
 export async function load(event) {
 	const { comp } = await requireCompetition(event, event.params.slug);
@@ -30,8 +32,15 @@ export async function load(event) {
 			className: snap.track.name,
 			takenAt: formatTime(snap.at),
 			rows: snap.track.rows.slice(0, 10).map((r) => ({
-				number: r.number, name: r.name, troop: r.troop, place: r.place, total: r.total, tied: r.tied, tieNote: r.tieNote,
-				scorePoints: r.scorePoints, stylePoints: r.stylePoints
+				number: r.number,
+				name: r.name,
+				troop: r.troop,
+				place: r.place,
+				total: r.total,
+				tied: r.tied,
+				tieNote: r.tieNote,
+				scorePoints: r.scorePoints,
+				stylePoints: r.stylePoints
 			}))
 		}
 	};

@@ -24,7 +24,9 @@
 	<svg viewBox="0 0 {W} {H}" aria-hidden="true">
 		<line class="axis" x1={PAD} x2={W - PAD} y1={H - PAD} y2={H - PAD} />
 		{#each rows as r, i (r.date)}
-			<rect x={x(i) - bw / 2} y={yC(r.count)} width={bw} height={H - PAD - yC(r.count)} rx="2"><title>{short(r.date)}: {r.count} {unit}, totalt {r.total}</title></rect>
+			<rect x={x(i) - bw / 2} y={yC(r.count)} width={bw} height={H - PAD - yC(r.count)} rx="2"
+				><title>{short(r.date)}: {r.count} {unit}, totalt {r.total}</title></rect
+			>
 			{#if i % labelEvery === 0 || i === rows.length - 1}<text x={x(i)} y={H - 6} text-anchor="middle">{short(r.date)}</text>{/if}
 		{/each}
 		<path class="total" d={line} />

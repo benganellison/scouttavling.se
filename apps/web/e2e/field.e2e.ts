@@ -128,7 +128,11 @@ test('4: score again, two more offline, then sync with versions', async () => {
 	await expect(page.getByTestId('sync-133')).toHaveAttribute('data-sync', 'synced');
 	await shot(page, 'log-synced');
 
-	for (const [nr, p, s] of [[127, 17, 3], [128, 12, 4], [133, 9, 2]]) {
+	for (const [nr, p, s] of [
+		[127, 17, 3],
+		[128, 12, 4],
+		[133, 9, 2]
+	]) {
 		const rows = await scoresFor(nr, 'Första hjälpen');
 		expect(rows).toHaveLength(1);
 		expect(rows[0]).toMatchObject({ points: p, style_points: s, version: 1, state: 'active', origin: 'device' });
@@ -183,7 +187,8 @@ test('6: start & mål desk advances a patrol to I mål', async ({ browser }) => 
 	await expect(p.getByTestId('last-scan')).toContainText('108 · Bävrarna');
 	await expect(p.getByTestId('row-108').getByRole('radio', { name: 'I mål' })).toHaveAttribute('aria-checked', 'true');
 	await expect.poll(() => statusOf(108), { timeout: 15_000 }).toBe('finished');
-	const events = await sql`select status from status_event where patrol_id = (select id from patrol where number = 108 and competition_id = (select id from competition where slug = ${SLUG})) order by at`;
+	const events =
+		await sql`select status from status_event where patrol_id = (select id from patrol where number = 108 and competition_id = (select id from competition where slug = ${SLUG})) order by at`;
 	expect(events.map((e) => e.status)).toEqual(['active', 'finished']);
 	await shot(p, 'desk');
 	await c.close();
@@ -226,7 +231,10 @@ test('7: HQ disconnects a phone, and a new code disconnects the phones that join
 	// 2. "Skapa ny kod": every phone that joined with an older code is cut off.
 	const olle = await phone('Olle');
 	await hq.goto(`/admin/${SLUG}/invites?s=${k6.id}`);
-	await hq.getByRole('button', { name: /Skapa ny kod/ }).first().click();
+	await hq
+		.getByRole('button', { name: /Skapa ny kod/ })
+		.first()
+		.click();
 	const confirm = hq.getByRole('button', { name: 'Ja, skapa ny kod' });
 	if (await confirm.count()) await confirm.click();
 	await expect(hq.getByTestId('phone').filter({ hasText: 'Olle' })).toContainText('Gammal kod');

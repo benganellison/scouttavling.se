@@ -21,7 +21,16 @@ export async function load(event) {
 		patrolCounts(editions.map((e) => e.id)),
 		loadSeriesBranding(series),
 		editions.length
-			? db.select({ name: schema.track.name, sort: schema.track.sort }).from(schema.track).where(inArray(schema.track.competitionId, editions.map((e) => e.id))).orderBy(asc(schema.track.sort))
+			? db
+					.select({ name: schema.track.name, sort: schema.track.sort })
+					.from(schema.track)
+					.where(
+						inArray(
+							schema.track.competitionId,
+							editions.map((e) => e.id)
+						)
+					)
+					.orderBy(asc(schema.track.sort))
 			: [],
 		listMembers({ kind: 'series', id: series.id }),
 		seriesRole === 'owner' ? listAudit({ seriesId: series.id, limit: 50 }) : []
@@ -37,8 +46,17 @@ export async function load(event) {
 		audit,
 		branding,
 		editions: editions.map((e) => ({
-			slug: e.slug, name: e.name, year: editionYearOf(e), startDate: e.startDate, endDate: e.endDate, status: e.status, location: e.location,
-			patrols: counts.get(e.id) ?? 0, archivePublic: e.archivePublic, anonymised: !!e.anonymisedAt, publicResults: e.publicResults
+			slug: e.slug,
+			name: e.name,
+			year: editionYearOf(e),
+			startDate: e.startDate,
+			endDate: e.endDate,
+			status: e.status,
+			location: e.location,
+			patrols: counts.get(e.id) ?? 0,
+			archivePublic: e.archivePublic,
+			anonymised: !!e.anonymisedAt,
+			publicResults: e.publicResults
 		})),
 		classes: classNames.map((name) => ({ name, color: series.classColors[name] ?? null, fallback: namedTrackColor(name) })),
 		next: latest && nextYear ? { from: latest.slug, name: `${series.name} ${nextYear}` } : null
@@ -54,7 +72,13 @@ async function notifyAll(seriesId: string) {
 async function members(event: RequestEvent<{ slug: string }>, kind: MemberAction) {
 	const { user, series } = await requireSeries(event, event.params.slug);
 	const list = await listMembers({ kind: 'series', id: series.id });
-	return memberAction(kind, await event.request.formData(), { kind: 'series', id: series.id }, { kind: 'user', userId: user.id }, new Map(list.map((m) => [m.userId, m.name])));
+	return memberAction(
+		kind,
+		await event.request.formData(),
+		{ kind: 'series', id: series.id },
+		{ kind: 'user', userId: user.id },
+		new Map(list.map((m) => [m.userId, m.name]))
+	);
 }
 
 export const actions = {
@@ -90,7 +114,8 @@ export const actions = {
 		if (!ASSET_KINDS.includes(kind)) return fail(400, { section: 'appearance', errors: { upload: 'Okänd bildtyp.' } as Errors });
 		const file = f.get('file');
 		if (!(file instanceof File) || file.size === 0) return fail(400, { section: 'appearance', errors: { [kind]: 'Välj en bild först.' } as Errors });
-		if (file.size > MAX_BYTES) return fail(400, { section: 'appearance', errors: { [kind]: 'Bilden är större än 2 MB. Förminska den och försök igen.' } as Errors });
+		if (file.size > MAX_BYTES)
+			return fail(400, { section: 'appearance', errors: { [kind]: 'Bilden är större än 2 MB. Förminska den och försök igen.' } as Errors });
 		const r = await uploadImage({ seriesId: series.id }, kind, new Uint8Array(await file.arrayBuffer()), user.id, await notifyAll(series.id));
 		if (!r.ok) return fail(400, { section: 'appearance', errors: { [kind]: r.reason } as Errors });
 		return { section: 'appearance', ok: true, uploaded: kind };

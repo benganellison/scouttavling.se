@@ -1,5 +1,20 @@
 import {
-	pgTable, uuid, text, integer, boolean, timestamp, date, jsonb, bigint, primaryKey, unique, index, pgEnum, customType, check, type AnyPgColumn
+	pgTable,
+	uuid,
+	text,
+	integer,
+	boolean,
+	timestamp,
+	date,
+	jsonb,
+	bigint,
+	primaryKey,
+	unique,
+	index,
+	pgEnum,
+	customType,
+	check,
+	type AnyPgColumn
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import type { DistinctValue, ItemMode } from '@scouttavling/domain';
@@ -45,7 +60,9 @@ export const appUser = pgTable('app_user', {
 export const session = pgTable('session', {
 	/** SHA-256 of the cookie value. */
 	idHash: text('id_hash').primaryKey(),
-	userId: uuid('user_id').notNull().references(() => appUser.id, { onDelete: 'cascade' }),
+	userId: uuid('user_id')
+		.notNull()
+		.references(() => appUser.id, { onDelete: 'cascade' }),
 	csrf: text('csrf').notNull(),
 	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 	createdAt: createdAt()
@@ -106,7 +123,9 @@ export const competition = pgTable('competition', {
 	followEnabled: boolean('follow_enabled').notNull().default(false),
 	/** Follow pages also show points and placement. */
 	followShowScores: boolean('follow_show_scores').notNull().default(false),
-	status: text('status', { enum: ['draft', 'live', 'closed'] }).notNull().default('draft'),
+	status: text('status', { enum: ['draft', 'live', 'closed'] })
+		.notNull()
+		.default('draft'),
 	/** Backup mode ("Reservläge") broadcast flag. */
 	backupMode: boolean('backup_mode').notNull().default(false),
 	/** Event branding: accent colour as #rrggbb (null = Scouterna base, Scoutblå). Images live in `asset`. */
@@ -132,8 +151,12 @@ export const competition = pgTable('competition', {
 export const competitionMember = pgTable(
 	'competition_member',
 	{
-		competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
-		userId: uuid('user_id').notNull().references(() => appUser.id, { onDelete: 'cascade' }),
+		competitionId: uuid('competition_id')
+			.notNull()
+			.references(() => competition.id, { onDelete: 'cascade' }),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => appUser.id, { onDelete: 'cascade' }),
 		role: competitionRole('role').notNull()
 	},
 	(t) => [primaryKey({ columns: [t.competitionId, t.userId, t.role] })]
@@ -147,36 +170,54 @@ export const competitionMember = pgTable(
 export const seriesMember = pgTable(
 	'series_member',
 	{
-		seriesId: uuid('series_id').notNull().references(() => series.id, { onDelete: 'cascade' }),
-		userId: uuid('user_id').notNull().references(() => appUser.id, { onDelete: 'cascade' }),
+		seriesId: uuid('series_id')
+			.notNull()
+			.references(() => series.id, { onDelete: 'cascade' }),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => appUser.id, { onDelete: 'cascade' }),
 		role: competitionRole('role').notNull()
 	},
 	(t) => [primaryKey({ columns: [t.seriesId, t.userId] }), check('series_member_role', sql`${t.role} in ('owner', 'organiser')`)]
 );
 
-export const day = pgTable('day', {
-	id: id(),
-	competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
-	date: date('date').notNull(),
-	name: text('name').notNull(),
-	prefix: text('prefix').notNull(),
-	sort: integer('sort').notNull()
-}, (t) => [index('day_comp_idx').on(t.competitionId, t.sort)]);
+export const day = pgTable(
+	'day',
+	{
+		id: id(),
+		competitionId: uuid('competition_id')
+			.notNull()
+			.references(() => competition.id, { onDelete: 'cascade' }),
+		date: date('date').notNull(),
+		name: text('name').notNull(),
+		prefix: text('prefix').notNull(),
+		sort: integer('sort').notNull()
+	},
+	(t) => [index('day_comp_idx').on(t.competitionId, t.sort)]
+);
 
-export const track = pgTable('track', {
-	id: id(),
-	competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
-	name: text('name').notNull(),
-	sort: integer('sort').notNull(),
-	/** Class colour #rrggbb (decoration only). null = default from the name (see #lib/brand/colors.ts). */
-	color: text('color')
-}, (t) => [index('track_comp_idx').on(t.competitionId, t.sort)]);
+export const track = pgTable(
+	'track',
+	{
+		id: id(),
+		competitionId: uuid('competition_id')
+			.notNull()
+			.references(() => competition.id, { onDelete: 'cascade' }),
+		name: text('name').notNull(),
+		sort: integer('sort').notNull(),
+		/** Class colour #rrggbb (decoration only). null = default from the name (see #lib/brand/colors.ts). */
+		color: text('color')
+	},
+	(t) => [index('track_comp_idx').on(t.competitionId, t.sort)]
+);
 
 export const station = pgTable(
 	'station',
 	{
 		id: id(),
-		competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
+		competitionId: uuid('competition_id')
+			.notNull()
+			.references(() => competition.id, { onDelete: 'cascade' }),
 		dayId: uuid('day_id').references(() => day.id, { onDelete: 'set null' }),
 		sort: integer('sort').notNull(),
 		name: text('name').notNull(),
@@ -199,27 +240,37 @@ export const station = pgTable(
 export const stationTrack = pgTable(
 	'station_track',
 	{
-		stationId: uuid('station_id').notNull().references(() => station.id, { onDelete: 'cascade' }),
-		trackId: uuid('track_id').notNull().references(() => track.id, { onDelete: 'cascade' })
+		stationId: uuid('station_id')
+			.notNull()
+			.references(() => station.id, { onDelete: 'cascade' }),
+		trackId: uuid('track_id')
+			.notNull()
+			.references(() => track.id, { onDelete: 'cascade' })
 	},
 	(t) => [primaryKey({ columns: [t.stationId, t.trackId] })]
 );
 
-export const scoreItem = pgTable('score_item', {
-	id: id(),
-	stationId: uuid('station_id').notNull().references(() => station.id, { onDelete: 'cascade' }),
-	sort: integer('sort').notNull(),
-	name: text('name').notNull(),
-	mode: text('mode').$type<ItemMode>().notNull(),
-	min: integer('min').notNull().default(0),
-	max: integer('max').notNull().default(20),
-	distinctValues: jsonb('distinct_values').$type<DistinctValue[]>(),
-	countMultiplier: integer('count_multiplier'),
-	styleEnabled: boolean('style_enabled').notNull().default(true),
-	styleMin: integer('style_min').notNull().default(0),
-	styleMax: integer('style_max').notNull().default(5),
-	countsForTiebreak: boolean('counts_for_tiebreak').notNull().default(true)
-}, (t) => [index('score_item_station_idx').on(t.stationId, t.sort)]);
+export const scoreItem = pgTable(
+	'score_item',
+	{
+		id: id(),
+		stationId: uuid('station_id')
+			.notNull()
+			.references(() => station.id, { onDelete: 'cascade' }),
+		sort: integer('sort').notNull(),
+		name: text('name').notNull(),
+		mode: text('mode').$type<ItemMode>().notNull(),
+		min: integer('min').notNull().default(0),
+		max: integer('max').notNull().default(20),
+		distinctValues: jsonb('distinct_values').$type<DistinctValue[]>(),
+		countMultiplier: integer('count_multiplier'),
+		styleEnabled: boolean('style_enabled').notNull().default(true),
+		styleMin: integer('style_min').notNull().default(0),
+		styleMax: integer('style_max').notNull().default(5),
+		countsForTiebreak: boolean('counts_for_tiebreak').notNull().default(true)
+	},
+	(t) => [index('score_item_station_idx').on(t.stationId, t.sort)]
+);
 
 // ---------- patrols ----------
 
@@ -227,7 +278,9 @@ export const patrol = pgTable(
 	'patrol',
 	{
 		id: id(),
-		competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
+		competitionId: uuid('competition_id')
+			.notNull()
+			.references(() => competition.id, { onDelete: 'cascade' }),
 		number: integer('number').notNull(),
 		name: text('name').notNull(),
 		trackId: uuid('track_id').references(() => track.id, { onDelete: 'set null' }),
@@ -258,59 +311,85 @@ export const patrol = pgTable(
 	]
 );
 
-export const member = pgTable('member', {
-	id: id(),
-	patrolId: uuid('patrol_id').notNull().references(() => patrol.id, { onDelete: 'cascade' }),
-	firstName: text('first_name').notNull(),
-	lastName: text('last_name').notNull().default(''),
-	troopText: text('troop_text').notNull().default('')
-}, (t) => [index('member_patrol_idx').on(t.patrolId)]);
+export const member = pgTable(
+	'member',
+	{
+		id: id(),
+		patrolId: uuid('patrol_id')
+			.notNull()
+			.references(() => patrol.id, { onDelete: 'cascade' }),
+		firstName: text('first_name').notNull(),
+		lastName: text('last_name').notNull().default(''),
+		troopText: text('troop_text').notNull().default('')
+	},
+	(t) => [index('member_patrol_idx').on(t.patrolId)]
+);
 
 // ---------- field devices ----------
 
-export const invite = pgTable('invite', {
-	id: id(),
-	competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
-	/** null for start & finish invites. */
-	stationId: uuid('station_id').references(() => station.id, { onDelete: 'cascade' }),
-	role: deviceRole('role').notNull(),
-	/** SHA-256 of the 128-bit secret in the /j/<secret> link. */
-	secretHash: text('secret_hash').notNull().unique(),
-	generation: integer('generation').notNull().default(1),
-	/** AES-GCM encrypted secret so organisers can re-display the QR (admin-patrols, see lib/server/invites.ts). */
-	secretEnc: text('secret_enc'),
-	revokedAt: timestamp('revoked_at', { withTimezone: true }),
-	createdAt: createdAt()
-}, (t) => [index('invite_comp_idx').on(t.competitionId)]);
+export const invite = pgTable(
+	'invite',
+	{
+		id: id(),
+		competitionId: uuid('competition_id')
+			.notNull()
+			.references(() => competition.id, { onDelete: 'cascade' }),
+		/** null for start & finish invites. */
+		stationId: uuid('station_id').references(() => station.id, { onDelete: 'cascade' }),
+		role: deviceRole('role').notNull(),
+		/** SHA-256 of the 128-bit secret in the /j/<secret> link. */
+		secretHash: text('secret_hash').notNull().unique(),
+		generation: integer('generation').notNull().default(1),
+		/** AES-GCM encrypted secret so organisers can re-display the QR (admin-patrols, see lib/server/invites.ts). */
+		secretEnc: text('secret_enc'),
+		revokedAt: timestamp('revoked_at', { withTimezone: true }),
+		createdAt: createdAt()
+	},
+	(t) => [index('invite_comp_idx').on(t.competitionId)]
+);
 
-export const device = pgTable('device', {
-	id: id(),
-	competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
-	inviteId: uuid('invite_id').notNull().references(() => invite.id, { onDelete: 'cascade' }),
-	role: deviceRole('role').notNull(),
-	stationIds: uuid('station_ids').array().notNull().default([]),
-	displayName: text('display_name').notNull(),
-	/** Public ECDSA P-256 JWK; commands are signed with the matching non-extractable key. */
-	publicJwk: jsonb('public_jwk').$type<JsonWebKey>().notNull(),
-	lastSeq: integer('last_seq').notNull().default(0),
-	lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
-	revokedAt: timestamp('revoked_at', { withTimezone: true }),
-	createdAt: createdAt()
-}, (t) => [index('device_comp_idx').on(t.competitionId), index('device_invite_idx').on(t.inviteId)]);
+export const device = pgTable(
+	'device',
+	{
+		id: id(),
+		competitionId: uuid('competition_id')
+			.notNull()
+			.references(() => competition.id, { onDelete: 'cascade' }),
+		inviteId: uuid('invite_id')
+			.notNull()
+			.references(() => invite.id, { onDelete: 'cascade' }),
+		role: deviceRole('role').notNull(),
+		stationIds: uuid('station_ids').array().notNull().default([]),
+		displayName: text('display_name').notNull(),
+		/** Public ECDSA P-256 JWK; commands are signed with the matching non-extractable key. */
+		publicJwk: jsonb('public_jwk').$type<JsonWebKey>().notNull(),
+		lastSeq: integer('last_seq').notNull().default(0),
+		lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+		revokedAt: timestamp('revoked_at', { withTimezone: true }),
+		createdAt: createdAt()
+	},
+	(t) => [index('device_comp_idx').on(t.competitionId), index('device_invite_idx').on(t.inviteId)]
+);
 
 /** Idempotency ledger: every command ever received, keyed by its client UUIDv7. */
-export const command = pgTable('command', {
-	id: uuid('id').primaryKey(),
-	competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
-	deviceId: uuid('device_id').references(() => device.id, { onDelete: 'set null' }),
-	deviceSeq: integer('device_seq'),
-	type: text('type').notNull(),
-	payload: jsonb('payload').notNull(),
-	clientAt: timestamp('client_at', { withTimezone: true }),
-	receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
-	result: text('result', { enum: ['accepted', 'duplicate', 'conflict', 'quarantined', 'rejected'] }).notNull(),
-	resultDetail: jsonb('result_detail')
-}, (t) => [index('command_comp_idx').on(t.competitionId), index('command_device_idx').on(t.deviceId)]);
+export const command = pgTable(
+	'command',
+	{
+		id: uuid('id').primaryKey(),
+		competitionId: uuid('competition_id')
+			.notNull()
+			.references(() => competition.id, { onDelete: 'cascade' }),
+		deviceId: uuid('device_id').references(() => device.id, { onDelete: 'set null' }),
+		deviceSeq: integer('device_seq'),
+		type: text('type').notNull(),
+		payload: jsonb('payload').notNull(),
+		clientAt: timestamp('client_at', { withTimezone: true }),
+		receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+		result: text('result', { enum: ['accepted', 'duplicate', 'conflict', 'quarantined', 'rejected'] }).notNull(),
+		resultDetail: jsonb('result_detail')
+	},
+	(t) => [index('command_comp_idx').on(t.competitionId), index('command_device_idx').on(t.deviceId)]
+);
 
 // ---------- scores ----------
 
@@ -318,9 +397,15 @@ export const score = pgTable(
 	'score',
 	{
 		id: id(),
-		competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
-		patrolId: uuid('patrol_id').notNull().references(() => patrol.id, { onDelete: 'cascade' }),
-		itemId: uuid('item_id').notNull().references(() => scoreItem.id, { onDelete: 'cascade' }),
+		competitionId: uuid('competition_id')
+			.notNull()
+			.references(() => competition.id, { onDelete: 'cascade' }),
+		patrolId: uuid('patrol_id')
+			.notNull()
+			.references(() => patrol.id, { onDelete: 'cascade' }),
+		itemId: uuid('item_id')
+			.notNull()
+			.references(() => scoreItem.id, { onDelete: 'cascade' }),
 		points: integer('points').notNull(),
 		stylePoints: integer('style_points').notNull().default(0),
 		/** What was entered: {value, style}. */
@@ -339,47 +424,78 @@ export const score = pgTable(
 		scoredAt: timestamp('scored_at', { withTimezone: true }),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
-	(t) => [unique('score_patrol_item').on(t.patrolId, t.itemId), index('score_comp_idx').on(t.competitionId), index('score_item_idx').on(t.itemId), index('score_device_idx').on(t.deviceId)]
+	(t) => [
+		unique('score_patrol_item').on(t.patrolId, t.itemId),
+		index('score_comp_idx').on(t.competitionId),
+		index('score_item_idx').on(t.itemId),
+		index('score_device_idx').on(t.deviceId)
+	]
 );
 
 /** Append-only audit trail of every change to a score. */
-export const scoreRevision = pgTable('score_revision', {
-	id: id(),
-	scoreId: uuid('score_id').notNull().references(() => score.id, { onDelete: 'cascade' }),
-	version: integer('version').notNull(),
-	points: integer('points').notNull(),
-	stylePoints: integer('style_points').notNull(),
-	state: scoreState('state').notNull(),
-	origin: scoreOrigin('origin').notNull(),
-	deviceId: uuid('device_id'),
-	userId: uuid('user_id'),
-	commandId: uuid('command_id'),
-	reason: text('reason'),
-	at: timestamp('at', { withTimezone: true }).notNull().defaultNow()
-}, (t) => [index('score_revision_score_idx').on(t.scoreId, t.version)]);
+export const scoreRevision = pgTable(
+	'score_revision',
+	{
+		id: id(),
+		scoreId: uuid('score_id')
+			.notNull()
+			.references(() => score.id, { onDelete: 'cascade' }),
+		version: integer('version').notNull(),
+		points: integer('points').notNull(),
+		stylePoints: integer('style_points').notNull(),
+		state: scoreState('state').notNull(),
+		origin: scoreOrigin('origin').notNull(),
+		deviceId: uuid('device_id'),
+		userId: uuid('user_id'),
+		commandId: uuid('command_id'),
+		reason: text('reason'),
+		at: timestamp('at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [index('score_revision_score_idx').on(t.scoreId, t.version)]
+);
 
 /** Never silently overwrite: competing writes land here for HQ review. */
-export const scoreConflict = pgTable('score_conflict', {
-	id: id(),
-	competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
-	patrolId: uuid('patrol_id').notNull().references(() => patrol.id, { onDelete: 'cascade' }),
-	itemId: uuid('item_id').notNull().references(() => scoreItem.id, { onDelete: 'cascade' }),
-	existing: jsonb('existing').notNull(),
-	incoming: jsonb('incoming').notNull(),
-	commandId: uuid('command_id'),
-	kind: text('kind', { enum: ['conflict', 'quarantine'] }).notNull().default('conflict'),
-	status: text('status', { enum: ['open', 'resolved'] }).notNull().default('open'),
-	createdAt: createdAt()
-}, (t) => [index('score_conflict_comp_idx').on(t.competitionId, t.status, t.createdAt)]);
+export const scoreConflict = pgTable(
+	'score_conflict',
+	{
+		id: id(),
+		competitionId: uuid('competition_id')
+			.notNull()
+			.references(() => competition.id, { onDelete: 'cascade' }),
+		patrolId: uuid('patrol_id')
+			.notNull()
+			.references(() => patrol.id, { onDelete: 'cascade' }),
+		itemId: uuid('item_id')
+			.notNull()
+			.references(() => scoreItem.id, { onDelete: 'cascade' }),
+		existing: jsonb('existing').notNull(),
+		incoming: jsonb('incoming').notNull(),
+		commandId: uuid('command_id'),
+		kind: text('kind', { enum: ['conflict', 'quarantine'] })
+			.notNull()
+			.default('conflict'),
+		status: text('status', { enum: ['open', 'resolved'] })
+			.notNull()
+			.default('open'),
+		createdAt: createdAt()
+	},
+	(t) => [index('score_conflict_comp_idx').on(t.competitionId, t.status, t.createdAt)]
+);
 
-export const statusEvent = pgTable('status_event', {
-	id: id(),
-	patrolId: uuid('patrol_id').notNull().references(() => patrol.id, { onDelete: 'cascade' }),
-	status: patrolStatus('status').notNull(),
-	deviceId: uuid('device_id'),
-	userId: uuid('user_id'),
-	at: timestamp('at', { withTimezone: true }).notNull().defaultNow()
-}, (t) => [index('status_event_patrol_idx').on(t.patrolId, t.at)]);
+export const statusEvent = pgTable(
+	'status_event',
+	{
+		id: id(),
+		patrolId: uuid('patrol_id')
+			.notNull()
+			.references(() => patrol.id, { onDelete: 'cascade' }),
+		status: patrolStatus('status').notNull(),
+		deviceId: uuid('device_id'),
+		userId: uuid('user_id'),
+		at: timestamp('at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [index('status_event_patrol_idx').on(t.patrolId, t.at)]
+);
 
 /** Monotonic change feed per competition: drives SSE resume and snapshot deltas. */
 export const changeLog = pgTable(
@@ -392,7 +508,9 @@ export const changeLog = pgTable(
 		 * client resuming "after seq N" can never skip a row. (0 = placeholder.)
 		 */
 		seq: bigint('seq', { mode: 'number' }).notNull().default(0),
-		competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
+		competitionId: uuid('competition_id')
+			.notNull()
+			.references(() => competition.id, { onDelete: 'cascade' }),
 		kind: text('kind').notNull(),
 		entityId: uuid('entity_id'),
 		at: timestamp('at', { withTimezone: true }).notNull().defaultNow()
@@ -402,27 +520,39 @@ export const changeLog = pgTable(
 
 /** Counter row per competition backing change_log.seq (see trigger). */
 export const changeSeq = pgTable('change_seq', {
-	competitionId: uuid('competition_id').primaryKey().references(() => competition.id, { onDelete: 'cascade' }),
+	competitionId: uuid('competition_id')
+		.primaryKey()
+		.references(() => competition.id, { onDelete: 'cascade' }),
 	last: bigint('last', { mode: 'number' }).notNull().default(0)
 });
 
-export const message = pgTable('message', {
-	id: id(),
-	competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
-	title: text('title').notNull(),
-	body: text('body').notNull(),
-	important: boolean('important').notNull().default(false),
-	/** 'all' | 'startfinish' | station ids */
-	audience: jsonb('audience').$type<string[]>().notNull().default(['all']),
-	createdBy: uuid('created_by').references(() => appUser.id),
-	createdAt: createdAt()
-}, (t) => [index('message_comp_idx').on(t.competitionId, t.createdAt)]);
+export const message = pgTable(
+	'message',
+	{
+		id: id(),
+		competitionId: uuid('competition_id')
+			.notNull()
+			.references(() => competition.id, { onDelete: 'cascade' }),
+		title: text('title').notNull(),
+		body: text('body').notNull(),
+		important: boolean('important').notNull().default(false),
+		/** 'all' | 'startfinish' | station ids */
+		audience: jsonb('audience').$type<string[]>().notNull().default(['all']),
+		createdBy: uuid('created_by').references(() => appUser.id),
+		createdAt: createdAt()
+	},
+	(t) => [index('message_comp_idx').on(t.competitionId, t.createdAt)]
+);
 
 export const messageRead = pgTable(
 	'message_read',
 	{
-		messageId: uuid('message_id').notNull().references(() => message.id, { onDelete: 'cascade' }),
-		deviceId: uuid('device_id').notNull().references(() => device.id, { onDelete: 'cascade' }),
+		messageId: uuid('message_id')
+			.notNull()
+			.references(() => message.id, { onDelete: 'cascade' }),
+		deviceId: uuid('device_id')
+			.notNull()
+			.references(() => device.id, { onDelete: 'cascade' }),
 		at: timestamp('at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [primaryKey({ columns: [t.messageId, t.deviceId] }), index('message_read_device_idx').on(t.deviceId)]
@@ -466,7 +596,9 @@ export const asset = pgTable(
  */
 export const retiredLink = pgTable('retired_link', {
 	tokenHash: text('token_hash').primaryKey(),
-	competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
+	competitionId: uuid('competition_id')
+		.notNull()
+		.references(() => competition.id, { onDelete: 'cascade' }),
 	kind: text('kind', { enum: ['manage', 'follow'] }).notNull(),
 	createdAt: createdAt()
 });
@@ -475,7 +607,9 @@ export const retiredLink = pgTable('retired_link', {
 
 /** Platform operators. Granted and revoked ONLY from the server command line (scripts/site-admin.ts). */
 export const siteAdmin = pgTable('site_admin', {
-	userId: uuid('user_id').primaryKey().references(() => appUser.id, { onDelete: 'cascade' }),
+	userId: uuid('user_id')
+		.primaryKey()
+		.references(() => appUser.id, { onDelete: 'cascade' }),
 	grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
 	/** e.g. "cli:bengt". */
 	grantedBy: text('granted_by').notNull(),
@@ -490,8 +624,12 @@ export const siteAdminAccess = pgTable(
 	'site_admin_access',
 	{
 		id: id(),
-		userId: uuid('user_id').notNull().references(() => appUser.id, { onDelete: 'cascade' }),
-		competitionId: uuid('competition_id').notNull().references(() => competition.id, { onDelete: 'cascade' }),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => appUser.id, { onDelete: 'cascade' }),
+		competitionId: uuid('competition_id')
+			.notNull()
+			.references(() => competition.id, { onDelete: 'cascade' }),
 		role: competitionRole('role').notNull().default('organiser'),
 		reason: text('reason').notNull(),
 		grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),

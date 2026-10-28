@@ -8,8 +8,8 @@
 	<a href="/admin/{data.comp.slug}/live" class="back">← Ledningscentralen</a>
 	<h1>Registrera papperslappar</h1>
 	<p class="muted">
-		Under reservläge skriver funktionärerna poängen på papper. Snabbinmatning per kontroll kommer i en senare version; tills dess
-		matar du in poängen patrull för patrull.
+		Under reservläge skriver funktionärerna poängen på papper. Snabbinmatning per kontroll kommer i en senare version; tills dess matar du in poängen patrull
+		för patrull.
 	</p>
 	<form method="POST" action="?/go" class="card row">
 		<div class="field grow">

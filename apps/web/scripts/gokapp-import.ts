@@ -51,10 +51,26 @@ if (!/^\d{3,12}$/.test(owner)) fail('--owner <memberNo> is required.', 2);
 if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) fail('--date must be YYYY-MM-DD.', 2);
 if (!process.env.DATABASE_URL) fail('DATABASE_URL is not set.', 2);
 
-const operator = `cli:${process.env.SUDO_USER || (() => { try { return userInfo().username; } catch { return 'unknown'; } })()}`;
+const operator = `cli:${
+	process.env.SUDO_USER ||
+	(() => {
+		try {
+			return userInfo().username;
+		} catch {
+			return 'unknown';
+		}
+	})()
+}`;
 const opts = {
-	series, seriesName: opt('series-name'), year, date, name: opt('name'), slug: opt('slug'),
-	ownerMemberNo: owner, withTimes: !flag('no-times'), operator
+	series,
+	seriesName: opt('series-name'),
+	year,
+	date,
+	name: opt('name'),
+	slug: opt('slug'),
+	ownerMemberNo: owner,
+	withTimes: !flag('no-times'),
+	operator
 };
 
 // gokapp stores Swedish wall-clock time (LocalDateTime): read it as text, convert in gokappImport.ts.
@@ -64,7 +80,8 @@ try {
 	const data = await readGokapp(my);
 	// The dry run shows what --commit writes: an existing series keeps its own name.
 	const [existing] = await pg`select name from series where slug = ${series}`;
-	if (!existing && !opts.seriesName) fail(`Serien "${series}" finns inte. Ange --series-name för att skapa den (gokapp kallar tävlingen "${data.configName ?? '?'}").`, 2);
+	if (!existing && !opts.seriesName)
+		fail(`Serien "${series}" finns inte. Ange --series-name för att skapa den (gokapp kallar tävlingen "${data.configName ?? '?'}").`, 2);
 	const p = plan(data, { ...opts, seriesName: existing?.name ?? opts.seriesName! }).plan;
 	console.log(`\n${p.name}  →  /t/${series} (år ${year}), adress /r/${p.slug}`);
 	console.log(`${existing ? 'Befintlig serie' : 'Ny serie'}: ${existing?.name ?? opts.seriesName} (/t/${series})`);
@@ -87,7 +104,11 @@ try {
 		console.log(`\nHoppas över / att känna till:`);
 		for (const s of p.skipped.slice(0, 20)) console.log(`  ${s}`);
 	}
-	console.log(p.rankingDiffs.length ? `\nRANKING SKILJER SIG FRÅN GOKAPP:\n  ${p.rankingDiffs.join('\n  ')}` : '\nRankingen stämmer med gokapp (lika patruller delar plats här).');
+	console.log(
+		p.rankingDiffs.length
+			? `\nRANKING SKILJER SIG FRÅN GOKAPP:\n  ${p.rankingDiffs.join('\n  ')}`
+			: '\nRankingen stämmer med gokapp (lika patruller delar plats här).'
+	);
 
 	if (!flag('commit')) {
 		console.log('\nTorrkörning: inget sparat. Lägg till --commit för att importera.');

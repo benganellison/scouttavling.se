@@ -12,9 +12,7 @@
 export const MAX_BYTES = 2 * 1024 * 1024;
 export type ImageMime = 'image/png' | 'image/jpeg' | 'image/webp';
 
-export type ValidateResult =
-	| { ok: true; mime: ImageMime; bytes: Uint8Array; width: number; height: number }
-	| { ok: false; reason: string };
+export type ValidateResult = { ok: true; mime: ImageMime; bytes: Uint8Array; width: number; height: number } | { ok: false; reason: string };
 
 const PNG_SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
@@ -147,7 +145,10 @@ function jpeg(b: Uint8Array): ValidateResult {
 			height = u16be(b, at + 5);
 			width = u16be(b, at + 7);
 		}
-		const keepApp = (marker === 0xe0 && ascii(body, 0, 4) === 'JFIF') || (marker === 0xe2 && ascii(body, 0, 11) === 'ICC_PROFILE') || (marker === 0xee && ascii(body, 0, 5) === 'Adobe');
+		const keepApp =
+			(marker === 0xe0 && ascii(body, 0, 4) === 'JFIF') ||
+			(marker === 0xe2 && ascii(body, 0, 11) === 'ICC_PROFILE') ||
+			(marker === 0xee && ascii(body, 0, 5) === 'Adobe');
 		if (isApp && !keepApp) {
 			/* metadata: dropped */
 		} else if (marker === 0xfe) {

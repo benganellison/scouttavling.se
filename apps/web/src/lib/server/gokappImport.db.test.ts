@@ -57,7 +57,12 @@ describe.skipIf(!PG || !MY)('gokapp import (MySQL → Postgres)', () => {
 		const data = await readGokapp(source);
 		await source.end();
 		const r = await writeImport(sql, data, {
-			series: seriesSlug, seriesName: 'Påhittade Hajken', year: 2023, ownerMemberNo: memberNo, withTimes: true, operator: 'cli:test'
+			series: seriesSlug,
+			seriesName: 'Påhittade Hajken',
+			year: 2023,
+			ownerMemberNo: memberNo,
+			withTimes: true,
+			operator: 'cli:test'
 		});
 		expect(r.plan.rankingDiffs).toEqual([]);
 
@@ -66,9 +71,16 @@ describe.skipIf(!PG || !MY)('gokapp import (MySQL → Postgres)', () => {
 		expect(comp.anonymised_at).not.toBeNull();
 		expect(comp.start_date).toBe('2023-05-13');
 		const patrols = await sql`select number, name, troop, status, paid, contact_name from patrol where competition_id = ${comp.id} order by number`;
-		expect(patrols.map((p) => [p.number, p.status])).toEqual([[101, 'finished'], [102, 'finished'], [201, 'finished'], [202, 'active'], [203, 'resigned']]);
+		expect(patrols.map((p) => [p.number, p.status])).toEqual([
+			[101, 'finished'],
+			[102, 'finished'],
+			[201, 'finished'],
+			[202, 'active'],
+			[203, 'resigned']
+		]);
 		expect(patrols.every((p) => p.paid === false && p.contact_name === null)).toBe(true);
-		const items = await sql`select i.mode, s.all_tracks from score_item i join station s on s.id = i.station_id where s.competition_id = ${comp.id} order by s.sort`;
+		const items =
+			await sql`select i.mode, s.all_tracks from score_item i join station s on s.id = i.station_id where s.competition_id = ${comp.id} order by s.sort`;
 		expect(items.map((i) => i.mode)).toEqual(['RANGE', 'CHECKIN', 'DISTINCT', 'RANGE']);
 		const [{ n, timed }] = await sql`select count(*)::int n, count(scored_at)::int timed from score where competition_id = ${comp.id}`;
 		expect([n, timed]).toEqual([10, 10]);

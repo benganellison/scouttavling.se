@@ -66,7 +66,15 @@ describe('class colours', () => {
 		expect(namedTrackColor('Öppen klass')).toBeNull();
 	});
 	it('keeps explicit colours and gives every default a distinct colour', () => {
-		const tracks = [t('Upptäckare'), t('Äventyrare'), t('Ledare'), t('Öppen'), t('Familj'), t('Mix', '#e95f13'), ...Array.from({ length: 14 }, (_, i) => t(`Klass ${i}`))];
+		const tracks = [
+			t('Upptäckare'),
+			t('Äventyrare'),
+			t('Ledare'),
+			t('Öppen'),
+			t('Familj'),
+			t('Mix', '#e95f13'),
+			...Array.from({ length: 14 }, (_, i) => t(`Klass ${i}`))
+		];
 		const c = trackColors(tracks);
 		expect(c.Mix).toBe('#e95f13');
 		expect(c['Upptäckare']).toBe('#00a8e1');

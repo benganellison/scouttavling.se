@@ -35,7 +35,14 @@
 	{#if showCover && branding?.cover}
 		<!-- Never upscaled beyond 2× (low-res banners blur), centred on wide screens; 'contain' never crops baked-in text. -->
 		<div class="cover {branding.coverFit}" style="--cw:{branding.cover.width * 2}px;--ar:{branding.cover.width} / {branding.cover.height}">
-			<img src={branding.cover.url} alt={branding.cover.alt} width={branding.cover.width} height={branding.cover.height} data-testid="cover" data-fit={branding.coverFit} />
+			<img
+				src={branding.cover.url}
+				alt={branding.cover.alt}
+				width={branding.cover.width}
+				height={branding.cover.height}
+				data-testid="cover"
+				data-fit={branding.coverFit}
+			/>
 		</div>
 	{/if}
 	<header class="top" class:stripe={branding?.customAccent}>

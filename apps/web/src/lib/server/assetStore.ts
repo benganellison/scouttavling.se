@@ -31,8 +31,7 @@ export interface StoredMeta {
 	seriesId: string | null;
 }
 
-const ownerWhere = (o: AssetOwner): SQL =>
-	o.competitionId ? eq(schema.asset.competitionId, o.competitionId) : eq(schema.asset.seriesId, o.seriesId!);
+const ownerWhere = (o: AssetOwner): SQL => (o.competitionId ? eq(schema.asset.competitionId, o.competitionId) : eq(schema.asset.seriesId, o.seriesId!));
 
 /** Stores an already validated image, replacing the owner's previous one of that kind. Returns the new id. */
 export async function saveAsset(q: Q, owner: AssetOwner, kind: AssetKind, img: ValidImage, userId: string | null): Promise<string> {
@@ -42,7 +41,14 @@ export async function saveAsset(q: Q, owner: AssetOwner, kind: AssetKind, img: V
 		.values({
 			competitionId: owner.competitionId ?? null,
 			seriesId: owner.seriesId ?? null,
-			kind, mime: img.mime, size: img.bytes.length, width: img.width, height: img.height, sha256: img.sha256, data: img.bytes, uploadedBy: userId
+			kind,
+			mime: img.mime,
+			size: img.bytes.length,
+			width: img.width,
+			height: img.height,
+			sha256: img.sha256,
+			data: img.bytes,
+			uploadedBy: userId
 		})
 		.returning({ id: schema.asset.id });
 	return row.id;
@@ -51,7 +57,11 @@ export async function saveAsset(q: Q, owner: AssetOwner, kind: AssetKind, img: V
 /** Bytes + headers data for /media/<id>, or null. */
 /** Everything but the bytes (answers a conditional request without reading up to 2 MB). */
 export async function readAssetMeta(id: string): Promise<{ mime: string; sha256: string; size: number } | null> {
-	const [a] = await db.select({ mime: schema.asset.mime, sha256: schema.asset.sha256, size: schema.asset.size }).from(schema.asset).where(eq(schema.asset.id, id)).limit(1);
+	const [a] = await db
+		.select({ mime: schema.asset.mime, sha256: schema.asset.sha256, size: schema.asset.size })
+		.from(schema.asset)
+		.where(eq(schema.asset.id, id))
+		.limit(1);
 	return a ?? null;
 }
 
@@ -106,8 +116,12 @@ export async function listAssets(owners: AssetOwner[], q: Q = db): Promise<Store
 	if (!conds.length) return [];
 	return q
 		.select({
-			id: schema.asset.id, kind: schema.asset.kind, width: schema.asset.width, height: schema.asset.height,
-			competitionId: schema.asset.competitionId, seriesId: schema.asset.seriesId
+			id: schema.asset.id,
+			kind: schema.asset.kind,
+			width: schema.asset.width,
+			height: schema.asset.height,
+			competitionId: schema.asset.competitionId,
+			seriesId: schema.asset.seriesId
 		})
 		.from(schema.asset)
 		.where(conds.length === 1 ? conds[0] : or(...conds));
@@ -120,8 +134,16 @@ export async function copyAssets(q: Q, from: AssetOwner, to: AssetOwner): Promis
 	for (const r of rows) {
 		if (have.has(r.kind)) continue;
 		await q.insert(schema.asset).values({
-			competitionId: to.competitionId ?? null, seriesId: to.seriesId ?? null,
-			kind: r.kind, mime: r.mime, size: r.size, width: r.width, height: r.height, sha256: r.sha256, data: r.data, uploadedBy: r.uploadedBy
+			competitionId: to.competitionId ?? null,
+			seriesId: to.seriesId ?? null,
+			kind: r.kind,
+			mime: r.mime,
+			size: r.size,
+			width: r.width,
+			height: r.height,
+			sha256: r.sha256,
+			data: r.data,
+			uploadedBy: r.uploadedBy
 		});
 	}
 }

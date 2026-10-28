@@ -16,7 +16,12 @@ export async function load(event) {
 	const reads = await readsFor(messages.map((m) => m.id));
 	const stationName = new Map(stations.map((s) => [s.id, `${s.code} ${s.name}`]));
 	const deviceLabel = (d: (typeof devices)[number]) =>
-		d.role === 'startfinish' ? 'Start & mål' : d.stationIds.map((id) => stationName.get(id)).filter(Boolean).join(', ') || d.displayName;
+		d.role === 'startfinish'
+			? 'Start & mål'
+			: d.stationIds
+					.map((id) => stationName.get(id))
+					.filter(Boolean)
+					.join(', ') || d.displayName;
 	return {
 		comp: { slug: comp.slug, name: comp.name },
 		stations: stations.map((s) => ({ id: s.id, code: s.code, name: s.name })),
@@ -26,9 +31,15 @@ export async function load(event) {
 			const readIds = new Set(reads.filter((r) => r.messageId === m.id).map((r) => r.deviceId));
 			const unread = audience.filter((d) => !readIds.has(d.id));
 			return {
-				id: m.id, title: m.title, body: m.body, important: m.important, time: formatTime(m.createdAt),
+				id: m.id,
+				title: m.title,
+				body: m.body,
+				important: m.important,
+				time: formatTime(m.createdAt),
 				audience: m.audience.map((a) => (a === 'all' ? 'Alla funktionärer' : a === 'startfinish' ? 'Start & mål' : (stationName.get(a) ?? 'Okänd kontroll'))),
-				total: audience.length, read: audience.length - unread.length, unread: [...new Set(unread.map(deviceLabel))]
+				total: audience.length,
+				read: audience.length - unread.length,
+				unread: [...new Set(unread.map(deviceLabel))]
 			};
 		})
 	};

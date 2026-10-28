@@ -69,8 +69,16 @@ export function distribute(patrols: DistPatrol[], stations: DistStation[], strat
 	if (st.length === 0) return { assignment, counts, ineligible: 0 };
 
 	const locked = patrols.filter((p) => p.lockedStationId && counts.has(p.lockedStationId));
-	locked.forEach((p) => place(p, st.find((s) => s.id === p.lockedStationId)!));
-	const free = shuffle(patrols.filter((p) => !locked.includes(p)), rnd);
+	locked.forEach((p) =>
+		place(
+			p,
+			st.find((s) => s.id === p.lockedStationId)!
+		)
+	);
+	const free = shuffle(
+		patrols.filter((p) => !locked.includes(p)),
+		rnd
+	);
 	const offset = Math.floor(rnd() * st.length);
 
 	if (strategy === 'ALL') {
@@ -79,18 +87,16 @@ export function distribute(patrols: DistPatrol[], stations: DistStation[], strat
 		const tracks = [...new Set(free.map((p) => p.trackId))];
 		for (const t of tracks) free.filter((p) => p.trackId === t).forEach((p, i) => place(p, st[(i + offset) % st.length]));
 	} else {
-		const tracks = [...new Set(free.map((p) => p.trackId))].sort(
-			(a, b) => st.filter((s) => eligible(s, a)).length - st.filter((s) => eligible(s, b)).length
-		);
+		const tracks = [...new Set(free.map((p) => p.trackId))].sort((a, b) => st.filter((s) => eligible(s, a)).length - st.filter((s) => eligible(s, b)).length);
 		for (const t of tracks) {
 			const options = st.filter((s) => eligible(s, t));
 			const pool = options.length ? options : st;
 			for (const p of free.filter((fp) => fp.trackId === t)) {
 				const best = [...pool].sort(
 					(a, b) =>
-						(counts.get(a.id)! - counts.get(b.id)!) ||
-						((perTrack.get(key(a.id, t)) ?? 0) - (perTrack.get(key(b.id, t)) ?? 0)) ||
-						(((a.order + offset) % st.length) - ((b.order + offset) % st.length))
+						counts.get(a.id)! - counts.get(b.id)! ||
+						(perTrack.get(key(a.id, t)) ?? 0) - (perTrack.get(key(b.id, t)) ?? 0) ||
+						((a.order + offset) % st.length) - ((b.order + offset) % st.length)
 				)[0];
 				place(p, best);
 			}

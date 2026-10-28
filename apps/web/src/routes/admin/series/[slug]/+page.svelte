@@ -11,10 +11,14 @@
 
 	let { data, form } = $props();
 	const s = $derived(data.series);
-	const errs = (section: string): Record<string, string> => (form && form.section === section && 'errors' in form ? (form.errors as Record<string, string>) : {});
+	const errs = (section: string): Record<string, string> =>
+		form && form.section === section && 'errors' in form ? (form.errors as Record<string, string>) : {};
 	const ok = (section: string) => Boolean(form && form.section === section && 'ok' in form && form.ok);
 	const nextExists = $derived(data.next ? data.editions.find((e) => e.name === data.next!.name) : null);
-	const keep = () => async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) => update({ reset: false });
+	const keep =
+		() =>
+		async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) =>
+			update({ reset: false });
 </script>
 
 <svelte:head><title>{s.name} · Serie</title></svelte:head>
@@ -36,7 +40,9 @@
 
 	<section class="card sec" aria-labelledby="h-eds">
 		<h2 id="h-eds">År</h2>
-		<p class="muted lead">Varje år är en egen tävling. Avslutade år visas under "Tidigare år" på seriens sida, med vinnarna i varje klass, om du inte döljer dem.</p>
+		<p class="muted lead">
+			Varje år är en egen tävling. Avslutade år visas under "Tidigare år" på seriens sida, med vinnarna i varje klass, om du inte döljer dem.
+		</p>
 		{#if errs('editions').editions}<p class="error-text" role="alert">{errs('editions').editions}</p>{/if}
 		<ul class="eds">
 			{#each data.editions as e (e.slug)}
@@ -44,7 +50,9 @@
 					<span class="y">{e.year}</span>
 					<div class="e-main">
 						<a class="e-name" href="/admin/{e.slug}">{e.name}</a>
-						<span class="muted small">{dateRange(e.startDate, e.endDate)}{e.location ? ` · ${e.location}` : ''} · {e.patrols} {e.patrols === 1 ? 'patrull' : 'patruller'}</span>
+						<span class="muted small"
+							>{dateRange(e.startDate, e.endDate)}{e.location ? ` · ${e.location}` : ''} · {e.patrols} {e.patrols === 1 ? 'patrull' : 'patruller'}</span
+						>
 					</div>
 					<div class="e-side">
 						{#if e.anonymised}<span class="pill arch">Arkiverad</span>{:else}<StatusPill status={e.status} />{/if}

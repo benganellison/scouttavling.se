@@ -76,11 +76,7 @@ const MAX_AHEAD_MS = 10 * 60_000;
 /** Phones join a few minutes before use; a command dated well before the join was not made then. */
 const MAX_BEFORE_JOIN_MS = 10 * 60_000;
 
-export async function processBatch(
-	jwsList: string[],
-	ctx: BatchContext,
-	deps: BatchDeps
-): Promise<{ results: CommandResult[]; lastSeq: number }> {
+export async function processBatch(jwsList: string[], ctx: BatchContext, deps: BatchDeps): Promise<{ results: CommandResult[]; lastSeq: number }> {
 	if (jwsList.length > MAX_BATCH) throw new CommandVerifyError(`Högst ${MAX_BATCH} kommandon per anrop`);
 	const now = ctx.now ?? new Date();
 	// Order by deviceSeq (unverified peek only for sorting; each is verified below).

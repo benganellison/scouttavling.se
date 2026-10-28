@@ -25,7 +25,10 @@
 			handle = await startScanner(video, (t) => onCode(t));
 		} catch (e) {
 			const name = e instanceof Error ? e.name : '';
-			problem = name === 'NotAllowedError' ? 'Kameran är blockerad. Tillåt kameran i webbläsaren eller använd nummer.' : 'Kameran är inte tillgänglig. Använd nummer i stället.';
+			problem =
+				name === 'NotAllowedError'
+					? 'Kameran är blockerad. Tillåt kameran i webbläsaren eller använd nummer.'
+					: 'Kameran är inte tillgänglig. Använd nummer i stället.';
 			onUnavailable?.(problem);
 		} finally {
 			starting = false;
@@ -63,7 +66,10 @@
 				<button type="button" class="retry" onclick={start}>Försök igen</button>
 			</div>
 		{:else if !handle}
-			<div class="problem"><Icon name="scan" size={40} /><p>Startar kameran…</p></div>
+			<div class="problem">
+				<Icon name="scan" size={40} />
+				<p>Startar kameran…</p>
+			</div>
 		{/if}
 	</div>
 	<p class="hint">{hint}</p>

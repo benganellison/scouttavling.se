@@ -79,16 +79,19 @@
 
 <div class="viewport" bind:clientWidth={w} bind:clientHeight={h} role="region" aria-label="Prisutdelning {className}" aria-roledescription="presentation">
 	<div class="stage" style="transform: translate(-50%, -50%) scale({scale}); --stripe: {stripe}">
-
 		<header class="top">
-			<div class="brand">{#if eventLogo}<EventLogo logo={eventLogo} height={64} onDark />{:else}<ScouternaSymbol size={44} onDark />{/if} <span>{compName}</span></div>
+			<div class="brand">
+				{#if eventLogo}<EventLogo logo={eventLogo} height={64} onDark />{:else}<ScouternaSymbol size={44} onDark />{/if} <span>{compName}</span>
+			</div>
 			<span class="snap">Resultat fryst {takenAt} · <a href={refreshHref}>Uppdatera</a> · <a href={backHref}>Byt klass</a></span>
 		</header>
 
 		<div class="body">
 			<section class="main">
 				<p class="eyebrow">Prisutdelning</p>
-				<h1 class="cls">{#if classColor}<span class="cbar" style="background:{classColor}" aria-hidden="true"></span>{/if}{className}</h1>
+				<h1 class="cls">
+					{#if classColor}<span class="cbar" style="background:{classColor}" aria-hidden="true"></span>{/if}{className}
+				</h1>
 
 				<div class="card" aria-live="polite" data-testid="reveal-card">
 					{#if current}

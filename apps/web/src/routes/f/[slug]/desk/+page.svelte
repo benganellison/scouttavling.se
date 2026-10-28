@@ -141,7 +141,7 @@
 		last = null;
 	}
 
-	const lastPatrol = $derived(last ? app.patrolById.get(last.patrolId) ?? null : null);
+	const lastPatrol = $derived(last ? (app.patrolById.get(last.patrolId) ?? null) : null);
 	const filters: { k: Filter; l: string }[] = [
 		{ k: 'all', l: 'Alla' },
 		{ k: 'registered', l: 'Ej startade' },
@@ -157,7 +157,12 @@
 <div class="desk">
 	<aside>
 		<div class="brand">
-			<span class="b">{#if app.pack?.competition.branding?.eventLogo}<EventLogo logo={app.pack.competition.branding.eventLogo} height={34} onDark />{:else}<ScouternaSymbol size={30} onDark />{/if} Start &amp; mål</span>
+			<span class="b"
+				>{#if app.pack?.competition.branding?.eventLogo}<EventLogo logo={app.pack.competition.branding.eventLogo} height={34} onDark />{:else}<ScouternaSymbol
+						size={30}
+						onDark
+					/>{/if} Start &amp; mål</span
+			>
 			<SyncPill />
 		</div>
 
@@ -218,7 +223,9 @@
 
 		<div class="table" role="table" aria-label="Patruller">
 			<div class="tr th" role="row">
-				<span role="columnheader">Patrull</span><span role="columnheader">Status</span><span role="columnheader">Kontroller</span><span role="columnheader">Senast sedd</span><span role="columnheader"><span class="sr-only">Ring</span></span>
+				<span role="columnheader">Patrull</span><span role="columnheader">Status</span><span role="columnheader">Kontroller</span><span role="columnheader"
+					>Senast sedd</span
+				><span role="columnheader"><span class="sr-only">Ring</span></span>
 			</div>
 			<div class="tbody">
 				{#each rows as p (p.id)}
@@ -227,7 +234,11 @@
 					<div class="tr" class:late={seen.late} role="row" data-testid="row-{p.number}">
 						<span class="pcell" role="cell">
 							<span class="pnr">{p.number}</span>
-							<span class="pwho"><span class="pname">{p.name}</span><span class="psub"><TrackChip color={trackColor(p.trackId)} size={10} /> {p.track} · {shortTroop(p.troop)}</span></span>
+							<span class="pwho"
+								><span class="pname">{p.name}</span><span class="psub"
+									><TrackChip color={trackColor(p.trackId)} size={10} /> {p.track} · {shortTroop(p.troop)}</span
+								></span
+							>
 						</span>
 						<span role="cell">
 							<span class="seg" role="radiogroup" aria-label="Status för {p.name}">

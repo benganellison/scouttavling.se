@@ -10,11 +10,20 @@
 
 <a class="back" href="/site-admin">Sök</a>
 <h1 class="sa-h1">{data.series.name}</h1>
-<p class="muted">Tävlingsserie · <a href="/t/{data.series.slug}">/t/{data.series.slug}</a>{data.series.ownerGroupName ? ` · ${data.series.ownerGroupName}` : ''}</p>
+<p class="muted">
+	Tävlingsserie · <a href="/t/{data.series.slug}">/t/{data.series.slug}</a>{data.series.ownerGroupName ? ` · ${data.series.ownerGroupName}` : ''}
+</p>
 
 <section class="card sa-sec" aria-labelledby="h-members">
 	<h2 id="h-members">Seriens ägare och arrangörer</h2>
-	<MembersPanel members={data.members} meId={data.admin.id} power="platform" {form} scopeText="serien" lead="Gäller serien (utseende, klassfärger, arkiv). Varje års ägare ändras på tävlingens sida." />
+	<MembersPanel
+		members={data.members}
+		meId={data.admin.id}
+		power="platform"
+		{form}
+		scopeText="serien"
+		lead="Gäller serien (utseende, klassfärger, arkiv). Varje års ägare ändras på tävlingens sida."
+	/>
 </section>
 
 <section class="card sa-sec" aria-labelledby="h-eds">

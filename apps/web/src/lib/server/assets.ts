@@ -29,7 +29,13 @@ const meta = (rows: { id: string; kind: AssetKind; width: number; height: number
  * Branding for any page that has the competition row: edition override → series → Scouterna base
  * (see resolveBranding). Every page that shows branding goes through here.
  */
-export async function loadBranding(comp: { id: string; name: string; ownerGroupName: string | null; accentColor: string | null; coverFit: 'contain' | 'cover' | null }): Promise<Branding> {
+export async function loadBranding(comp: {
+	id: string;
+	name: string;
+	ownerGroupName: string | null;
+	accentColor: string | null;
+	coverFit: 'contain' | 'cover' | null;
+}): Promise<Branding> {
 	const series = await seriesOf(comp.id);
 	const assets = await listAssets(series ? [{ competitionId: comp.id }, { seriesId: series.id }] : [{ competitionId: comp.id }]);
 	return resolveBranding(
@@ -49,7 +55,13 @@ export async function loadSeriesBranding(series: SeriesRow): Promise<Branding> {
  * of that kind. Callers must have checked the organiser role first. `notify` = editions whose live
  * screens should refresh (the edition itself, or every edition of the series).
  */
-export async function uploadImage(owner: AssetOwner, kind: AssetKind, input: Uint8Array, userId: string | null, notify: string[]): Promise<{ ok: true; id: string } | { ok: false; reason: string }> {
+export async function uploadImage(
+	owner: AssetOwner,
+	kind: AssetKind,
+	input: Uint8Array,
+	userId: string | null,
+	notify: string[]
+): Promise<{ ok: true; id: string } | { ok: false; reason: string }> {
 	const v = validateImage(input);
 	if (!v.ok) return v;
 	const sha256 = createHash('sha256').update(v.bytes).digest('hex');

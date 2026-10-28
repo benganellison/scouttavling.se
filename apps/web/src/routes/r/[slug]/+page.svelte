@@ -37,7 +37,10 @@
 
 <div class="wrap" style={accentStyle(data.branding)}>
 	<header class="top">
-		<div class="brand">{#if data.branding.eventLogo}<EventLogo logo={data.branding.eventLogo} height={40} onDark />{:else}<ScouternaSymbol size={28} onDark />{/if} <span>{data.comp.name}</span></div>
+		<div class="brand">
+			{#if data.branding.eventLogo}<EventLogo logo={data.branding.eventLogo} height={40} onDark />{:else}<ScouternaSymbol size={28} onDark />{/if}
+			<span>{data.comp.name}</span>
+		</div>
 		{#if data.comp.final}
 			<p class="state final" data-testid="final">Slutresultat</p>
 		{:else}
@@ -48,7 +51,9 @@
 
 	<nav class="tabs" aria-label="Klasser">
 		{#each tracks as t (t.trackId)}
-			<button class="tab" aria-pressed={current?.trackId === t.trackId} onclick={() => (tab = t.trackId)}><TrackChip color={data.trackColors[t.trackId]} size={12} />{t.name}</button>
+			<button class="tab" aria-pressed={current?.trackId === t.trackId} onclick={() => (tab = t.trackId)}
+				><TrackChip color={data.trackColors[t.trackId]} size={12} />{t.name}</button
+			>
 		{/each}
 	</nav>
 
@@ -75,7 +80,17 @@
 						{#if expandable}
 							<button class="row-item btn-row" type="button" aria-expanded={isOpen} aria-controls="st-{r.number}" onclick={() => toggle(r.number)}>
 								{@render rowBody()}
-								<svg class="chev" class:up={isOpen} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+								<svg
+									class="chev"
+									class:up={isOpen}
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2.5"
+									aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg
+								>
 							</button>
 						{:else}
 							<div class="row-item">{@render rowBody()}</div>

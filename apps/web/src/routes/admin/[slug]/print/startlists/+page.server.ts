@@ -13,7 +13,13 @@ export async function load(event) {
 			name: s.name,
 			patrols: patrols
 				.filter((p) => p.startStationId === s.id)
-				.map((p) => ({ nr: p.number, name: p.name, track: p.trackId ? (trackName.get(p.trackId) ?? '') : '', troop: p.troop, contact: [p.contactName, p.contactPhone].filter(Boolean).join(' · ') }))
+				.map((p) => ({
+					nr: p.number,
+					name: p.name,
+					track: p.trackId ? (trackName.get(p.trackId) ?? '') : '',
+					troop: p.troop,
+					contact: [p.contactName, p.contactPhone].filter(Boolean).join(' · ')
+				}))
 		}))
 		.filter((l) => l.patrols.length);
 	return {

@@ -12,7 +12,11 @@
 <svelte:head><title>Reservprotokoll · {data.competition.name}</title></svelte:head>
 
 <div class="print-root">
-	<PrintBar back="/admin/{data.competition.slug}/print" title="Reservprotokoll" meta="{data.pages.length} sidor · {data.distributed ? 'i väntad ankomstordning' : 'i nummerordning'}" />
+	<PrintBar
+		back="/admin/{data.competition.slug}/print"
+		title="Reservprotokoll"
+		meta="{data.pages.length} sidor · {data.distributed ? 'i väntad ankomstordning' : 'i nummerordning'}"
+	/>
 	<div class="sheets">
 		{#each data.pages as p (p.key)}
 			<section class="sheet proto" aria-label="Reservprotokoll {p.code} {p.station}">
@@ -20,7 +24,10 @@
 					<PrintEventLogo logo={data.branding.eventLogo} mm={15} />
 					<div>
 						<span class="eyebrow">Reservprotokoll · {data.competition.name}</span>
-						<h1>{p.code} {p.station}{#if p.item}<span class="item"> · {p.item}</span>{/if}</h1>
+						<h1>
+							{p.code}
+							{p.station}{#if p.item}<span class="item"> · {p.item}</span>{/if}
+						</h1>
 						<span class="rule">{p.rule}</span>
 					</div>
 				</header>
@@ -51,7 +58,9 @@
 									{#if p.values}
 										<div class="digits">
 											{#each rowsOf(p.values) as row, ri (ri)}
-												<div class="drow">{#each row as d (d)}<span>{d}</span>{/each}</div>
+												<div class="drow">
+													{#each row as d (d)}<span>{d}</span>{/each}
+												</div>
 											{/each}
 										</div>
 									{:else}
@@ -59,7 +68,11 @@
 									{/if}
 								</td>
 								{#if p.style.length}
-									<td><div class="drow style">{#each p.style as d (d)}<span>{d}</span>{/each}</div></td>
+									<td
+										><div class="drow style">
+											{#each p.style as d (d)}<span>{d}</span>{/each}
+										</div></td
+									>
 								{/if}
 							</tr>
 						{:else}
@@ -76,7 +89,10 @@
 				{/if}
 
 				<footer>
-					<span>Funktionär: ______________________{#if data.competition.hqPhone} · Tävlingsledningen: {data.competition.hqPhone}{/if}</span>
+					<span
+						>Funktionär: ______________________{#if data.competition.hqPhone}
+							· Tävlingsledningen: {data.competition.hqPhone}{/if}</span
+					>
 					<span>Sida {p.page} av {p.pages} · utskriven {data.printedAt}</span>
 					<ScouternaLogo print />
 				</footer>

@@ -27,7 +27,10 @@ export async function load(event) {
 	});
 	const multi = comp.multiDay && days.length > 1;
 	const groups = multi
-		? [...days.map((d) => ({ label: d.name, ids: stations.filter((s) => s.dayId === d.id).map((s) => s.id) })), { label: 'Övrigt', ids: stations.filter((s) => !s.dayId || !days.some((d) => d.id === s.dayId)).map((s) => s.id) }].filter((g) => g.ids.length)
+		? [
+				...days.map((d) => ({ label: d.name, ids: stations.filter((s) => s.dayId === d.id).map((s) => s.id) })),
+				{ label: 'Övrigt', ids: stations.filter((s) => !s.dayId || !days.some((d) => d.id === s.dayId)).map((s) => s.id) }
+			].filter((g) => g.ids.length)
 		: [{ label: '', ids: stations.map((s) => s.id) }];
 
 	const cards = await Promise.all(
@@ -54,7 +57,7 @@ export async function load(event) {
 	);
 	const sheets: (typeof cards)[] = [];
 	for (let i = 0; i < cards.length; i += 2) sheets.push(cards.slice(i, i + 2));
-	const cols = Math.min(8, Math.max(4, ...groups.map((g) => g.ids.length > 8 ? Math.ceil(g.ids.length / 2) : g.ids.length)));
+	const cols = Math.min(8, Math.max(4, ...groups.map((g) => (g.ids.length > 8 ? Math.ceil(g.ids.length / 2) : g.ids.length))));
 	return {
 		competition: { slug: comp.slug, name: comp.name, hqPhone: comp.hqPhone ?? '', styleEnabled: comp.styleEnabled },
 		branding: await loadBranding(comp),

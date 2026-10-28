@@ -128,7 +128,13 @@
 	const unclearRows = $derived(base.rows.map((r, i) => ({ r, i })).filter(({ r }) => r.members.some((m) => m.uncertain)));
 	const openIssues = $derived(
 		base.issues.filter((i) =>
-			i.kind === 'unknownTrack' ? !trackFix[i.values[0]] : i.kind === 'troopSpelling' ? !isMerged(i.values) : i.kind === 'members' ? unclearRows.some(({ i: ix }) => !memberFix[ix]) : i.kind === 'missingName'
+			i.kind === 'unknownTrack'
+				? !trackFix[i.values[0]]
+				: i.kind === 'troopSpelling'
+					? !isMerged(i.values)
+					: i.kind === 'members'
+						? unclearRows.some(({ i: ix }) => !memberFix[ix])
+						: i.kind === 'missingName'
 		).length
 	);
 
@@ -293,12 +299,22 @@
 	<header class="prep-head">
 		<div>
 			<h1>Importera patruller</h1>
-			<p>När anmälan skett någon annanstans — Scoutnet, ett formulär eller ett kalkylark. Bara patrull, namn och kontaktuppgifter läses in: personnummer, födelsedatum, hälsa och adresser stannar i filen. <a href="/personuppgifter?t={data.competition.slug}">Så hanterar vi personuppgifter</a></p>
+			<p>
+				När anmälan skett någon annanstans — Scoutnet, ett formulär eller ett kalkylark. Bara patrull, namn och kontaktuppgifter läses in: personnummer,
+				födelsedatum, hälsa och adresser stannar i filen. <a href="/personuppgifter?t={data.competition.slug}">Så hanterar vi personuppgifter</a>
+			</p>
 		</div>
 		<ol class="steps" aria-label="Steg">
 			{#each STEPS as s (s.n)}
 				<li>
-					<button type="button" class:cur={step === s.n} class:past={step > s.n} aria-current={step === s.n ? 'step' : undefined} disabled={!canGo(s.n)} onclick={() => (step = s.n)}>
+					<button
+						type="button"
+						class:cur={step === s.n}
+						class:past={step > s.n}
+						aria-current={step === s.n ? 'step' : undefined}
+						disabled={!canGo(s.n)}
+						onclick={() => (step = s.n)}
+					>
 						<span class="sn">{s.n}</span>{s.label}
 					</button>
 				</li>
@@ -318,7 +334,17 @@
 			ondragleave={() => (dragging = false)}
 			ondrop={onDrop}
 		>
-			<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg>
+			<svg
+				width="44"
+				height="44"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.8"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg
+			>
 			<h2 id="drop-h">Släpp filen här</h2>
 			<p class="muted">Scoutnet-export (.xls) eller CSV — eller klistra in rader direkt från ett kalkylark.</p>
 			<div class="row" style="justify-content:center">
@@ -374,7 +400,17 @@
 			</section>
 			<section class="never" aria-labelledby="never-h">
 				<h2 id="never-h">
-					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+					<svg
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg
+					>
 					Läses aldrig in
 				</h2>
 				<p>Känsliga uppgifter som tävlingen inte behöver. De lämnar aldrig din dator — filen tolkas i webbläsaren.</p>
@@ -402,7 +438,9 @@
 		</div>
 		<div class="split">
 			<section class="card issues" aria-labelledby="fix-h">
-				<h2 id="fix-h">Att titta på {#if openIssues}<span class="open">· {openIssues}</span>{/if}</h2>
+				<h2 id="fix-h">
+					Att titta på {#if openIssues}<span class="open">· {openIssues}</span>{/if}
+				</h2>
 				{#each base.issues as issue (issue.kind + issue.values.join('|'))}
 					{#if issue.kind === 'unknownTrack'}
 						{@const name = issue.values[0]}
@@ -433,7 +471,9 @@
 						<div class="issue" class:resolved={isDone}>
 							<strong>{issue.message}</strong>
 							{#if !isDone}
-								<div class="row"><button type="button" class="btn btn-primary btn-sm" onclick={() => mergeGroup(issue.values)}>Slå ihop till ”{issue.values[0]}”</button></div>
+								<div class="row">
+									<button type="button" class="btn btn-primary btn-sm" onclick={() => mergeGroup(issue.values)}>Slå ihop till ”{issue.values[0]}”</button>
+								</div>
 							{:else}
 								<span class="ok">Sammanslagna till ”{issue.values[0]}”.</span>
 							{/if}
@@ -449,12 +489,18 @@
 								<div class="stack mem-list">
 									{#each unclearRows as { r, i } (i)}
 										<div class="field">
-											<label for="mem{i}">{r.patrolName || 'Utan namn'} {#if memberFix[i]}<span class="ok-inline">klar</span>{/if}</label>
-											<textarea id="mem{i}" rows={Math.min(8, Math.max(3, (memberDraft[i] ?? '').split('\n').length + 1))} bind:value={memberDraft[i]}></textarea>
+											<label for="mem{i}"
+												>{r.patrolName || 'Utan namn'}
+												{#if memberFix[i]}<span class="ok-inline">klar</span>{/if}</label
+											>
+											<textarea id="mem{i}" rows={Math.min(8, Math.max(3, (memberDraft[i] ?? '').split('\n').length + 1))} bind:value={memberDraft[i]}
+											></textarea>
 											<div><button type="button" class="btn btn-sm" onclick={() => saveMembers(i)}>Spara {r.patrolName}</button></div>
 										</div>
 									{/each}
-									{#if left}<div><button type="button" class="btn btn-primary btn-sm" onclick={acceptAllMembers}>Godkänn resten (utan anteckningar)</button></div>{/if}
+									{#if left}<div>
+											<button type="button" class="btn btn-primary btn-sm" onclick={acceptAllMembers}>Godkänn resten (utan anteckningar)</button>
+										</div>{/if}
 								</div>
 							{/if}
 							{#if left === 0}<span class="ok">Medlemslistorna är granskade.</span>{/if}
@@ -474,7 +520,13 @@
 				<h2 id="pv-h">Patrullerna</h2>
 				<div class="pv-wrap">
 					<table class="prep-table">
-						<thead><tr><th scope="col">Patrull</th><th scope="col">Klass</th><th scope="col">Kår</th><th scope="col">Kontakt</th><th scope="col">Scouter</th><th scope="col">Status</th></tr></thead>
+						<thead
+							><tr
+								><th scope="col">Patrull</th><th scope="col">Klass</th><th scope="col">Kår</th><th scope="col">Kontakt</th><th scope="col">Scouter</th><th
+									scope="col">Status</th
+								></tr
+							></thead
+						>
 						<tbody>
 							{#each rows as r (r._i)}
 								{@const st = rowStatus(r)}

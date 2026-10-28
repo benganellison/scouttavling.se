@@ -5,7 +5,14 @@
 	 */
 	import { selectableValues, styleValues, type ScoreItemDef } from '@scouttavling/domain';
 
-	let { code, name, item, checkpoint, count, index = 1 }: { code: string; name: string; item: ScoreItemDef | null; checkpoint: boolean; count: number; index?: number } = $props();
+	let {
+		code,
+		name,
+		item,
+		checkpoint,
+		count,
+		index = 1
+	}: { code: string; name: string; item: ScoreItemDef | null; checkpoint: boolean; count: number; index?: number } = $props();
 
 	const values = $derived(item ? selectableValues(item) : []);
 	const style = $derived(item ? styleValues(item) : []);

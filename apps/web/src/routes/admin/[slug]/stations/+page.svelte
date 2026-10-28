@@ -19,7 +19,12 @@
 	const groups = $derived(
 		multi
 			? [
-					...data.days.map((d) => ({ key: d.id, label: `${d.name} ${shortDate(d.date).replace(/^\S+ /, '')}`, dayId: d.id as string | null, items: data.stations.filter((s) => s.dayId === d.id) })),
+					...data.days.map((d) => ({
+						key: d.id,
+						label: `${d.name} ${shortDate(d.date).replace(/^\S+ /, '')}`,
+						dayId: d.id as string | null,
+						items: data.stations.filter((s) => s.dayId === d.id)
+					})),
 					{ key: 'none', label: 'Ingen dag', dayId: null, items: data.stations.filter((s) => !data.days.some((d) => d.id === s.dayId)) }
 				].filter((g) => g.dayId || g.items.length)
 			: [{ key: 'all', label: '', dayId: null as string | null, items: data.stations }]
@@ -50,9 +55,7 @@
 		return m.get(selected.id) ?? '';
 	}
 	const subtitle = $derived(
-		multi
-			? `${data.stations.length} kontroller över ${data.days.length} dagar`
-			: `${data.stations.length} kontroller · ändra ordning med pilarna`
+		multi ? `${data.stations.length} kontroller över ${data.days.length} dagar` : `${data.stations.length} kontroller · ändra ordning med pilarna`
 	);
 </script>
 
@@ -99,13 +102,40 @@
 								</span>
 								{#if !s.invited}<span class="novol" title="Saknar funktionär"><span class="sr-only">Saknar funktionär</span></span>{/if}
 							</a>
-							<form method="POST" action="?s={selected?.id ?? s.id}&/move" class="mv" use:enhance={() => async ({ update }) => update({ reset: false })}>
+							<form
+								method="POST"
+								action="?s={selected?.id ?? s.id}&/move"
+								class="mv"
+								use:enhance={() =>
+									async ({ update }) =>
+										update({ reset: false })}
+							>
 								<input type="hidden" name="id" value={s.id} />
 								<button name="dir" value="up" disabled={i === 0} aria-label="Flytta {s.name} upp">
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6" /></svg>
+									<svg
+										width="16"
+										height="16"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2.4"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										aria-hidden="true"><path d="M6 15l6-6 6 6" /></svg
+									>
 								</button>
 								<button name="dir" value="down" disabled={i === g.items.length - 1} aria-label="Flytta {s.name} ner">
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+									<svg
+										width="16"
+										height="16"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2.4"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg
+									>
 								</button>
 							</form>
 						</li>

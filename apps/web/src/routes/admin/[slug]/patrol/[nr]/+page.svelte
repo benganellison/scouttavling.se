@@ -42,7 +42,8 @@
 			</div>
 			<p class="muted meta">
 				{data.patrol.troop} · {data.patrol.track}
-				{#if data.patrol.startStation} · Startar på {data.patrol.startStation.code} {data.patrol.startStation.name}{/if}
+				{#if data.patrol.startStation}
+					· Startar på {data.patrol.startStation.code} {data.patrol.startStation.name}{/if}
 			</p>
 			{#if data.members.length}<p class="meta">{data.members.join(', ')}</p>{/if}
 		</div>
@@ -58,7 +59,9 @@
 			{/if}
 			{#if data.patrol.contactPhone}
 				<a class="btn btn-primary" href="tel:{tel(data.patrol.contactPhone)}">
-					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 3h4l2 5-3 2a12 12 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2A18 18 0 0 1 3 5a2 2 0 0 1 2-2z" /></svg>
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
+						><path d="M5 3h4l2 5-3 2a12 12 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2A18 18 0 0 1 3 5a2 2 0 0 1 2-2z" /></svg
+					>
 					Ring {data.patrol.contactName ?? data.patrol.contactPhone}
 				</a>
 			{/if}
@@ -119,7 +122,8 @@
 							<div class="row between">
 								<strong>{it.name}</strong>
 								<span class="muted small">
-									{#if it.score?.state === 'active'}Nu: {it.score.points}{it.score.stylePoints ? ` + ${it.score.stylePoints} stil` : ''} · version {it.score.version}{:else if it.score}Ångrad{:else}Ej rapporterad{/if}
+									{#if it.score?.state === 'active'}Nu: {it.score.points}{it.score.stylePoints ? ` + ${it.score.stylePoints} stil` : ''} · version {it.score
+											.version}{:else if it.score}Ångrad{:else}Ej rapporterad{/if}
 								</span>
 							</div>
 							{#if values.length}
@@ -176,7 +180,10 @@
 					{#each data.events as e, i (i)}
 						<li class={e.kind}>
 							<span class="time">{e.time}</span>
-							<span class="etext">{e.text}{#if e.reason} · <em>'{e.reason}'</em>{/if}</span>
+							<span class="etext"
+								>{e.text}{#if e.reason}
+									· <em>'{e.reason}'</em>{/if}</span
+							>
 						</li>
 					{/each}
 				</ol>

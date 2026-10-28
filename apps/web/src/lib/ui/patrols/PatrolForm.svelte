@@ -52,12 +52,29 @@
 		<div class="grid">
 			<div class="field span2">
 				<label for="name">Patrullnamn</label>
-				<input id="name" name="name" type="text" value={initial.name} required aria-invalid={!!err('name')} aria-describedby={err('name') ? 'name-err' : undefined} />
+				<input
+					id="name"
+					name="name"
+					type="text"
+					value={initial.name}
+					required
+					aria-invalid={!!err('name')}
+					aria-describedby={err('name') ? 'name-err' : undefined}
+				/>
 				{#if err('name')}<span id="name-err" class="error-text">{err('name')}</span>{/if}
 			</div>
 			<div class="field">
 				<label for="number">Nummer</label>
-				<input id="number" name="number" type="number" inputmode="numeric" min="1" value={initial.number} aria-invalid={!!err('number')} aria-describedby={err('number') ? 'number-err' : undefined} />
+				<input
+					id="number"
+					name="number"
+					type="number"
+					inputmode="numeric"
+					min="1"
+					value={initial.number}
+					aria-invalid={!!err('number')}
+					aria-describedby={err('number') ? 'number-err' : undefined}
+				/>
 				{#if err('number')}<span id="number-err" class="error-text">{err('number')}</span>{/if}
 			</div>
 			<div class="field">
@@ -96,17 +113,39 @@
 			</div>
 			<div class="field">
 				<label for="contactPhone">Mobil</label>
-				<input id="contactPhone" name="contactPhone" type="tel" value={initial.contactPhone} aria-invalid={!!err('contactPhone')} aria-describedby={err('contactPhone') ? 'phone-err' : undefined} />
+				<input
+					id="contactPhone"
+					name="contactPhone"
+					type="tel"
+					value={initial.contactPhone}
+					aria-invalid={!!err('contactPhone')}
+					aria-describedby={err('contactPhone') ? 'phone-err' : undefined}
+				/>
 				{#if err('contactPhone')}<span id="phone-err" class="error-text">{err('contactPhone')}</span>{/if}
 			</div>
 			<div class="field">
 				<label for="contactEmail">E-post</label>
-				<input id="contactEmail" name="contactEmail" type="email" value={initial.contactEmail} aria-invalid={!!err('contactEmail')} aria-describedby={err('contactEmail') ? 'email-err' : undefined} />
+				<input
+					id="contactEmail"
+					name="contactEmail"
+					type="email"
+					value={initial.contactEmail}
+					aria-invalid={!!err('contactEmail')}
+					aria-describedby={err('contactEmail') ? 'email-err' : undefined}
+				/>
 				{#if err('contactEmail')}<span id="email-err" class="error-text">{err('contactEmail')}</span>{/if}
 			</div>
 			<div class="field span2">
 				<label for="contactMemberNo">Medlemsnummer i Scoutnet</label>
-				<input id="contactMemberNo" name="contactMemberNo" type="text" inputmode="numeric" value={initial.contactMemberNo} aria-invalid={!!err('contactMemberNo')} aria-describedby="memberno-help" />
+				<input
+					id="contactMemberNo"
+					name="contactMemberNo"
+					type="text"
+					inputmode="numeric"
+					value={initial.contactMemberNo}
+					aria-invalid={!!err('contactMemberNo')}
+					aria-describedby="memberno-help"
+				/>
 				<span id="memberno-help" class="muted hint">Kopplar patrullen till kontaktpersonens ScoutID-inloggning.</span>
 				{#if err('contactMemberNo')}<span class="error-text">{err('contactMemberNo')}</span>{/if}
 			</div>
@@ -135,7 +174,9 @@
 						<input id="mt{i}" name="memberTroop" type="text" bind:value={m.troopText} autocomplete="off" />
 					</div>
 					<button type="button" class="btn btn-ghost btn-sm remove" onclick={() => removeMember(i)} aria-label="Ta bort medlem {i + 1}">
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"
+							><path d="M6 6l12 12M18 6 6 18"></path></svg
+						>
 					</button>
 				</li>
 			{/each}

@@ -46,7 +46,11 @@ const MANAGED: ManagedRole[] = ['owner', 'organiser'];
 async function lockScope(tx: Tx, scope: Scope) {
 	const rows =
 		scope.kind === 'competition'
-			? await tx.select({ id: schema.competition.id, seriesId: schema.competition.seriesId }).from(schema.competition).where(eq(schema.competition.id, scope.id)).for('update')
+			? await tx
+					.select({ id: schema.competition.id, seriesId: schema.competition.seriesId })
+					.from(schema.competition)
+					.where(eq(schema.competition.id, scope.id))
+					.for('update')
 			: await tx.select({ id: schema.series.id, seriesId: schema.series.id }).from(schema.series).where(eq(schema.series.id, scope.id)).for('update');
 	if (!rows[0]) throw new OwnershipError('not_found', scope.kind === 'competition' ? 'Tävlingen finns inte.' : 'Serien finns inte.');
 	return rows[0];
@@ -105,7 +109,9 @@ async function writeRole(tx: Tx, scope: Scope, userId: string, role: ManagedRole
 	if (scope.kind === 'competition') {
 		await tx
 			.delete(schema.competitionMember)
-			.where(and(eq(schema.competitionMember.competitionId, scope.id), eq(schema.competitionMember.userId, userId), inArray(schema.competitionMember.role, MANAGED)));
+			.where(
+				and(eq(schema.competitionMember.competitionId, scope.id), eq(schema.competitionMember.userId, userId), inArray(schema.competitionMember.role, MANAGED))
+			);
 		if (role) await tx.insert(schema.competitionMember).values({ competitionId: scope.id, userId, role });
 	} else {
 		await tx.delete(schema.seriesMember).where(and(eq(schema.seriesMember.seriesId, scope.id), eq(schema.seriesMember.userId, userId)));
@@ -128,7 +134,8 @@ export async function changeMembers(scope: Scope, actor: OwnershipActor, ops: Me
 		const locked = await lockScope(tx, scope);
 		if (scope.kind === 'series') await ensureSeriesMembers(tx, scope.id);
 		const before = await currentRoles(tx, scope, true);
-		const power: ManagedRole | 'platform' | null = actor.accessRole ?? (actor.kind === 'user' ? (actor.userId ? (before.get(actor.userId) ?? null) : null) : 'platform');
+		const power: ManagedRole | 'platform' | null =
+			actor.accessRole ?? (actor.kind === 'user' ? (actor.userId ? (before.get(actor.userId) ?? null) : null) : 'platform');
 		if (!power) throw new OwnershipError('forbidden', 'Du är inte ägare eller arrangör här.');
 
 		const now = new Map(before);
@@ -156,10 +163,22 @@ export async function changeMembers(scope: Scope, actor: OwnershipActor, ops: Me
 		}
 		const where = scope.kind === 'competition' ? { competitionId: scope.id, seriesId: locked.seriesId } : { competitionId: null, seriesId: scope.id };
 		if (opts.summary) {
-			await writeAudit(tx, actor, { action: opts.summary.action, targetType: scope.kind, targetId: scope.id, ...where, details: { ...opts.summary.details, changes: audits } });
+			await writeAudit(tx, actor, {
+				action: opts.summary.action,
+				targetType: scope.kind,
+				targetId: scope.id,
+				...where,
+				details: { ...opts.summary.details, changes: audits }
+			});
 		} else {
 			for (const a of audits) {
-				await writeAudit(tx, actor, { action: a.action, targetType: scope.kind, targetId: scope.id, ...where, details: { userId: a.userId, from: a.from, to: a.to } });
+				await writeAudit(tx, actor, {
+					action: a.action,
+					targetType: scope.kind,
+					targetId: scope.id,
+					...where,
+					details: { userId: a.userId, from: a.from, to: a.to }
+				});
 			}
 		}
 		if (scope.kind === 'competition') await recordChange(tx, scope.id, 'competition', scope.id);

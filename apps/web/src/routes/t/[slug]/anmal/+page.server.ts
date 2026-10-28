@@ -2,7 +2,14 @@ import { loadBranding } from '#lib/server/assets.ts';
 import { refuseIfSuspended } from '#lib/server/suspended.ts';
 import { error, fail } from '@sveltejs/kit';
 import {
-	competitionBySlug, isMember, publicOrigin, registerLimiter, registerPatrol, spotCount, tracksWithCounts, windowFor
+	competitionBySlug,
+	isMember,
+	publicOrigin,
+	registerLimiter,
+	registerPatrol,
+	spotCount,
+	tracksWithCounts,
+	windowFor
 } from '#lib/server/registration.ts';
 import { readForm, validateRegistration, windowText } from '#lib/registration/rules.ts';
 
@@ -38,12 +45,18 @@ export const actions = {
 			return fail(429, { values: raw, errors: { form: 'För många anmälningar från din uppkoppling. Vänta en stund och försök igen.' } });
 		}
 		const tracks = await tracksWithCounts(comp.id);
-		const v = validateRegistration(raw, tracks.map((t) => t.id));
+		const v = validateRegistration(
+			raw,
+			tracks.map((t) => t.id)
+		);
 		if (!v.ok) return fail(400, { values: raw, errors: v.errors });
 		const res = await registerPatrol(comp.id, v.data);
 		if (!res.ok) {
 			const w = windowFor(comp, await spotCount(comp.id));
-			return fail(409, { values: raw, errors: { form: res.reason === 'full' ? 'Tyvärr, tävlingen blev fullbokad precis innan du skickade.' : windowText(w, w.today) } });
+			return fail(409, {
+				values: raw,
+				errors: { form: res.reason === 'full' ? 'Tyvärr, tävlingen blev fullbokad precis innan du skickade.' : windowText(w, w.today) }
+			});
 		}
 		const origin = publicOrigin(url);
 		return {

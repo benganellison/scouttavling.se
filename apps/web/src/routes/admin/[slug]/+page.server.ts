@@ -11,7 +11,10 @@ export async function load(event) {
 	const { comp, user, roles } = await requireCompetition(event, event.params.slug);
 	const cid = comp.id;
 	const [patrols, [{ members }], stations, items, invited, days, tracks] = await Promise.all([
-		db.select({ id: schema.patrol.id, start: schema.patrol.startStationId, status: schema.patrol.status }).from(schema.patrol).where(eq(schema.patrol.competitionId, cid)),
+		db
+			.select({ id: schema.patrol.id, start: schema.patrol.startStationId, status: schema.patrol.status })
+			.from(schema.patrol)
+			.where(eq(schema.patrol.competitionId, cid)),
 		db
 			.select({ members: sql<number>`count(*)::int` })
 			.from(schema.member)
@@ -65,8 +68,11 @@ export async function load(event) {
 						.orderBy(asc(schema.appUser.name))
 				).map((o) => o.name);
 		after = {
-			personalLeft: comp.anonymisedAt ? 0 : await personalDataLeft(cid), nextName: `${series?.name ?? stripYear(comp.name)} ${year}`, nextExists: next?.slug ?? null,
-			isOwner, ownerNames
+			personalLeft: comp.anonymisedAt ? 0 : await personalDataLeft(cid),
+			nextName: `${series?.name ?? stripYear(comp.name)} ${year}`,
+			nextExists: next?.slug ?? null,
+			isOwner,
+			ownerNames
 		};
 	}
 
@@ -94,7 +100,10 @@ export const actions = {
 		const to = String(f.get('to') ?? '');
 		if (!['draft', 'live', 'closed'].includes(to)) return fail(400, { statusError: 'Okänd status' });
 		await db.transaction(async (tx) => {
-			await tx.update(schema.competition).set({ status: to as 'draft' | 'live' | 'closed' }).where(eq(schema.competition.id, comp.id));
+			await tx
+				.update(schema.competition)
+				.set({ status: to as 'draft' | 'live' | 'closed' })
+				.where(eq(schema.competition.id, comp.id));
 			await recordChange(tx, comp.id, 'competition', comp.id);
 		});
 		return { statusChanged: to };

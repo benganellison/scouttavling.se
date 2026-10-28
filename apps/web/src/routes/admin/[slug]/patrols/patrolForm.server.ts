@@ -47,14 +47,15 @@ export function readPatrolForm(form: FormData): PatrolFormValues {
 		contactMemberNo: s('contactMemberNo'),
 		paid: form.get('paid') === 'on',
 		status: s('status') as PatrolFormValues['status'],
-		members: first
-			.map((f, i) => ({ firstName: f, lastName: last[i] ?? '', troopText: troop[i] ?? '' }))
-			.filter((m) => m.firstName.trim() || m.lastName.trim())
+		members: first.map((f, i) => ({ firstName: f, lastName: last[i] ?? '', troopText: troop[i] ?? '' })).filter((m) => m.firstName.trim() || m.lastName.trim())
 	};
 }
 
 export async function nextPatrolNumber(competitionId: string): Promise<number> {
-	const [row] = await db.select({ n: max(schema.patrol.number) }).from(schema.patrol).where(eq(schema.patrol.competitionId, competitionId));
+	const [row] = await db
+		.select({ n: max(schema.patrol.number) })
+		.from(schema.patrol)
+		.where(eq(schema.patrol.competitionId, competitionId));
 	return row?.n ? row.n + 1 : 101;
 }
 
@@ -74,7 +75,10 @@ export async function savePatrol(competitionId: string, patrolId: string | null,
 	}
 	const data = parsed.output;
 	if (data.trackId) {
-		const [t] = await db.select().from(schema.track).where(and(eq(schema.track.id, data.trackId), eq(schema.track.competitionId, competitionId)));
+		const [t] = await db
+			.select()
+			.from(schema.track)
+			.where(and(eq(schema.track.id, data.trackId), eq(schema.track.competitionId, competitionId)));
 		if (!t) errors.trackId = 'Okänd klass';
 	}
 	const clash = await db
@@ -100,7 +104,11 @@ export async function savePatrol(competitionId: string, patrolId: string | null,
 		if (id) {
 			// Patrol row first (same lock order as score writes). The status is live: phones and the desk
 			// change it while this form is open, so it is only written when the organiser changed it here.
-			const [cur] = await tx.select({ status: schema.patrol.status }).from(schema.patrol).where(and(eq(schema.patrol.id, id), eq(schema.patrol.competitionId, competitionId))).for('update');
+			const [cur] = await tx
+				.select({ status: schema.patrol.status })
+				.from(schema.patrol)
+				.where(and(eq(schema.patrol.id, id), eq(schema.patrol.competitionId, competitionId)))
+				.for('update');
 			const changed = !!cur && data.status !== statusWas && data.status !== cur.status;
 			await tx
 				.update(schema.patrol)
@@ -109,7 +117,10 @@ export async function savePatrol(competitionId: string, patrolId: string | null,
 			if (changed) await tx.insert(schema.statusEvent).values({ patrolId: id, status: data.status, userId });
 			await tx.delete(schema.member).where(eq(schema.member.patrolId, id));
 		} else {
-			const [created] = await tx.insert(schema.patrol).values({ ...row, status: data.status, paidAt: paidAtNew(row.paid), competitionId }).returning({ id: schema.patrol.id });
+			const [created] = await tx
+				.insert(schema.patrol)
+				.values({ ...row, status: data.status, paidAt: paidAtNew(row.paid), competitionId })
+				.returning({ id: schema.patrol.id });
 			id = created.id;
 			if (data.status !== 'registered') await tx.insert(schema.statusEvent).values({ patrolId: id, status: data.status, userId });
 		}

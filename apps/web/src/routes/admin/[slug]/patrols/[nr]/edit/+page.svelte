@@ -25,8 +25,8 @@
 	<section class="card danger stack" aria-labelledby="del">
 		<h2 id="del">Ta bort patrullen</h2>
 		<p class="muted">
-			Patrullen, dess medlemmar{data.scoreCount ? ` och ${data.scoreCount} registrerade poäng` : ''} tas bort. Det går inte att ångra.
-			Har patrullen lämnat återbud? Ändra hellre status till Återbud.
+			Patrullen, dess medlemmar{data.scoreCount ? ` och ${data.scoreCount} registrerade poäng` : ''} tas bort. Det går inte att ångra. Har patrullen lämnat återbud?
+			Ändra hellre status till Återbud.
 		</p>
 		{#if !confirmOpen}
 			<div><button type="button" class="btn" onclick={() => (confirmOpen = true)}>Ta bort patrull…</button></div>

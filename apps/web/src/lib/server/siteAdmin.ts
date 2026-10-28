@@ -47,10 +47,23 @@ export async function grantAccess(admin: SessionUser, competitionId: string, rea
 		await tx
 			.update(schema.siteAdminAccess)
 			.set({ endedAt: new Date() })
-			.where(and(eq(schema.siteAdminAccess.userId, admin.id), eq(schema.siteAdminAccess.competitionId, competitionId), isNull(schema.siteAdminAccess.endedAt), gt(schema.siteAdminAccess.expiresAt, new Date())));
-		const [row] = await tx.insert(schema.siteAdminAccess).values({ userId: admin.id, competitionId, role: 'organiser', reason: reason.trim(), expiresAt }).returning();
+			.where(
+				and(
+					eq(schema.siteAdminAccess.userId, admin.id),
+					eq(schema.siteAdminAccess.competitionId, competitionId),
+					isNull(schema.siteAdminAccess.endedAt),
+					gt(schema.siteAdminAccess.expiresAt, new Date())
+				)
+			);
+		const [row] = await tx
+			.insert(schema.siteAdminAccess)
+			.values({ userId: admin.id, competitionId, role: 'organiser', reason: reason.trim(), expiresAt })
+			.returning();
 		await writeAudit(tx, adminActor(admin, reason), {
-			action: 'access.grant', targetType: 'competition', targetId: competitionId, competitionId,
+			action: 'access.grant',
+			targetType: 'competition',
+			targetId: competitionId,
+			competitionId,
 			details: { accessId: row.id, role: 'organiser', hours, expiresAt: expiresAt.toISOString() }
 		});
 		return row;
@@ -65,9 +78,17 @@ export async function endAccess(admin: SessionUser, accessId: string) {
 			.where(and(eq(schema.siteAdminAccess.id, accessId), eq(schema.siteAdminAccess.userId, admin.id), isNull(schema.siteAdminAccess.endedAt)))
 			.returning();
 		if (!row) return;
-		await writeAudit(tx, { kind: 'site_admin', userId: admin.id, reason: row.reason }, {
-			action: 'access.end', targetType: 'competition', targetId: row.competitionId, competitionId: row.competitionId, details: { accessId: row.id }
-		});
+		await writeAudit(
+			tx,
+			{ kind: 'site_admin', userId: admin.id, reason: row.reason },
+			{
+				action: 'access.end',
+				targetType: 'competition',
+				targetId: row.competitionId,
+				competitionId: row.competitionId,
+				details: { accessId: row.id }
+			}
+		);
 	});
 }
 
@@ -105,9 +126,16 @@ export async function setCompetitionSuspended(admin: SessionUser, competitionId:
 		const [c] = await tx.select().from(schema.competition).where(eq(schema.competition.id, competitionId)).for('update');
 		if (!c) throw new SiteAdminError('Tävlingen finns inte.');
 		if (!!c.suspendedAt === suspended) throw new SiteAdminError(suspended ? 'Tävlingen är redan avstängd.' : 'Tävlingen är inte avstängd.');
-		await tx.update(schema.competition).set({ suspendedAt: suspended ? new Date() : null }).where(eq(schema.competition.id, competitionId));
+		await tx
+			.update(schema.competition)
+			.set({ suspendedAt: suspended ? new Date() : null })
+			.where(eq(schema.competition.id, competitionId));
 		await writeAudit(tx, adminActor(admin, reason), {
-			action: suspended ? 'competition.suspend' : 'competition.unsuspend', targetType: 'competition', targetId: competitionId, competitionId, seriesId: c.seriesId
+			action: suspended ? 'competition.suspend' : 'competition.unsuspend',
+			targetType: 'competition',
+			targetId: competitionId,
+			competitionId,
+			seriesId: c.seriesId
 		});
 		await recordChange(tx, competitionId, 'competition', competitionId);
 	});
@@ -120,7 +148,10 @@ export async function setUserSuspended(admin: SessionUser, userId: string, suspe
 		const [u] = await tx.select().from(schema.appUser).where(eq(schema.appUser.id, userId)).for('update');
 		if (!u) throw new SiteAdminError('Användaren finns inte.');
 		if (!!u.suspendedAt === suspended) throw new SiteAdminError(suspended ? 'Användaren är redan avstängd.' : 'Användaren är inte avstängd.');
-		await tx.update(schema.appUser).set({ suspendedAt: suspended ? new Date() : null }).where(eq(schema.appUser.id, userId));
+		await tx
+			.update(schema.appUser)
+			.set({ suspendedAt: suspended ? new Date() : null })
+			.where(eq(schema.appUser.id, userId));
 		// Revoke every session at once (readSession also refuses suspended users).
 		if (suspended) await tx.delete(schema.session).where(eq(schema.session.userId, userId));
 		await writeAudit(tx, adminActor(admin, reason), { action: suspended ? 'user.suspend' : 'user.unsuspend', targetType: 'user', targetId: userId });
@@ -188,8 +219,15 @@ export async function competitionHits(where: ReturnType<typeof and> | undefined,
 	const pc = new Map(patrols.map((p) => [p.cid, p.n]));
 	const act = new Map(activity.map((a) => [a.cid, a.at ? new Date(a.at) : null]));
 	return comps.map(({ c, seriesName }) => ({
-		id: c.id, slug: c.slug, name: c.name, status: c.status, startDate: c.startDate, seriesName,
-		suspended: !!c.suspendedAt, anonymised: !!c.anonymisedAt, patrols: pc.get(c.id) ?? 0,
+		id: c.id,
+		slug: c.slug,
+		name: c.name,
+		status: c.status,
+		startDate: c.startDate,
+		seriesName,
+		suspended: !!c.suspendedAt,
+		anonymised: !!c.anonymisedAt,
+		patrols: pc.get(c.id) ?? 0,
 		lastActivity: act.get(c.id) ?? null,
 		owners: members.filter((m) => m.cid === c.id && m.role === 'owner').map((m) => m.name),
 		organisers: [...new Set(members.filter((m) => m.cid === c.id && m.role === 'organiser').map((m) => m.name))]
@@ -205,14 +243,22 @@ export async function search(qRaw: string) {
 	const p = like(q);
 	const competitions = await competitionHits(or(ilike(schema.competition.name, p), ilike(schema.competition.slug, p)));
 	const series = await db
-		.select({ id: schema.series.id, slug: schema.series.slug, name: schema.series.name, editions: sql<number>`(select count(*)::int from competition c where c.series_id = ${schema.series.id})` })
+		.select({
+			id: schema.series.id,
+			slug: schema.series.slug,
+			name: schema.series.name,
+			editions: sql<number>`(select count(*)::int from competition c where c.series_id = ${schema.series.id})`
+		})
 		.from(schema.series)
 		.where(or(ilike(schema.series.name, p), ilike(schema.series.slug, p)))
 		.orderBy(schema.series.name)
 		.limit(20);
 	const users = await db
 		.select({
-			id: schema.appUser.id, name: schema.appUser.name, memberNo: schema.appUser.memberNo, suspended: sql<boolean>`${schema.appUser.suspendedAt} is not null`,
+			id: schema.appUser.id,
+			name: schema.appUser.name,
+			memberNo: schema.appUser.memberNo,
+			suspended: sql<boolean>`${schema.appUser.suspendedAt} is not null`,
 			siteAdmin: sql<boolean>`exists (select 1 from site_admin a where a.user_id = ${schema.appUser.id})`,
 			competitions: sql<number>`(select count(distinct m.competition_id)::int from competition_member m where m.user_id = ${schema.appUser.id})`,
 			lastLogin: schema.appUser.lastLoginAt
@@ -245,5 +291,7 @@ export async function personalDataOverdue() {
 		where c.anonymised_at is null and c.end_date < (now() at time zone 'Europe/Stockholm')::date - ${PERSONAL_DATA_FOLLOW_UP_DAYS}::int
 		order by c.end_date asc
 	`);
-	return (rows as unknown as { slug: string; name: string; status: string; endDate: string; patrols: number; owners: string | null }[]).filter((r) => r.patrols > 0);
+	return (rows as unknown as { slug: string; name: string; status: string; endDate: string; patrols: number; owners: string | null }[]).filter(
+		(r) => r.patrols > 0
+	);
 }

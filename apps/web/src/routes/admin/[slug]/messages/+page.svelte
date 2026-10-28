@@ -7,10 +7,30 @@
 	new LiveStream(() => ({ url: `/api/v1/live/${data.comp.slug}/events`, depends: `live:${data.comp.slug}` }));
 
 	const TEMPLATES = [
-		{ name: 'Lunch', title: 'Lunch', body: 'Lunchen serveras nu vid Rastplatsen. Släpp iväg patrullerna som är klara och ta själva en paus i tur och ordning.', important: false },
-		{ name: 'Väderomslag', title: 'Väderomslag', body: 'Åska närmar sig. Avbryt aktiviteter vid vatten och i höga träd, samla patrullerna i skydd och invänta besked från ledningen.', important: true },
-		{ name: 'Reservläge', title: 'Reservläge — skriv på papper', body: 'Vi har tekniska problem. Skriv patrullnummer, poäng och stilpoäng på papperslappen tills vidare. Appen tar inte emot nya poäng förrän reservläget avslutas.', important: true },
-		{ name: 'Avslut', title: 'Tävlingen är slut', body: 'Alla patruller är i mål. Packa ihop kontrollen, lämna material vid Mål och kom till prisutdelningen. Tack för i dag!', important: false }
+		{
+			name: 'Lunch',
+			title: 'Lunch',
+			body: 'Lunchen serveras nu vid Rastplatsen. Släpp iväg patrullerna som är klara och ta själva en paus i tur och ordning.',
+			important: false
+		},
+		{
+			name: 'Väderomslag',
+			title: 'Väderomslag',
+			body: 'Åska närmar sig. Avbryt aktiviteter vid vatten och i höga träd, samla patrullerna i skydd och invänta besked från ledningen.',
+			important: true
+		},
+		{
+			name: 'Reservläge',
+			title: 'Reservläge — skriv på papper',
+			body: 'Vi har tekniska problem. Skriv patrullnummer, poäng och stilpoäng på papperslappen tills vidare. Appen tar inte emot nya poäng förrän reservläget avslutas.',
+			important: true
+		},
+		{
+			name: 'Avslut',
+			title: 'Tävlingen är slut',
+			body: 'Alla patruller är i mål. Packa ihop kontrollen, lämna material vid Mål och kom till prisutdelningen. Tack för i dag!',
+			important: false
+		}
 	];
 
 	let title = $state('');
@@ -68,17 +88,35 @@
 			<fieldset class="stack tight">
 				<legend class="label">Mottagare</legend>
 				<div class="chips">
-					<label class="chip"><input type="checkbox" name="audience" value="all" checked={audience.includes('all')} onchange={() => toggle('all')} /><span>Alla funktionärer</span></label>
-					<label class="chip"><input type="checkbox" name="audience" value="startfinish" checked={audience.includes('startfinish')} onchange={() => toggle('startfinish')} /><span>Start &amp; mål</span></label>
+					<label class="chip"
+						><input type="checkbox" name="audience" value="all" checked={audience.includes('all')} onchange={() => toggle('all')} /><span
+							>Alla funktionärer</span
+						></label
+					>
+					<label class="chip"
+						><input
+							type="checkbox"
+							name="audience"
+							value="startfinish"
+							checked={audience.includes('startfinish')}
+							onchange={() => toggle('startfinish')}
+						/><span>Start &amp; mål</span></label
+					>
 					{#each data.stations as s (s.id)}
-						<label class="chip"><input type="checkbox" name="audience" value={s.id} checked={audience.includes(s.id)} onchange={() => toggle(s.id)} /><span>{s.code} {s.name}</span></label>
+						<label class="chip"
+							><input type="checkbox" name="audience" value={s.id} checked={audience.includes(s.id)} onchange={() => toggle(s.id)} /><span
+								>{s.code} {s.name}</span
+							></label
+						>
 					{/each}
 				</div>
 			</fieldset>
 			<label class="switch-row">
 				<input type="checkbox" name="important" bind:checked={important} />
 				<span class="sw" aria-hidden="true"></span>
-				<span><strong>Viktigt — kräver kvittens</strong><br /><span class="muted small">Visas i helskärm på telefonen tills funktionären trycker OK.</span></span>
+				<span
+					><strong>Viktigt — kräver kvittens</strong><br /><span class="muted small">Visas i helskärm på telefonen tills funktionären trycker OK.</span></span
+				>
 			</label>
 			<div class="row">
 				<button class="btn btn-accent">Skicka meddelande</button>

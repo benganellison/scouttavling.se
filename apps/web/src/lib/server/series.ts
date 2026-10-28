@@ -98,7 +98,13 @@ export async function organisesEdition(userId: string, competitionId: string): P
 	const [m] = await db
 		.select({ role: schema.competitionMember.role })
 		.from(schema.competitionMember)
-		.where(and(eq(schema.competitionMember.competitionId, competitionId), eq(schema.competitionMember.userId, userId), inArray(schema.competitionMember.role, ['owner', 'organiser'])))
+		.where(
+			and(
+				eq(schema.competitionMember.competitionId, competitionId),
+				eq(schema.competitionMember.userId, userId),
+				inArray(schema.competitionMember.role, ['owner', 'organiser'])
+			)
+		)
 		.limit(1);
 	return !!m;
 }
@@ -150,9 +156,14 @@ export async function ensureSeries(tx: Tx, comp: CompRow, userId: string): Promi
 	const [s] = await tx
 		.insert(schema.series)
 		.values({
-			slug: await freeSlug(tx, name, '-serie'), name, ownerGroupNo: comp.ownerGroupNo, ownerGroupName: comp.ownerGroupName,
-			accentColor: comp.accentColor, coverFit: comp.coverFit,
-			classColors: Object.fromEntries(tracks.filter((t) => t.color).map((t) => [t.name, t.color!])), createdBy: userId
+			slug: await freeSlug(tx, name, '-serie'),
+			name,
+			ownerGroupNo: comp.ownerGroupNo,
+			ownerGroupName: comp.ownerGroupName,
+			accentColor: comp.accentColor,
+			coverFit: comp.coverFit,
+			classColors: Object.fromEntries(tracks.filter((t) => t.color).map((t) => [t.name, t.color!])),
+			createdBy: userId
 		})
 		.returning();
 	await copyAssets(tx, { competitionId: comp.id }, { seriesId: s.id });
@@ -185,19 +196,25 @@ export const editionYearOf = (c: Pick<CompRow, 'editionYear' | 'name' | 'startDa
 
 /** What "Skapa <serie> <år+1>" would create from `source` (nothing is written). */
 export async function planNextEdition(source: CompRow): Promise<NextPlan> {
-	const series = source.seriesId ? (await db.select().from(schema.series).where(eq(schema.series.id, source.seriesId)).limit(1))[0] ?? null : null;
+	const series = source.seriesId ? ((await db.select().from(schema.series).where(eq(schema.series.id, source.seriesId)).limit(1))[0] ?? null) : null;
 	const seriesName = series?.name ?? stripYear(source.name);
 	const year = editionYearOf(source) + 1;
 	const shift = editionShiftDays(source.startDate, 1);
 	const [days, [{ stations }], [{ items }], [{ tracks }], invites] = await Promise.all([
 		db.select().from(schema.day).where(eq(schema.day.competitionId, source.id)).orderBy(asc(schema.day.sort)),
-		db.select({ stations: sql<number>`count(*)::int` }).from(schema.station).where(eq(schema.station.competitionId, source.id)),
+		db
+			.select({ stations: sql<number>`count(*)::int` })
+			.from(schema.station)
+			.where(eq(schema.station.competitionId, source.id)),
 		db
 			.select({ items: sql<number>`count(*)::int` })
 			.from(schema.scoreItem)
 			.innerJoin(schema.station, eq(schema.station.id, schema.scoreItem.stationId))
 			.where(eq(schema.station.competitionId, source.id)),
-		db.select({ tracks: sql<number>`count(*)::int` }).from(schema.track).where(eq(schema.track.competitionId, source.id)),
+		db
+			.select({ tracks: sql<number>`count(*)::int` })
+			.from(schema.track)
+			.where(eq(schema.track.competitionId, source.id)),
 		activeInvites(source.id)
 	]);
 	let existing: NextPlan['existing'] = null;
@@ -218,7 +235,12 @@ export async function planNextEdition(source: CompRow): Promise<NextPlan> {
 		slug = `${root}-${i}`;
 	}
 	return {
-		seriesName, year, name: `${seriesName} ${year}`, slug, shift, multiDay: source.multiDay,
+		seriesName,
+		year,
+		name: `${seriesName} ${year}`,
+		slug,
+		shift,
+		multiDay: source.multiDay,
 		days: source.multiDay
 			? days.map((d) => ({ sort: d.sort, name: d.name, from: d.date, date: addDays(d.date, shift) }))
 			: [{ sort: 1, name: '', from: source.startDate, date: addDays(source.startDate, shift) }],
@@ -252,14 +274,32 @@ export async function createNextEdition(source: CompRow, input: NextInput, userI
 		const [comp] = await tx
 			.insert(schema.competition)
 			.values({
-				slug: input.slug, name: input.name, ownerGroupNo: source.ownerGroupNo, ownerGroupName: source.ownerGroupName,
-				multiDay: source.multiDay, startDate: dates[0], endDate: dates.at(-1)!, location: source.location,
-				styleEnabled: source.styleEnabled, publicResults: source.publicResults, stationResultsLive: source.stationResultsLive, feePerPatrol: source.feePerPatrol,
-				registrationOpen: false, registrationOpensOn: input.registrationOpensOn, registrationClosesOn: input.registrationClosesOn,
-				maxPatrols: source.maxPatrols, infoText: source.infoText, confirmationText: source.confirmationText,
-				followEnabled: source.followEnabled, followShowScores: source.followShowScores,
-				status: 'draft', patrolCodeKey: randomToken(24), createdBy: userId,
-				seriesId: series.id, editionYear: year, archivePublic: true
+				slug: input.slug,
+				name: input.name,
+				ownerGroupNo: source.ownerGroupNo,
+				ownerGroupName: source.ownerGroupName,
+				multiDay: source.multiDay,
+				startDate: dates[0],
+				endDate: dates.at(-1)!,
+				location: source.location,
+				styleEnabled: source.styleEnabled,
+				publicResults: source.publicResults,
+				stationResultsLive: source.stationResultsLive,
+				feePerPatrol: source.feePerPatrol,
+				registrationOpen: false,
+				registrationOpensOn: input.registrationOpensOn,
+				registrationClosesOn: input.registrationClosesOn,
+				maxPatrols: source.maxPatrols,
+				infoText: source.infoText,
+				confirmationText: source.confirmationText,
+				followEnabled: source.followEnabled,
+				followShowScores: source.followShowScores,
+				status: 'draft',
+				patrolCodeKey: randomToken(24),
+				createdBy: userId,
+				seriesId: series.id,
+				editionYear: year,
+				archivePublic: true
 			})
 			.returning();
 
@@ -286,7 +326,10 @@ export async function createNextEdition(source: CompRow, input: NextInput, userI
 		const srcTracks = await tx.select().from(schema.track).where(eq(schema.track.competitionId, source.id)).orderBy(asc(schema.track.sort));
 		const trackMap = new Map<string, string>();
 		for (const t of srcTracks) {
-			const [nt] = await tx.insert(schema.track).values({ competitionId: comp.id, name: t.name, sort: t.sort, color: t.color }).returning({ id: schema.track.id });
+			const [nt] = await tx
+				.insert(schema.track)
+				.values({ competitionId: comp.id, name: t.name, sort: t.sort, color: t.color })
+				.returning({ id: schema.track.id });
 			trackMap.set(t.id, nt.id);
 		}
 
@@ -296,22 +339,44 @@ export async function createNextEdition(source: CompRow, input: NextInput, userI
 			const [ns] = await tx
 				.insert(schema.station)
 				.values({
-					competitionId: comp.id, dayId: s.dayId ? (dayMap.get(s.dayId) ?? null) : null, sort: s.sort, name: s.name, customCode: s.customCode,
-					allTracks: s.allTracks, role: s.role, startable: s.startable
+					competitionId: comp.id,
+					dayId: s.dayId ? (dayMap.get(s.dayId) ?? null) : null,
+					sort: s.sort,
+					name: s.name,
+					customCode: s.customCode,
+					allTracks: s.allTracks,
+					role: s.role,
+					startable: s.startable
 					// contactName / contactPhone: personal, never copied.
 				})
 				.returning({ id: schema.station.id });
 			stationMap.set(s.id, ns.id);
 		}
 		if (srcStations.length) {
-			const links = await tx.select().from(schema.stationTrack).where(inArray(schema.stationTrack.stationId, srcStations.map((s) => s.id)));
-			const vals = links.flatMap((l) => (stationMap.has(l.stationId) && trackMap.has(l.trackId) ? [{ stationId: stationMap.get(l.stationId)!, trackId: trackMap.get(l.trackId)! }] : []));
-			if (vals.length) await tx.insert(schema.stationTrack).values(vals);
-			const items = await tx.select().from(schema.scoreItem).where(inArray(schema.scoreItem.stationId, srcStations.map((s) => s.id)));
-			if (items.length) {
-				await tx.insert(schema.scoreItem).values(
-					items.map(({ id: _id, stationId, ...rest }) => ({ ...rest, stationId: stationMap.get(stationId)! }))
+			const links = await tx
+				.select()
+				.from(schema.stationTrack)
+				.where(
+					inArray(
+						schema.stationTrack.stationId,
+						srcStations.map((s) => s.id)
+					)
 				);
+			const vals = links.flatMap((l) =>
+				stationMap.has(l.stationId) && trackMap.has(l.trackId) ? [{ stationId: stationMap.get(l.stationId)!, trackId: trackMap.get(l.trackId)! }] : []
+			);
+			if (vals.length) await tx.insert(schema.stationTrack).values(vals);
+			const items = await tx
+				.select()
+				.from(schema.scoreItem)
+				.where(
+					inArray(
+						schema.scoreItem.stationId,
+						srcStations.map((s) => s.id)
+					)
+				);
+			if (items.length) {
+				await tx.insert(schema.scoreItem).values(items.map(({ id: _id, stationId, ...rest }) => ({ ...rest, stationId: stationMap.get(stationId)! })));
 			}
 		}
 
@@ -373,8 +438,15 @@ export async function seriesArchive(series: SeriesRow) {
 				.filter((w) => w.patrols.length);
 		}
 		archive.push({
-			slug: c.slug, name: c.name, year: editionYearOf(c), startDate: c.startDate, endDate: c.endDate, location: c.location,
-			patrols: counts.get(c.id) ?? 0, results: c.publicResults, winners
+			slug: c.slug,
+			name: c.name,
+			year: editionYearOf(c),
+			startDate: c.startDate,
+			endDate: c.endDate,
+			location: c.location,
+			patrols: counts.get(c.id) ?? 0,
+			results: c.publicResults,
+			winners
 		});
 	}
 	return { current, currentPatrols: current ? (counts.get(current.id) ?? 0) : 0, archive };

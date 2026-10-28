@@ -12,7 +12,6 @@ import { loadStations, showStationResults, stationAppliesTo } from './live.ts';
  * Internal only: registration dates and payments.
  */
 
-
 export interface Participation {
 	/** Every patrol, also those who withdrew. */
 	registered: number;
@@ -82,7 +81,14 @@ export async function loadStats(comp: CompRow, opts: { internal?: boolean } = {}
 		loadStations(comp.id),
 		db.select().from(schema.day).where(eq(schema.day.competitionId, comp.id)).orderBy(asc(schema.day.sort), asc(schema.day.date)),
 		db
-			.select({ id: schema.patrol.id, trackId: schema.patrol.trackId, status: schema.patrol.status, createdAt: schema.patrol.createdAt, paid: schema.patrol.paid, paidAt: schema.patrol.paidAt })
+			.select({
+				id: schema.patrol.id,
+				trackId: schema.patrol.trackId,
+				status: schema.patrol.status,
+				createdAt: schema.patrol.createdAt,
+				paid: schema.patrol.paid,
+				paidAt: schema.patrol.paidAt
+			})
 			.from(schema.patrol)
 			.where(eq(schema.patrol.competitionId, comp.id)),
 		db
@@ -91,7 +97,13 @@ export async function loadStats(comp: CompRow, opts: { internal?: boolean } = {}
 			.innerJoin(schema.patrol, eq(schema.patrol.id, schema.statusEvent.patrolId))
 			.where(and(eq(schema.patrol.competitionId, comp.id), inArray(schema.statusEvent.status, ['active', 'camp', 'finished']))),
 		db
-			.select({ patrolId: schema.score.patrolId, itemId: schema.score.itemId, points: schema.score.points, stylePoints: schema.score.stylePoints, scoredAt: schema.score.scoredAt })
+			.select({
+				patrolId: schema.score.patrolId,
+				itemId: schema.score.itemId,
+				points: schema.score.points,
+				stylePoints: schema.score.stylePoints,
+				scoredAt: schema.score.scoredAt
+			})
 			.from(schema.score)
 			.where(and(eq(schema.score.competitionId, comp.id), eq(schema.score.state, 'active')))
 	]);
@@ -128,11 +140,17 @@ export async function loadStats(comp: CompRow, opts: { internal?: boolean } = {}
 					.map(([, v]) => v);
 				const points = summarize(rows.map((r) => r.points));
 				return {
-					code: s.code, name: s.name, max, points,
+					code: s.code,
+					name: s.name,
+					max,
+					points,
 					styleMean: styleOn && rows.length ? Math.round((rows.reduce((n, r) => n + r.style, 0) / rows.length) * 10) / 10 : null,
 					// From the exact mean: points.mean is already rounded to one decimal.
 					pctOfMax: points && max ? Math.round((rows.reduce((n, r) => n + r.points, 0) / rows.length / max) * 100) : null,
-					buckets: histogram(rows.map((r) => r.points), max)
+					buckets: histogram(
+						rows.map((r) => r.points),
+						max
+					)
 				};
 			})
 			.filter((s) => s.max > 0);
@@ -150,7 +168,14 @@ export async function loadStats(comp: CompRow, opts: { internal?: boolean } = {}
 		const t = stationTimes(visits);
 		return {
 			legs: t.legs
-				.map((l) => ({ from: byId.get(l.from)!.code, to: byId.get(l.to)!.code, fromName: byId.get(l.from)!.name, toName: byId.get(l.to)!.name, minutes: l.minutes, sort: byId.get(l.from)!.sort }))
+				.map((l) => ({
+					from: byId.get(l.from)!.code,
+					to: byId.get(l.to)!.code,
+					fromName: byId.get(l.from)!.name,
+					toName: byId.get(l.to)!.name,
+					minutes: l.minutes,
+					sort: byId.get(l.from)!.sort
+				}))
 				.sort((a, b) => b.minutes.n - a.minutes.n || a.sort - b.sort)
 				.map(({ sort: _sort, ...l }) => l),
 			course: t.course
@@ -162,11 +187,22 @@ export async function loadStats(comp: CompRow, opts: { internal?: boolean } = {}
 	};
 
 	const scope = (trackId: string | null, name: string, list: typeof patrols): StatsScope => ({
-		trackId, name, participation: participation(list),
+		trackId,
+		name,
+		participation: participation(list),
 		stations: showStations ? stationStats(trackId) : [],
 		times: showStations ? scopeTimes(trackId) : null
 	});
-	const scopes: StatsScope[] = [scope(null, 'Alla klasser', patrols), ...tracks.map((t) => scope(t.id, t.name, patrols.filter((p) => p.trackId === t.id)))];
+	const scopes: StatsScope[] = [
+		scope(null, 'Alla klasser', patrols),
+		...tracks.map((t) =>
+			scope(
+				t.id,
+				t.name,
+				patrols.filter((p) => p.trackId === t.id)
+			)
+		)
+	];
 
 	const base: Stats = { scopes, stationsShown: showStations };
 	if (!opts.internal) return base;
@@ -188,4 +224,3 @@ export async function loadStats(comp: CompRow, opts: { internal?: boolean } = {}
 		window: { opensOn: comp.registrationOpensOn, closesOn: comp.registrationClosesOn }
 	};
 }
-

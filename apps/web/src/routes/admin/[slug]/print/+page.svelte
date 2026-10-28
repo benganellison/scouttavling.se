@@ -20,13 +20,23 @@
 
 	<ul class="cards">
 		<li class="card pc">
-			<div class="top"><h2>Kontrollskyltar</h2><span class="tag new">En per kontroll</span></div>
+			<div class="top">
+				<h2>Kontrollskyltar</h2>
+				<span class="tag new">En per kontroll</span>
+			</div>
 			<p class="muted">Stor kontrollkod, namn och QR-kod som funktionären skannar för att öppna kontrollen i mobilen.</p>
-			<p class="count"><strong>{data.stations}</strong> skyltar{#if data.withInvite < data.stations}<span class="warn"> · {data.stations - data.withInvite} saknar inbjudan</span>{/if}</p>
+			<p class="count">
+				<strong>{data.stations}</strong> skyltar{#if data.withInvite < data.stations}<span class="warn">
+						· {data.stations - data.withInvite} saknar inbjudan</span
+					>{/if}
+			</p>
 			<a class="btn btn-primary" href="{base}/signs">Öppna kontrollskyltar</a>
 		</li>
 		<li class="card pc">
-			<div class="top"><h2>Reservprotokoll</h2><span class="tag rec">Rekommenderas</span></div>
+			<div class="top">
+				<h2>Reservprotokoll</h2>
+				<span class="tag rec">Rekommenderas</span>
+			</div>
 			<p class="muted">Poänglistor per kontroll att ringa in — om mobilen dör. Patrullerna i väntad ankomstordning.</p>
 			<p class="count"><strong>{data.stations}</strong> protokoll</p>
 			<a class="btn btn-primary" href="{base}/protocol">Öppna reservprotokoll</a>

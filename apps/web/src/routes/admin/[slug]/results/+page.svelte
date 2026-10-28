@@ -29,7 +29,9 @@
 		</div>
 		<div class="row">
 			<a class="btn" href="{base}/results.csv" download>
-				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14" /></svg>
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
+					><path d="M12 4v11m-5-5 5 5 5-5M5 20h14" /></svg
+				>
 				Exportera CSV
 			</a>
 			<a class="btn" href="/r/{data.comp.slug}/ceremony{data.current ? `?class=${data.current.trackId}` : ''}">Prisutdelning</a>
@@ -93,7 +95,16 @@
 										aria-label="Poäng per kontroll för {r.number} {r.name}"
 										onclick={() => toggle(r.patrolId)}
 									>
-										<svg class:up={open.includes(r.patrolId)} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+										<svg
+											class:up={open.includes(r.patrolId)}
+											width="18"
+											height="18"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2.5"
+											aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg
+										>
 									</button>
 								{/if}
 							</td>

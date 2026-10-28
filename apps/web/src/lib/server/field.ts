@@ -6,8 +6,16 @@ import { refuseIfSuspended } from './suspended.ts';
 import { error } from '@sveltejs/kit';
 import { and, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm';
 import {
-	calculateJwkThumbprint, compactVerify, decodeProtectedHeader, exportJWK, exportPKCS8, generateKeyPair, importJWK, importPKCS8,
-	SignJWT, type JWK
+	calculateJwkThumbprint,
+	compactVerify,
+	decodeProtectedHeader,
+	exportJWK,
+	exportPKCS8,
+	generateKeyPair,
+	importJWK,
+	importPKCS8,
+	SignJWT,
+	type JWK
 } from 'jose';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -67,7 +75,6 @@ export async function publicKeys(): Promise<JWK[]> {
 
 // ---------- invites ----------
 
-
 export async function stationCodeMap(competitionId: string) {
 	const [stations, days] = await Promise.all([
 		db.select().from(schema.station).where(eq(schema.station.competitionId, competitionId)),
@@ -94,11 +101,9 @@ export async function inviteInfo(secret: string) {
 	refuseIfSuspended(row.comp);
 	const { comp, invite } = row;
 	const { codes, stations } = await stationCodeMap(comp.id);
-	const station = invite.stationId ? stations.find((s) => s.id === invite.stationId) ?? null : null;
+	const station = invite.stationId ? (stations.find((s) => s.id === invite.stationId) ?? null) : null;
 	const items = station
-		? (await db.select().from(schema.scoreItem).where(eq(schema.scoreItem.stationId, station.id)).orderBy(schema.scoreItem.sort)).map((i) =>
-				itemDef(i, comp)
-			)
+		? (await db.select().from(schema.scoreItem).where(eq(schema.scoreItem.stationId, station.id)).orderBy(schema.scoreItem.sort)).map((i) => itemDef(i, comp))
 		: [];
 	let trackNames: string[] = [];
 	if (station && !station.allTracks) {
@@ -255,7 +260,10 @@ export async function authenticateDevice(request: Request, slug: string): Promis
 // ---------- snapshot (station pack) ----------
 
 export async function currentCursor(competitionId: string): Promise<number> {
-	const [r] = await db.select({ seq: max(schema.changeLog.seq) }).from(schema.changeLog).where(eq(schema.changeLog.competitionId, competitionId));
+	const [r] = await db
+		.select({ seq: max(schema.changeLog.seq) })
+		.from(schema.changeLog)
+		.where(eq(schema.changeLog.competitionId, competitionId));
 	return Number(r?.seq ?? 0);
 }
 
@@ -275,7 +283,10 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 		const myScores = mine.length
 			? sql`(c.kind = 'score' and exists (
 					select 1 from score s join score_item i on i.id = s.item_id
-					where s.id = c.entity_id and i.station_id in (${sql.join(mine.map((id) => sql`${id}`), sql`, `)})))`
+					where s.id = c.entity_id and i.station_id in (${sql.join(
+						mine.map((id) => sql`${id}`),
+						sql`, `
+					)})))`
 			: sql`false`;
 		const relevant = await db.execute(sql`
 			select 1 from change_log c
@@ -296,7 +307,12 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 		? await db
 				.select()
 				.from(schema.scoreItem)
-				.where(inArray(schema.scoreItem.stationId, stations.map((s) => s.id)))
+				.where(
+					inArray(
+						schema.scoreItem.stationId,
+						stations.map((s) => s.id)
+					)
+				)
 				.orderBy(schema.scoreItem.sort)
 		: [];
 	const myItems = isDesk ? [] : allItems.filter((i) => myStationIds.includes(i.stationId));
@@ -309,15 +325,40 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 				.select({ s: schema.score, by: schema.device.displayName })
 				.from(schema.score)
 				.leftJoin(schema.device, eq(schema.device.id, schema.score.deviceId))
-				.where(and(eq(schema.score.competitionId, comp.id), inArray(schema.score.itemId, myItems.map((i) => i.id))))
+				.where(
+					and(
+						eq(schema.score.competitionId, comp.id),
+						inArray(
+							schema.score.itemId,
+							myItems.map((i) => i.id)
+						)
+					)
+				)
 		: [];
 
 	// Desk: per-patrol progress (kontroller x/y, poäng, senast sedd, tid ute).
-	let progress: Record<string, { stationsDone: number; points: number; lastSeenAt: string | null; lastStationId: string | null; startedAt: string | null; finishedAt: string | null; campAt: string | null }> = {};
+	let progress: Record<
+		string,
+		{
+			stationsDone: number;
+			points: number;
+			lastSeenAt: string | null;
+			lastStationId: string | null;
+			startedAt: string | null;
+			finishedAt: string | null;
+			campAt: string | null;
+		}
+	> = {};
 	if (isDesk) {
 		const itemStation = new Map(allItems.map((i) => [i.id, i.stationId]));
 		const all = await db
-			.select({ patrolId: schema.score.patrolId, itemId: schema.score.itemId, points: schema.score.points, style: schema.score.stylePoints, at: schema.score.updatedAt })
+			.select({
+				patrolId: schema.score.patrolId,
+				itemId: schema.score.itemId,
+				points: schema.score.points,
+				style: schema.score.stylePoints,
+				at: schema.score.updatedAt
+			})
 			.from(schema.score)
 			.where(and(eq(schema.score.competitionId, comp.id), eq(schema.score.state, 'active')));
 		const events = await db
@@ -326,7 +367,10 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 			.innerJoin(schema.patrol, eq(schema.patrol.id, schema.statusEvent.patrolId))
 			.where(eq(schema.patrol.competitionId, comp.id))
 			.orderBy(schema.statusEvent.at);
-		const acc = new Map<string, { stations: Set<string>; points: number; last: Date | null; lastStation: string | null; started: Date | null; finished: Date | null; camp: Date | null }>();
+		const acc = new Map<
+			string,
+			{ stations: Set<string>; points: number; last: Date | null; lastStation: string | null; started: Date | null; finished: Date | null; camp: Date | null }
+		>();
 		const get = (id: string) => {
 			let a = acc.get(id);
 			if (!a) acc.set(id, (a = { stations: new Set(), points: 0, last: null, lastStation: null, started: null, finished: null, camp: null }));
@@ -387,25 +431,52 @@ export async function buildSnapshot(ctx: DeviceContext, since: number | null) {
 		serverTime,
 		device: { id: device.id, displayName: device.displayName, role: device.role, revoked: ctx.revoked, superseded: ctx.superseded },
 		competition: {
-			id: comp.id, slug: comp.slug, name: comp.name, styleEnabled: comp.styleEnabled, backupMode: comp.backupMode, hqPhone: comp.hqPhone,
-			patrolCodeKey: comp.patrolCodeKey, status: comp.status, startDate: comp.startDate, endDate: comp.endDate,
+			id: comp.id,
+			slug: comp.slug,
+			name: comp.name,
+			styleEnabled: comp.styleEnabled,
+			backupMode: comp.backupMode,
+			hqPhone: comp.hqPhone,
+			patrolCodeKey: comp.patrolCodeKey,
+			status: comp.status,
+			startDate: comp.startDate,
+			endDate: comp.endDate,
 			branding: await loadBranding(comp)
 		},
 		myStationIds,
 		stations: stations.map((s) => ({
-			id: s.id, code: codes.get(s.id) ?? '', name: s.name, sort: s.sort, dayId: s.dayId, startable: s.startable,
+			id: s.id,
+			code: codes.get(s.id) ?? '',
+			name: s.name,
+			sort: s.sort,
+			dayId: s.dayId,
+			startable: s.startable,
 			trackIds: s.allTracks ? null : stationTracks.filter((t) => t.stationId === s.id).map((t) => t.trackId),
 			items: allItems.filter((i) => i.stationId === s.id).length
 		})),
 		items: myItems.map((i) => ({ ...itemDef(i, comp), stationId: i.stationId })),
 		tracks: tracks.map((t) => ({ id: t.id, name: t.name, color: colors[t.id] ?? null })),
 		patrols: patrols.map((p) => ({
-			id: p.id, number: p.number, name: p.name, trackId: p.trackId, track: p.trackId ? trackName.get(p.trackId) ?? '' : '', troop: p.troop,
-			status: p.status as PatrolStatus, startStationId: p.startStationId, ...(isDesk ? { phone: p.contactPhone } : {})
+			id: p.id,
+			number: p.number,
+			name: p.name,
+			trackId: p.trackId,
+			track: p.trackId ? (trackName.get(p.trackId) ?? '') : '',
+			troop: p.troop,
+			status: p.status as PatrolStatus,
+			startStationId: p.startStationId,
+			...(isDesk ? { phone: p.contactPhone } : {})
 		})),
 		scores: scores.map(({ s, by }) => ({
-			patrolId: s.patrolId, itemId: s.itemId, points: s.points, stylePoints: s.stylePoints, raw: s.raw, state: s.state, version: s.version,
-			at: s.updatedAt.toISOString(), by: s.origin === 'device' ? (by ?? 'Funktionär') : s.origin === 'paper' ? 'Pappersprotokoll' : 'Tävlingsledningen',
+			patrolId: s.patrolId,
+			itemId: s.itemId,
+			points: s.points,
+			stylePoints: s.stylePoints,
+			raw: s.raw,
+			state: s.state,
+			version: s.version,
+			at: s.updatedAt.toISOString(),
+			by: s.origin === 'device' ? (by ?? 'Funktionär') : s.origin === 'paper' ? 'Pappersprotokoll' : 'Tävlingsledningen',
 			mine: s.deviceId === device.id
 		})),
 		progress,
@@ -471,14 +542,22 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 			const inserted = await q
 				.insert(schema.command)
 				.values({
-					id: body.commandId, competitionId: comp.id, deviceId: device.id, deviceSeq: body.deviceSeq, type: body.type, payload: body,
-					clientAt: new Date(body.clientNow), result: 'rejected', resultDetail: { pending: true }
+					id: body.commandId,
+					competitionId: comp.id,
+					deviceId: device.id,
+					deviceSeq: body.deviceSeq,
+					type: body.type,
+					payload: body,
+					clientAt: new Date(body.clientNow),
+					result: 'rejected',
+					resultDetail: { pending: true }
 				})
 				.onConflictDoNothing({ target: schema.command.id })
 				.returning({ id: schema.command.id });
 			if (inserted.length) return { fresh: true };
 			const [row] = await q.select().from(schema.command).where(eq(schema.command.id, body.commandId)).limit(1);
-			if (row.competitionId !== comp.id || row.deviceId !== device.id) return { fresh: false, result: { commandId: body.commandId, result: 'rejected', reason: 'Kommandot finns redan' } };
+			if (row.competitionId !== comp.id || row.deviceId !== device.id)
+				return { fresh: false, result: { commandId: body.commandId, result: 'rejected', reason: 'Kommandot finns redan' } };
 			// The placeholder is committed together with the result (deps.atomic), so a committed
 			// `pending` row can only be left by a crash outside that: process it again. Never answer
 			// "already being processed" as a rejection: the phone would drop the report for good.
@@ -515,8 +594,14 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 			}
 			if (body.type === 'SetStatus') return setStatus(ctx, body, inTx());
 			const base = {
-				competitionId: comp.id, patrolId: body.payload.patrolId, itemId: body.payload.itemId, baseVersion: body.baseVersion,
-				origin: 'device' as const, deviceId: device.id, commandId: body.commandId, at: clientDate(body)
+				competitionId: comp.id,
+				patrolId: body.payload.patrolId,
+				itemId: body.payload.itemId,
+				baseVersion: body.baseVersion,
+				origin: 'device' as const,
+				deviceId: device.id,
+				commandId: body.commandId,
+				at: clientDate(body)
 			};
 			const r =
 				body.type === 'SetScore'
@@ -540,7 +625,14 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 			const [{ open }] = await q
 				.select({ open: sql<number>`count(*)::int` })
 				.from(schema.scoreConflict)
-				.where(and(eq(schema.scoreConflict.competitionId, comp.id), eq(schema.scoreConflict.kind, 'quarantine'), eq(schema.scoreConflict.status, 'open'), sql`${schema.scoreConflict.incoming}->>'deviceId' = ${device.id}`));
+				.where(
+					and(
+						eq(schema.scoreConflict.competitionId, comp.id),
+						eq(schema.scoreConflict.kind, 'quarantine'),
+						eq(schema.scoreConflict.status, 'open'),
+						sql`${schema.scoreConflict.incoming}->>'deviceId' = ${device.id}`
+					)
+				);
 			if (open >= MAX_OPEN_QUARANTINE) return false;
 			await q.transaction(async (tx) => {
 				const [ex] = await tx
@@ -549,10 +641,19 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 					.where(and(eq(schema.score.patrolId, body.payload.patrolId), eq(schema.score.itemId, body.payload.itemId)))
 					.limit(1);
 				await tx.insert(schema.scoreConflict).values({
-					competitionId: comp.id, patrolId: body.payload.patrolId, itemId: body.payload.itemId, commandId: body.commandId, kind: 'quarantine',
+					competitionId: comp.id,
+					patrolId: body.payload.patrolId,
+					itemId: body.payload.itemId,
+					commandId: body.commandId,
+					kind: 'quarantine',
 					existing: ex ? { points: ex.points, stylePoints: ex.stylePoints, version: ex.version, state: ex.state, origin: ex.origin } : {},
 					incoming: {
-						type: body.type, reason, deviceId: device.id, deviceName: device.displayName, baseVersion: body.baseVersion, clientNow: body.clientNow,
+						type: body.type,
+						reason,
+						deviceId: device.id,
+						deviceName: device.displayName,
+						baseVersion: body.baseVersion,
+						clientNow: body.clientNow,
 						...(body.type === 'SetScore' ? { raw: { value: body.payload.value, style: body.payload.style } } : {})
 					}
 				});
@@ -565,8 +666,15 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 	const out = await processBatch(
 		jwsList,
 		{
-			deviceId: device.id, publicJwk: device.publicJwk, role: device.role, stations: device.stationIds.filter((s) => ctx.claims.stations.includes(s)),
-			revoked: ctx.revoked, superseded: ctx.superseded, grantExp: ctx.claims.exp, grantIat: ctx.claims.iat, lastSeq: device.lastSeq
+			deviceId: device.id,
+			publicJwk: device.publicJwk,
+			role: device.role,
+			stations: device.stationIds.filter((s) => ctx.claims.stations.includes(s)),
+			revoked: ctx.revoked,
+			superseded: ctx.superseded,
+			grantExp: ctx.claims.exp,
+			grantIat: ctx.claims.iat,
+			lastSeq: device.lastSeq
 		},
 		deps
 	);
@@ -577,7 +685,11 @@ export async function syncCommands(ctx: DeviceContext, jwsList: string[]) {
 	return { results: out.results, serverTime: new Date().toISOString() };
 }
 
-async function setStatus(ctx: DeviceContext, body: Extract<CommandBody, { type: 'SetStatus' }>, outer?: Parameters<Parameters<typeof db.transaction>[0]>[0]): Promise<CommandResult> {
+async function setStatus(
+	ctx: DeviceContext,
+	body: Extract<CommandBody, { type: 'SetStatus' }>,
+	outer?: Parameters<Parameters<typeof db.transaction>[0]>[0]
+): Promise<CommandResult> {
 	return (outer ?? db).transaction(async (tx) => {
 		const [p] = await tx.select().from(schema.patrol).where(eq(schema.patrol.id, body.payload.patrolId)).for('update').limit(1);
 		if (p.status === body.payload.status) return { commandId: body.commandId, result: 'duplicate' } as const;
@@ -596,7 +708,11 @@ export async function markMessageRead(ctx: DeviceContext, messageId: string) {
 		.limit(1);
 	if (!m) error(404, 'Meddelandet finns inte');
 	await db.transaction(async (tx) => {
-		const ins = await tx.insert(schema.messageRead).values({ messageId, deviceId: ctx.device.id }).onConflictDoNothing().returning({ m: schema.messageRead.messageId });
+		const ins = await tx
+			.insert(schema.messageRead)
+			.values({ messageId, deviceId: ctx.device.id })
+			.onConflictDoNothing()
+			.returning({ m: schema.messageRead.messageId });
 		// HQ's Meddelanden page shows read receipts live; it only refreshes on change_log events.
 		if (ins.length) await recordChange(tx, ctx.comp.id, 'message', messageId);
 	});

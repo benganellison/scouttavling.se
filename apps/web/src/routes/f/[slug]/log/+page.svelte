@@ -44,7 +44,15 @@
 			const conflict = scores.find((x) => x.s?.conflict);
 			const problem = scores.find((x) => x.s?.problem)?.s?.problem ?? null;
 			const at = Math.max(...scores.map((x) => x.d?.at ?? 0));
-			const sync: 'conflict' | 'problem' | 'review' | 'pending' | 'synced' = conflict ? 'conflict' : problem ? 'problem' : scores.some((x) => x.d?.sync === 'review') ? 'review' : scores.some((x) => x.d?.sync === 'pending') ? 'pending' : 'synced';
+			const sync: 'conflict' | 'problem' | 'review' | 'pending' | 'synced' = conflict
+				? 'conflict'
+				: problem
+					? 'problem'
+					: scores.some((x) => x.d?.sync === 'review')
+						? 'review'
+						: scores.some((x) => x.d?.sync === 'pending')
+							? 'pending'
+							: 'synced';
 			let serverText = '';
 			if (conflict?.s?.conflict) {
 				const c = conflict.s.conflict;
@@ -53,9 +61,7 @@
 			out.push({ p, res, at, sync, voidPending, conflict: !!conflict, serverText, problem });
 		}
 		const needle = q.trim().toLowerCase();
-		return out
-			.filter((r) => !needle || String(r.p.number).startsWith(needle) || r.p.name.toLowerCase().includes(needle))
-			.sort((a, b) => b.at - a.at);
+		return out.filter((r) => !needle || String(r.p.number).startsWith(needle) || r.p.name.toLowerCase().includes(needle)).sort((a, b) => b.at - a.at);
 	});
 	const syncLabel = { synced: 'Skickad', pending: 'Väntar på täckning', conflict: 'Konflikt', problem: 'Nekad', review: 'Hos tävlingsledningen' } as const;
 	const offline = $derived(!app.online || (app.pendingCount > 0 && !!app.lastFailedAt));
@@ -130,7 +136,17 @@
 								{#if confirmRemove === r.p.id}
 									<p class="confirm-q" id="rm-q-{r.p.number}">Ta bort rapporten för {r.p.number} {r.p.name}?</p>
 									<!-- svelte-ignore a11y_autofocus -->
-									<button type="button" class="act danger" aria-describedby="rm-q-{r.p.number}" autofocus onclick={async () => { await app.voidPatrol(r.p.id); open = null; confirmRemove = null; }}>Ja, ta bort</button>
+									<button
+										type="button"
+										class="act danger"
+										aria-describedby="rm-q-{r.p.number}"
+										autofocus
+										onclick={async () => {
+											await app.voidPatrol(r.p.id);
+											open = null;
+											confirmRemove = null;
+										}}>Ja, ta bort</button
+									>
 									<button type="button" class="act ghost" onclick={() => (confirmRemove = null)}>Avbryt</button>
 								{:else}
 									<button type="button" class="act primary" onclick={() => goto(`${base}/score/${r.p.number}`)}>Ändra poäng</button>
@@ -155,13 +171,17 @@
 
 		<section class="forget" aria-labelledby="forget-h">
 			<h2 id="forget-h">Klar med tävlingen?</h2>
-			<p>Telefonen glömmer tävlingen av sig själv en vecka efter att den är slut. Du kan också ta bort den nu: patrullerna, meddelandena och dina rapporter försvinner från telefonen (de som är skickade finns kvar hos tävlingsledningen).</p>
+			<p>
+				Telefonen glömmer tävlingen av sig själv en vecka efter att den är slut. Du kan också ta bort den nu: patrullerna, meddelandena och dina rapporter
+				försvinner från telefonen (de som är skickade finns kvar hos tävlingsledningen).
+			</p>
 			{#if !confirmForget}
 				<button type="button" class="btn-forget" bind:this={forgetBtn} onclick={() => (confirmForget = true)}>Ta bort tävlingen från telefonen</button>
 			{:else}
 				<div class="confirm" role="alertdialog" aria-labelledby="forget-q">
 					<p id="forget-q">
-						{#if app.pendingCount}<strong>{app.pendingCount} {app.pendingCount === 1 ? 'rapport är' : 'rapporter är'} inte skickade och försvinner.</strong> Vänta på täckning först om de ska med.{:else}Allt är skickat.{/if}
+						{#if app.pendingCount}<strong>{app.pendingCount} {app.pendingCount === 1 ? 'rapport är' : 'rapporter är'} inte skickade och försvinner.</strong> Vänta
+							på täckning först om de ska med.{:else}Allt är skickat.{/if}
 						Ta bort tävlingen från telefonen?
 					</p>
 					<button type="button" class="btn-forget danger" onclick={forget}>Ja, ta bort</button>

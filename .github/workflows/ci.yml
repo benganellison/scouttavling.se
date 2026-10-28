@@ -41,7 +41,7 @@ jobs:
       - name: Lint (incl. module boundaries)
         run: npx eslint .
       - name: Formatting
-        run: npx prettier --check .
+        run: npm run format:check
       - name: Unit tests
         run: npx vitest run
       - name: Migrations are in sync with the schema

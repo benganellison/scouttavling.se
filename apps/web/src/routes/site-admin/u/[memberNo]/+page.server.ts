@@ -20,13 +20,19 @@ export async function load(event) {
 			.innerJoin(schema.competition, eq(schema.competition.id, schema.competitionMember.competitionId))
 			.where(and(eq(schema.competitionMember.userId, u.id), inArray(schema.competitionMember.role, ['owner', 'organiser', 'hq', 'startfinish'])))
 			.orderBy(desc(schema.competition.startDate)),
-		db.select().from(schema.siteAdmin).where(eq(schema.siteAdmin.userId, u.id)).then((r) => r[0] ?? null),
+		db
+			.select()
+			.from(schema.siteAdmin)
+			.where(eq(schema.siteAdmin.userId, u.id))
+			.then((r) => r[0] ?? null),
 		Promise.resolve(u.lastLoginAt),
 		listAudit({ actorUserId: u.id, limit: 50 })
 	]);
 	return {
 		person: { id: u.id, name: u.name, memberNo: u.memberNo, email: u.email, suspendedAt: u.suspendedAt, createdAt: u.createdAt, lastLogin, groups: u.groups },
-		comps, isSiteAdmin: !!admin, audit
+		comps,
+		isSiteAdmin: !!admin,
+		audit
 	};
 }
 

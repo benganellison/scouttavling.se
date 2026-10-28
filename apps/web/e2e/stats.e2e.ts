@@ -14,7 +14,10 @@ const PHONE = { width: 390, height: 844 };
 function databaseUrl() {
 	if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
 	const env = readFileSync(new URL('../.env', import.meta.url), 'utf8');
-	return /^DATABASE_URL=(.*)$/m.exec(env)![1].trim().replace(/^["']|["']$/g, '');
+	return /^DATABASE_URL=(.*)$/m
+		.exec(env)![1]
+		.trim()
+		.replace(/^["']|["']$/g, '');
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -90,7 +93,10 @@ test('3. public page while live: participation only, nothing about registrations
 });
 
 test('4. public page for the archived year: points per station and times between stations', async ({ browser }) => {
-	for (const [name, viewport] of [['desktop', { width: 1280, height: 900 }], ['phone', PHONE]] as const) {
+	for (const [name, viewport] of [
+		['desktop', { width: 1280, height: 900 }],
+		['phone', PHONE]
+	] as const) {
 		const ctx = await browser.newContext({ viewport });
 		const page = await ctx.newPage();
 		await page.goto('/r/gokopen-2026/statistik');

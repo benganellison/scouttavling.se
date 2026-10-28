@@ -7,12 +7,7 @@
 	 * - Clear space: 1× the x-height of "scouterna" on every side (padding below, inside the box).
 	 * - Minimum size: 250 px wide on screen, 35 mm in print (`print` switches to mm).
 	 */
-	let {
-		onDark = false,
-		tagline = false,
-		width = 250,
-		print = false
-	}: { onDark?: boolean; tagline?: boolean; width?: number; print?: boolean } = $props();
+	let { onDark = false, tagline = false, width = 250, print = false }: { onDark?: boolean; tagline?: boolean; width?: number; print?: boolean } = $props();
 
 	const w = $derived(Math.max(250, width));
 	const ratio = $derived(tagline ? 500 / 1440 : 314.77 / 1440);

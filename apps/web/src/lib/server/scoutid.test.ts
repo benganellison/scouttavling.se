@@ -10,7 +10,14 @@ describe('userFromClaims', () => {
 		expect(userFromClaims({ preferred_username: '3000123@scoutid.se' })?.memberNo).toBe('3000123');
 	});
 	it('refuses a login without a real member number (accounts are merged on it)', () => {
-		for (const c of [{}, { preferred_username: 'anna@example.org' }, { preferred_username: '' }, { scoutnet_member_no: '' }, { scoutnet_member_no: 'abc' }, { scoutnet_member_no: '12' }]) {
+		for (const c of [
+			{},
+			{ preferred_username: 'anna@example.org' },
+			{ preferred_username: '' },
+			{ scoutnet_member_no: '' },
+			{ scoutnet_member_no: 'abc' },
+			{ scoutnet_member_no: '12' }
+		]) {
 			expect(userFromClaims(c), JSON.stringify(c)).toBeNull();
 		}
 	});

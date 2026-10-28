@@ -17,9 +17,7 @@
 <div class="page stack">
 	<header class="stack tight">
 		<h1>Konflikter</h1>
-		<p class="muted">
-			När två rapporter för samma patrull och kontroll skiljer sig åt skriver vi aldrig över tyst. Välj vilken poäng som gäller.
-		</p>
+		<p class="muted">När två rapporter för samma patrull och kontroll skiljer sig åt skriver vi aldrig över tyst. Välj vilken poäng som gäller.</p>
 	</header>
 
 	{#if form?.message}<p class="card msg" role="status">{form.message}</p>{/if}

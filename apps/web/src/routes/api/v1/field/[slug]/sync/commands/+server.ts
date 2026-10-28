@@ -20,7 +20,8 @@ export const POST: RequestHandler = async ({ request, params }) => {
 		return json({ message: 'Ogiltig begäran' }, { status: 400 });
 	}
 	const list = body.commands;
-	if (!Array.isArray(list) || list.some((c) => typeof c !== 'string' || c.length > 8192)) return json({ message: 'commands måste vara en lista av JWS' }, { status: 400 });
+	if (!Array.isArray(list) || list.some((c) => typeof c !== 'string' || c.length > 8192))
+		return json({ message: 'commands måste vara en lista av JWS' }, { status: 400 });
 	if (list.length > MAX_BATCH) return json({ message: `Högst ${MAX_BATCH} kommandon per anrop` }, { status: 413 });
 	const key = ctx.comp.id;
 	if ((running.get(key) ?? 0) >= MAX_CONCURRENT_SYNCS) {

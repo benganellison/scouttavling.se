@@ -27,7 +27,14 @@ export const actions = {
 			anna: { memberNo: '3000002', name: 'Anna Berg' }
 		};
 		const p = people[who] ?? people.bengt;
-		const user = await upsertUser({ ...p, email: `${who}@example.org`, groups: [{ groupNo: '900', name: 'Granlidens scoutkår' }, { groupNo: '90', name: 'Göteborgs scoutdistrikt' }] });
+		const user = await upsertUser({
+			...p,
+			email: `${who}@example.org`,
+			groups: [
+				{ groupNo: '900', name: 'Granlidens scoutkår' },
+				{ groupNo: '90', name: 'Göteborgs scoutdistrikt' }
+			]
+		});
 		await createSession(cookies, url, user.id);
 		redirect(303, safeNext(String(form.get('next') ?? '')));
 	}

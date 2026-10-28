@@ -38,10 +38,18 @@ export async function load(event) {
 					const def = itemDef(it, comp);
 					const values = selectableValues(def);
 					const style = styleValues(def);
-					const rule = [values.length ? `Poäng ${def.mode === 'DISTINCT' ? values.join(' / ') : `${values[0]}–${values[values.length - 1]}`}` : '', style.length ? `Stilpoäng ${style[0]}–${style[style.length - 1]}` : '']
+					const rule = [
+						values.length ? `Poäng ${def.mode === 'DISTINCT' ? values.join(' / ') : `${values[0]}–${values[values.length - 1]}`}` : '',
+						style.length ? `Stilpoäng ${style[0]}–${style[style.length - 1]}` : ''
+					]
 						.filter(Boolean)
 						.join(' · ');
-					return { item: items.length > 1 ? it.name : null, values: values.length <= 22 ? values : null, style, rule: rule + (def.mode === 'COUNT' ? ` · ringa in antal (×${def.countMultiplier ?? 1})` : '') };
+					return {
+						item: items.length > 1 ? it.name : null,
+						values: values.length <= 22 ? values : null,
+						style,
+						rule: rule + (def.mode === 'COUNT' ? ` · ringa in antal (×${def.countMultiplier ?? 1})` : '')
+					};
 				})
 			: [{ item: null, values: null as number[] | null, style: [] as number[], rule: 'Bara signatur — skriv tid och signera' }];
 		for (const sec of sections) {

@@ -25,7 +25,11 @@ const WORK = join(DIR, '_cut');
 const FONT = resolve(ROOT, '../../node_modules/@fontsource/libre-franklin/files/libre-franklin-latin-700-normal.woff');
 const BG = '0x003660'; // Scoutblå
 
-interface Cap { start: number; end: number | null; text: string }
+interface Cap {
+	start: number;
+	end: number | null;
+	text: string;
+}
 const captions: Record<string, Cap[]> = JSON.parse(readFileSync(join(DIR, 'captions.json'), 'utf8'));
 const timing: Record<string, number> = JSON.parse(readFileSync(join(DIR, 'timing.json'), 'utf8'));
 const ready: Record<string, number> = existsSync(join(DIR, 'ready.json')) ? JSON.parse(readFileSync(join(DIR, 'ready.json'), 'utf8')) : {};
@@ -92,7 +96,13 @@ p{font-weight:400;font-size:${st}px;line-height:1.35;margin:0;max-width:${narrow
 }
 
 const PHONE_H = 844 + 120;
-const sizes: [number, number][] = [[390, PHONE_H], [1350 + 390, PHONE_H], [390, PHONE_H], [1280, 810], [1280, 810]];
+const sizes: [number, number][] = [
+	[390, PHONE_H],
+	[1350 + 390, PHONE_H],
+	[390, PHONE_H],
+	[1280, 810],
+	[1280, 810]
+];
 {
 	const browser = await chromium.launch();
 	for (const [i, [w, h]] of sizes.entries()) {
@@ -166,10 +176,32 @@ function encode(inputs: string[], filter: string, out: string, budget: number) {
 	for (const crf of [30, 32, 34, 36, 38]) {
 		ffmpeg([
 			...inputs.flatMap((i) => ['-i', i]),
-			'-loop', '1', '-framerate', '15', '-t', String(CARD_SECONDS), '-i', `/w/card-${n + 1}.png`,
-			'-filter_complex', full, '-map', '[out]',
-			'-c:v', 'libx264', '-preset', 'veryslow', '-tune', 'stillimage', '-crf', String(crf),
-			'-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', `/v/final/${out}`
+			'-loop',
+			'1',
+			'-framerate',
+			'15',
+			'-t',
+			String(CARD_SECONDS),
+			'-i',
+			`/w/card-${n + 1}.png`,
+			'-filter_complex',
+			full,
+			'-map',
+			'[out]',
+			'-c:v',
+			'libx264',
+			'-preset',
+			'veryslow',
+			'-tune',
+			'stillimage',
+			'-crf',
+			String(crf),
+			'-pix_fmt',
+			'yuv420p',
+			'-movflags',
+			'+faststart',
+			'-an',
+			`/v/final/${out}`
 		]);
 		const size = statSync(target).size;
 		console.log(`${out}: crf ${crf} → ${Math.round(size / 1024)} KB (budget ${Math.round(budget / 1024)} KB)`);
@@ -182,7 +214,10 @@ const PHONE_BAND = 120;
 const phoneCaps = (name: string) => captionFilters(name, { y0: 844, band: PHONE_BAND, size: 19, maxChars: 30 });
 
 // 1 and 3: phone recordings
-for (const [name, clip] of [['demo-01-funktionar', clips[0]], ['demo-03-mal', clips[2]]] as const) {
+for (const [name, clip] of [
+	['demo-01-funktionar', clips[0]],
+	['demo-03-mal', clips[2]]
+] as const) {
 	const f = [trim(name), `fps=15`, `pad=390:${844 + PHONE_BAND}:0:0:color=${BG}`, ...phoneCaps(name)].join(',');
 	encode([rawVideo(name)], `[0:v]${f}[body]`, clip.out, clip.budget);
 }
@@ -190,18 +225,32 @@ for (const [name, clip] of [['demo-01-funktionar', clips[0]], ['demo-03-mal', cl
 // 2: HQ (scaled to phone height) and phone side by side, each with its own caption band
 {
 	const hqW = 1350;
-	const hq = [trim('demo-02-hq'), `fps=15`, `scale=${hqW}:844`, `pad=${hqW}:${844 + PHONE_BAND}:0:0:color=${BG}`,
-		...captionFilters('demo-02-hq', { y0: 844, band: PHONE_BAND, size: 26, maxChars: 80 })].join(',');
+	const hq = [
+		trim('demo-02-hq'),
+		`fps=15`,
+		`scale=${hqW}:844`,
+		`pad=${hqW}:${844 + PHONE_BAND}:0:0:color=${BG}`,
+		...captionFilters('demo-02-hq', { y0: 844, band: PHONE_BAND, size: 26, maxChars: 80 })
+	].join(',');
 	const ph = [trim('demo-02-phone'), `fps=15`, `pad=390:${844 + PHONE_BAND}:0:0:color=${BG}`, ...phoneCaps('demo-02-phone')].join(',');
-	encode([rawVideo('demo-02-hq'), rawVideo('demo-02-phone')],
-		`[0:v]${hq}[a];[1:v]${ph}[b];[a][b]hstack=inputs=2:shortest=1[body]`, clips[1].out, clips[1].budget);
+	encode(
+		[rawVideo('demo-02-hq'), rawVideo('demo-02-phone')],
+		`[0:v]${hq}[a];[1:v]${ph}[b];[a][b]hstack=inputs=2:shortest=1[body]`,
+		clips[1].out,
+		clips[1].budget
+	);
 }
 
 // 4: ceremony on the big screen
 {
 	const band = 90;
-	const f = [trim('demo-04-prisutdelning'), `fps=15`, `scale=1280:720`, `pad=1280:${720 + band}:0:0:color=${BG}`,
-		...captionFilters('demo-04-prisutdelning', { y0: 720, band, size: 26, maxChars: 80 })].join(',');
+	const f = [
+		trim('demo-04-prisutdelning'),
+		`fps=15`,
+		`scale=1280:720`,
+		`pad=1280:${720 + band}:0:0:color=${BG}`,
+		...captionFilters('demo-04-prisutdelning', { y0: 720, band, size: 26, maxChars: 80 })
+	].join(',');
 	encode([rawVideo('demo-04-prisutdelning')], `[0:v]${f}[body]`, clips[3].out, clips[3].budget);
 }
 
@@ -210,12 +259,15 @@ for (const [name, clip] of [['demo-01-funktionar', clips[0]], ['demo-03-mal', cl
 {
 	const band = 90;
 	const caps = (name: string) => captionFilters(name, { y0: 720, band, size: 26, maxChars: 80 });
-	const desk = (name: string) => [trim(name), `fps=15`, `scale=1152:720`, `pad=1280:${720 + band}:64:0:color=${BG}`, ...caps(name), 'setsar=1', 'format=yuv420p'].join(',');
-	const phone = (name: string) => [trim(name), `fps=15`, `scale=-2:720`, `pad=1280:${720 + band}:(ow-iw)/2:0:color=${BG}`, ...caps(name), 'setsar=1', 'format=yuv420p'].join(',');
+	const desk = (name: string) =>
+		[trim(name), `fps=15`, `scale=1152:720`, `pad=1280:${720 + band}:64:0:color=${BG}`, ...caps(name), 'setsar=1', 'format=yuv420p'].join(',');
+	const phone = (name: string) =>
+		[trim(name), `fps=15`, `scale=-2:720`, `pad=1280:${720 + band}:(ow-iw)/2:0:color=${BG}`, ...caps(name), 'setsar=1', 'format=yuv420p'].join(',');
 	encode(
 		[rawVideo('demo-05-utseende'), rawVideo('demo-05-telefon'), rawVideo('demo-05-utskrift')],
 		`[0:v]${desk('demo-05-utseende')}[a];[1:v]${phone('demo-05-telefon')}[b];[2:v]${desk('demo-05-utskrift')}[c];[a][b][c]concat=n=3:v=1:a=0[body]`,
-		clips[4].out, clips[4].budget
+		clips[4].out,
+		clips[4].budget
 	);
 }
 

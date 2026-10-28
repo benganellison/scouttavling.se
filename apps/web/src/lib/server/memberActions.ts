@@ -52,7 +52,8 @@ export async function memberAction(kind: MemberAction, f: FormData, scope: Scope
 			}
 		}
 	} catch (e) {
-		if (e instanceof OwnershipError) return fail(e.code === 'forbidden' ? 403 : 400, { section: 'members', errors: { members: e.message } as Record<string, string>, memberNo });
+		if (e instanceof OwnershipError)
+			return fail(e.code === 'forbidden' ? 403 : 400, { section: 'members', errors: { members: e.message } as Record<string, string>, memberNo });
 		throw e;
 	}
 }
@@ -69,7 +70,8 @@ export async function replaceOwner(f: FormData, scope: Scope, actor: OwnershipAc
 	if (e) return fail(400, { section: 'members', errors: { reason: e } as Record<string, string>, memberNo });
 	const found = await userByMemberNo(memberNo);
 	if ('error' in found) return fail(400, { section: 'members', errors: { replace: found.error } as Record<string, string>, memberNo });
-	if (found.user.id === oldUserId) return fail(400, { section: 'members', errors: { replace: 'Välj en annan person än den nuvarande ägaren.' } as Record<string, string>, memberNo });
+	if (found.user.id === oldUserId)
+		return fail(400, { section: 'members', errors: { replace: 'Välj en annan person än den nuvarande ägaren.' } as Record<string, string>, memberNo });
 	try {
 		await changeMembers(
 			scope,

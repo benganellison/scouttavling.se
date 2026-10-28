@@ -22,8 +22,9 @@
 			<button class="btn big" disabled>Logga in med ScoutID (inte konfigurerat ännu)</button>
 		{/if}
 		<p class="muted small">
-			Du skickas till Scouternas inloggning och tillbaka hit. Vi får ditt namn, medlemsnummer, e-post och vilka kårer du tillhör — aldrig
-			personnummer. <a href="/personuppgifter">Så hanterar vi personuppgifter</a>
+			Du skickas till Scouternas inloggning och tillbaka hit. Vi får ditt namn, medlemsnummer, e-post och vilka kårer du tillhör — aldrig personnummer. <a
+				href="/personuppgifter">Så hanterar vi personuppgifter</a
+			>
 		</p>
 		{#if data.devLogin}
 			<form method="POST" action="?/dev" class="dev card stack">

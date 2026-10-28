@@ -21,9 +21,7 @@ const font = (w: number) => readFileSync(join(FONTS, `libre-franklin-latin-${w}-
 const BLUE = '#003660'; // Scoutblå
 const ACCENT = '#00a8e1'; // Upptäckarblå, GökOpen's accent
 
-const fontFace = [400, 700, 800]
-	.map((w) => `@font-face{font-family:LF;font-weight:${w};src:url(data:font/woff2;base64,${font(w)}) format('woff2')}`)
-	.join('');
+const fontFace = [400, 700, 800].map((w) => `@font-face{font-family:LF;font-weight:${w};src:url(data:font/woff2;base64,${font(w)}) format('woff2')}`).join('');
 const page = (w: number, h: number, svg: string) =>
 	`<!doctype html><meta charset="utf-8"><style>${fontFace}html,body{margin:0;background:transparent}svg{display:block}</style>
 <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${svg}</svg>`;
@@ -65,7 +63,10 @@ function cover() {
 		return s;
 	};
 	const lakeY = 360;
-	return page(W, H, `
+	return page(
+		W,
+		H,
+		`
 <defs>
   <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe0ef"/><stop offset="1" stop-color="#eaf5f2"/></linearGradient>
   <linearGradient id="lake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fc3d6"/><stop offset="1" stop-color="#5d9bb5"/></linearGradient>
@@ -89,7 +90,8 @@ ${row(7, lakeY + 110, 130, 210, '#2f6a4f', 1300, 1640)}
 <path d="M1600 ${H - 80} C 1420 ${H - 100} 1200 ${H - 70} 1050 ${H - 30} L 1050 ${H} H1600Z" fill="#1f4f3b"/>
 ${row(6, H + 30, 230, 320, '#173f30', -60, 260)}
 ${row(5, H + 30, 230, 330, '#173f30', 1360, 1680)}
-`);
+`
+	);
 }
 
 /** A perched cuckoo facing left, in local coordinates around (0,0), about 300 wide. */
@@ -110,7 +112,10 @@ function cuckoo(body: string, wing: string, bars: string) {
 function eventLogo() {
 	const S = 512;
 	const c = S / 2;
-	return page(S, S, `
+	return page(
+		S,
+		S,
+		`
 <defs>
   <path id="bot" d="M ${c - 186} ${c} A 186 186 0 0 0 ${c + 186} ${c}"/>
 </defs>
@@ -124,17 +129,22 @@ function eventLogo() {
 <text font-family="LF" font-weight="800" font-size="68" fill="#fff" letter-spacing="1" text-anchor="middle">
   <textPath href="#bot" startOffset="50%" side="left" dy="0">GökOpen</textPath>
 </text>
-`);
+`
+	);
 }
 
 function organiserLogo() {
-	return page(600, 200, `
+	return page(
+		600,
+		200,
+		`
 <g transform="translate(78 172)">
   ${spruce(0, 0, 150, BLUE)}
 </g>
 <text x="160" y="104" font-family="LF" font-weight="800" font-size="64" fill="${BLUE}" letter-spacing="-.5">Granlidens</text>
 <text x="162" y="160" font-family="LF" font-weight="400" font-size="46" fill="${BLUE}" letter-spacing="2">scoutkår</text>
-`);
+`
+	);
 }
 
 mkdirSync(OUT, { recursive: true });

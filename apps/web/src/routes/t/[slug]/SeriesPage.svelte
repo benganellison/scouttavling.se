@@ -10,7 +10,9 @@
 	const cur = $derived(data.current);
 	const first = $derived(data.archive.at(-1)?.year ?? cur?.year ?? null);
 	const today = todayIso();
-	const eyebrow = $derived(!cur ? '' : today >= cur.startDate && today <= cur.endDate ? 'Pågår nu' : today < cur.startDate ? 'Nästa tävling' : `${s.name} ${cur.year}`);
+	const eyebrow = $derived(
+		!cur ? '' : today >= cur.startDate && today <= cur.endDate ? 'Pågår nu' : today < cur.startDate ? 'Nästa tävling' : `${s.name} ${cur.year}`
+	);
 	const n = (v: number, one: string, many: string) => `${v} ${v === 1 ? one : many}`;
 </script>
 
@@ -79,7 +81,19 @@
 							</ul>
 						{/if}
 						{#if e.results}
-							<a class="y-link" href="/r/{e.slug}">Resultat {e.year}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg></a>
+							<a class="y-link" href="/r/{e.slug}"
+								>Resultat {e.year}<svg
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2.6"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg
+								></a
+							>
 						{/if}
 					</li>
 				{/each}

@@ -9,7 +9,12 @@
 	let { data }: { data: Extract<PageData, { kind: 'competition' }> } = $props();
 	const c = $derived(data.comp);
 	const w = $derived(data.window);
-	const paragraphs = $derived((c.infoText ?? '').split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean));
+	const paragraphs = $derived(
+		(c.infoText ?? '')
+			.split(/\n\s*\n/)
+			.map((p) => p.trim())
+			.filter(Boolean)
+	);
 </script>
 
 <svelte:head>
@@ -25,12 +30,16 @@
 			<h1>{c.name}</h1>
 			<ul class="facts">
 				<li>
-					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"
+						><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M3 10h18M8 3v4M16 3v4" /></svg
+					>
 					<span>{dateRange(c.startDate, c.endDate)}{c.multiDay ? ' · flera dagar' : ''}</span>
 				</li>
 				{#if c.location}
 					<li>
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"
+							><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg
+						>
 						<span>{c.location}</span>
 					</li>
 				{/if}
@@ -39,7 +48,9 @@
 	{/snippet}
 
 	{#if data.preview}
-		<p class="preview" role="note"><strong>Förhandsvisning.</strong> Tävlingen är ett utkast och sidan syns bara för arrangörer. Gör tävlingen live på översikten för att publicera den.</p>
+		<p class="preview" role="note">
+			<strong>Förhandsvisning.</strong> Tävlingen är ett utkast och sidan syns bara för arrangörer. Gör tävlingen live på översikten för att publicera den.
+		</p>
 	{/if}
 
 	<section class="card reg" aria-labelledby="h-reg" data-state={w.state}>
@@ -64,7 +75,17 @@
 		<a class="card results" href="/r/{c.slug}">
 			<span class="dot" aria-hidden="true"></span>
 			<span class="rt"><strong>{c.status === 'closed' ? 'Resultat' : 'Liveresultat'}</strong><span class="muted">Se ställningen i alla klasser</span></span>
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+			<svg
+				width="20"
+				height="20"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2.6"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg
+			>
 		</a>
 	{/if}
 
@@ -85,7 +106,11 @@
 		{#if data.tracks.length}
 			<ul class="tracks">
 				{#each data.tracks as t (t.name)}
-					<li><span class="tn"><TrackChip color={t.color} />{t.name}</span><span class="tc"><strong>{t.patrols}</strong> {t.patrols === 1 ? 'patrull' : 'patruller'}</span></li>
+					<li>
+						<span class="tn"><TrackChip color={t.color} />{t.name}</span><span class="tc"
+							><strong>{t.patrols}</strong> {t.patrols === 1 ? 'patrull' : 'patruller'}</span
+						>
+					</li>
 				{/each}
 			</ul>
 		{:else}

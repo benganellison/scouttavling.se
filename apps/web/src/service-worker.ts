@@ -86,7 +86,13 @@ async function fieldNavigation(request: Request, url: URL): Promise<Response> {
 		return res;
 	} catch {
 		const hit = (await pages.match(request, { ignoreSearch: true })) ?? (url.pathname.startsWith('/f/') ? await pages.match(SHELL) : undefined);
-		return hit ?? new Response('<!doctype html><meta charset="utf-8"><title>Ingen täckning</title><h1>Ingen täckning</h1><p>Sidan finns inte sparad i telefonen än.</p>', { status: 503, headers: { 'content-type': 'text/html; charset=utf-8' } });
+		return (
+			hit ??
+			new Response('<!doctype html><meta charset="utf-8"><title>Ingen täckning</title><h1>Ingen täckning</h1><p>Sidan finns inte sparad i telefonen än.</p>', {
+				status: 503,
+				headers: { 'content-type': 'text/html; charset=utf-8' }
+			})
+		);
 	}
 }
 

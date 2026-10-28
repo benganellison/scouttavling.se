@@ -37,7 +37,9 @@ async function seriesOptions(userId: string): Promise<SeriesOption[]> {
 			const year = latest ? editionYearOf(latest) : null;
 			const next = year ? editions.find((e) => editionYearOf(e) === year + 1) : undefined;
 			return {
-				id: s.id, slug: s.slug, name: s.name,
+				id: s.id,
+				slug: s.slug,
+				name: s.name,
 				latest: latest && year ? { slug: latest.slug, name: latest.name, year } : null,
 				nextName: year ? `${s.name} ${year + 1}` : null,
 				nextExists: next?.slug ?? null,
@@ -79,8 +81,14 @@ export const actions = {
 		const publicResults = f.get('publicResults') === 'on';
 		const registrationOpen = f.get('registrationOpen') === 'on';
 		const stationCount = Number(str('stations') || '0');
-		const presetTracks = f.getAll('track').map(String).filter((t) => PRESET_TRACKS.includes(t));
-		const customTracks = f.getAll('customTrack').map((t) => String(t).trim()).filter(Boolean);
+		const presetTracks = f
+			.getAll('track')
+			.map(String)
+			.filter((t) => PRESET_TRACKS.includes(t));
+		const customTracks = f
+			.getAll('customTrack')
+			.map((t) => String(t).trim())
+			.filter(Boolean);
 		const tracks = [...new Set([...presetTracks, ...customTracks])];
 
 		// Part of a series? 'single' (one-off), 'new' (create a series with this as its first year) or
@@ -91,16 +99,32 @@ export const actions = {
 		const seriesSlug = seriesSlugInput || slugify(seriesName);
 
 		const values = {
-			seriesMode, seriesName, seriesSlug: str('seriesSlug'),
-			name, slug: str('slug'), length: multiDay ? 'multi' : 'one', date: multiDay ? '' : startDate, startDate, endDate, location, hqPhone,
-			owner: ownerNo, styleEnabled, publicResults, registrationOpen, stations: stationCount, tracks: presetTracks, customTracks
+			seriesMode,
+			seriesName,
+			seriesSlug: str('seriesSlug'),
+			name,
+			slug: str('slug'),
+			length: multiDay ? 'multi' : 'one',
+			date: multiDay ? '' : startDate,
+			startDate,
+			endDate,
+			location,
+			hqPhone,
+			owner: ownerNo,
+			styleEnabled,
+			publicResults,
+			registrationOpen,
+			stations: stationCount,
+			tracks: presetTracks,
+			customTracks
 		};
 
 		if (seriesMode === 'existing') {
 			const pick = (await seriesOptions(user.id)).find((o) => o.id === str('seriesId'));
 			if (!pick) return fail(400, { errors: { seriesId: 'Välj en serie.' } as Errors, values });
 			if (pick.nextExists) redirect(303, `/admin/${pick.nextExists}`);
-			if (!pick.latest || !pick.canCopy) return fail(403, { errors: { seriesId: `Du är inte arrangör för ${pick.latest?.name ?? 'seriens senaste år'}.` } as Errors, values });
+			if (!pick.latest || !pick.canCopy)
+				return fail(403, { errors: { seriesId: `Du är inte arrangör för ${pick.latest?.name ?? 'seriens senaste år'}.` } as Errors, values });
 			redirect(303, `/admin/${pick.latest.slug}/next-edition`);
 		}
 
@@ -134,11 +158,19 @@ export const actions = {
 		if (hqPhone.length > 30) errors.hqPhone = 'Telefonnumret är för långt.';
 
 		// Days + prefixes (multi-day only).
-		const days = multiDay && !errors.startDate && !errors.endDate ? daysBetween(startDate, endDate) : ISO.test(startDate) ? [{ date: startDate, name: '', prefix: 'K' }] : [];
+		const days =
+			multiDay && !errors.startDate && !errors.endDate
+				? daysBetween(startDate, endDate)
+				: ISO.test(startDate)
+					? [{ date: startDate, name: '', prefix: 'K' }]
+					: [];
 		if (multiDay) {
 			const seen = new Set<string>();
 			for (const d of days) {
-				const p = String(f.get(`prefix_${d.date}`) ?? d.prefix).trim().toUpperCase() || d.prefix;
+				const p =
+					String(f.get(`prefix_${d.date}`) ?? d.prefix)
+						.trim()
+						.toUpperCase() || d.prefix;
 				if (!/^[A-ZÅÄÖ]{1,3}$/.test(p)) errors[`prefix_${d.date}`] = 'Prefix: 1–3 bokstäver.';
 				else if (seen.has(p)) errors[`prefix_${d.date}`] = 'Prefixet används redan av en annan dag.';
 				seen.add(p);
@@ -181,10 +213,23 @@ export const actions = {
 			const [comp] = await tx
 				.insert(schema.competition)
 				.values({
-					slug: finalSlug, name, ownerGroupNo: group!.groupNo, ownerGroupName: group!.name, multiDay, startDate, endDate,
-					location: location || null, hqPhone: hqPhone || null, styleEnabled, publicResults, registrationOpen,
-					status: 'draft', patrolCodeKey: randomToken(24), createdBy: user.id,
-					editionYear, seriesId: series?.id ?? null
+					slug: finalSlug,
+					name,
+					ownerGroupNo: group!.groupNo,
+					ownerGroupName: group!.name,
+					multiDay,
+					startDate,
+					endDate,
+					location: location || null,
+					hqPhone: hqPhone || null,
+					styleEnabled,
+					publicResults,
+					registrationOpen,
+					status: 'draft',
+					patrolCodeKey: randomToken(24),
+					createdBy: user.id,
+					editionYear,
+					seriesId: series?.id ?? null
 				})
 				.returning();
 			await tx.insert(schema.competitionMember).values({ competitionId: comp.id, userId: user.id, role: 'owner' });
@@ -216,13 +261,15 @@ export const actions = {
 					.insert(schema.station)
 					.values(defs.map((d, i) => ({ competitionId: comp.id, dayId: d.dayId, sort: i + 1, name: d.name, role: d.role, startable: !d.checkpoint })))
 					.returning();
-				await tx.insert(schema.scoreItem).values(
-					stations.map((s, i) =>
-						defs[i].checkpoint
-							? { stationId: s.id, sort: 1, name: s.name, mode: 'CHECKIN' as const, min: 0, max: 0, styleEnabled: false, countsForTiebreak: false }
-							: { stationId: s.id, sort: 1, name: s.name, mode: 'RANGE' as const, min: 0, max: 20, styleEnabled: true, countsForTiebreak: true }
-					)
-				);
+				await tx
+					.insert(schema.scoreItem)
+					.values(
+						stations.map((s, i) =>
+							defs[i].checkpoint
+								? { stationId: s.id, sort: 1, name: s.name, mode: 'CHECKIN' as const, min: 0, max: 0, styleEnabled: false, countsForTiebreak: false }
+								: { stationId: s.id, sort: 1, name: s.name, mode: 'RANGE' as const, min: 0, max: 20, styleEnabled: true, countsForTiebreak: true }
+						)
+					);
 			}
 			await recordChange(tx, comp.id, 'competition', comp.id);
 			return comp;

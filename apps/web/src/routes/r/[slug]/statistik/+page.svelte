@@ -15,7 +15,10 @@
 
 <div class="wrap" style={accentStyle(data.branding)}>
 	<header class="top">
-		<div class="brand">{#if data.branding.eventLogo}<EventLogo logo={data.branding.eventLogo} height={40} onDark />{:else}<ScouternaSymbol size={28} onDark />{/if} <span>{data.comp.name}</span></div>
+		<div class="brand">
+			{#if data.branding.eventLogo}<EventLogo logo={data.branding.eventLogo} height={40} onDark />{:else}<ScouternaSymbol size={28} onDark />{/if}
+			<span>{data.comp.name}</span>
+		</div>
 		<nav class="links" aria-label="Tävlingen">
 			<a href="/r/{data.comp.slug}">{data.comp.final ? 'Slutresultat' : 'Resultat'}</a>
 			<a href="/r/{data.comp.slug}/statistik" aria-current="page">Statistik</a>

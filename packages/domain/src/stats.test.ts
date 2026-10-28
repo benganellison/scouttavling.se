@@ -22,7 +22,17 @@ describe('histogram', () => {
 	});
 	it('groups into 10 buckets above 20 points, clamping values outside the range', () => {
 		const h = histogram([0, 5, 59, 60, 75], 60);
-		expect(h.map((b) => [b.from, b.to])).toEqual([[0, 6], [7, 13], [14, 20], [21, 27], [28, 34], [35, 41], [42, 48], [49, 55], [56, 60]]);
+		expect(h.map((b) => [b.from, b.to])).toEqual([
+			[0, 6],
+			[7, 13],
+			[14, 20],
+			[21, 27],
+			[28, 34],
+			[35, 41],
+			[42, 48],
+			[49, 55],
+			[56, 60]
+		]);
 		expect(h[0].count).toBe(2);
 		expect(h.at(-1)!.count).toBe(3);
 	});

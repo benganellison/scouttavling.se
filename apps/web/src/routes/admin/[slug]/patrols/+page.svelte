@@ -89,7 +89,11 @@
 						<tr>
 							<td class="num nr">{p.number}</td>
 							<td><a class="name" href="{base}/patrols/{p.number}/edit">{p.name}</a></td>
-							<td>{#if p.track}<span class="trk"><TrackChip color={p.trackId ? data.trackColors[p.trackId] : null} />{p.track}</span>{:else}<span class="pill pill-warn">Ingen klass</span>{/if}</td>
+							<td
+								>{#if p.track}<span class="trk"><TrackChip color={p.trackId ? data.trackColors[p.trackId] : null} />{p.track}</span>{:else}<span
+										class="pill pill-warn">Ingen klass</span
+									>{/if}</td
+							>
 							<td>{p.troop}</td>
 							<td>
 								<span class="contact">{p.contactName}</span>
@@ -100,7 +104,15 @@
 							<td>
 								{#if p.start}
 									<span class="code" title={p.start.name}>{p.start.code}</span>
-									{#if p.startLocked}<span class="sr-only">(låst)</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>{/if}
+									{#if p.startLocked}<span class="sr-only">(låst)</span><svg
+											width="14"
+											height="14"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2.2"
+											aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg
+										>{/if}
 								{:else}<span class="muted">—</span>{/if}
 							</td>
 							<td>

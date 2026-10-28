@@ -51,19 +51,26 @@ export async function GET({ params, request, url, locals, getClientAddress }) {
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let lastEmit = 0;
 	let pendingSeq = cursor;
-	return sseResponse(request, comp.id, cursor, (rows, send) => {
-		const relevant = rows.filter((r) => PUBLIC_KINDS.has(r.kind));
-		pendingSeq = rows[rows.length - 1].seq;
-		if (relevant.length === 0 || timer) return;
-		const emit = async () => {
-			timer = null;
-			lastEmit = Date.now();
-			const f = await sharedFrame(comp.id, pendingSeq);
-			send(f ?? frame('closed', pendingSeq, {}));
-		};
-		timer = setTimeout(emit, Math.max(0, lastEmit + COALESCE_MS - Date.now()));
-	}, undefined, () => {
-		if (timer) clearTimeout(timer);
-		release();
-	});
+	return sseResponse(
+		request,
+		comp.id,
+		cursor,
+		(rows, send) => {
+			const relevant = rows.filter((r) => PUBLIC_KINDS.has(r.kind));
+			pendingSeq = rows[rows.length - 1].seq;
+			if (relevant.length === 0 || timer) return;
+			const emit = async () => {
+				timer = null;
+				lastEmit = Date.now();
+				const f = await sharedFrame(comp.id, pendingSeq);
+				send(f ?? frame('closed', pendingSeq, {}));
+			};
+			timer = setTimeout(emit, Math.max(0, lastEmit + COALESCE_MS - Date.now()));
+		},
+		undefined,
+		() => {
+			if (timer) clearTimeout(timer);
+			release();
+		}
+	);
 }

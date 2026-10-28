@@ -168,5 +168,5 @@ export function needsOutline(hex: string): boolean {
 /** Display name of a palette colour, or the hex itself. */
 export function colorName(hex: string): string {
 	const h = parseHex(hex);
-	return PALETTE.find((p) => p.hex === h)?.name ?? (h ?? hex);
+	return PALETTE.find((p) => p.hex === h)?.name ?? h ?? hex;
 }

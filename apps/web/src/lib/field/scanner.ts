@@ -12,7 +12,8 @@ interface Detector {
 let detectorPromise: Promise<Detector> | null = null;
 
 async function createDetector(): Promise<Detector> {
-	const Native = (globalThis as { BarcodeDetector?: { new (o: { formats: string[] }): Detector; getSupportedFormats?: () => Promise<string[]> } }).BarcodeDetector;
+	const Native = (globalThis as { BarcodeDetector?: { new (o: { formats: string[] }): Detector; getSupportedFormats?: () => Promise<string[]> } })
+		.BarcodeDetector;
 	if (Native) {
 		try {
 			const formats = (await Native.getSupportedFormats?.()) ?? ['qr_code'];

@@ -33,7 +33,10 @@ test.afterAll(async () => {
 });
 
 test('1. the GökOpen series page shows this year and 2026 in the archive', async ({ browser }) => {
-	for (const [name, viewport] of [['desktop', { width: 1280, height: 900 }], ['phone', PHONE]] as const) {
+	for (const [name, viewport] of [
+		['desktop', { width: 1280, height: 900 }],
+		['phone', PHONE]
+	] as const) {
 		const ctx = await browser.newContext({ viewport });
 		const page = await ctx.newPage();
 		await page.goto('/t/gokopen');
@@ -73,7 +76,11 @@ test('1. the GökOpen series page shows this year and 2026 in the archive', asyn
 });
 
 test('1b. short addresses: /<slug> leads to the series or competition page', async ({ page, request }) => {
-	for (const [from, to] of [['/gokopen', '/t/gokopen'], ['/gokopen-2027', '/t/gokopen-2027'], ['/GokOpen?fran=affisch', '/t/gokopen?fran=affisch']]) {
+	for (const [from, to] of [
+		['/gokopen', '/t/gokopen'],
+		['/gokopen-2027', '/t/gokopen-2027'],
+		['/GokOpen?fran=affisch', '/t/gokopen?fran=affisch']
+	]) {
 		const r = await request.get(from, { maxRedirects: 0 });
 		expect(r.status(), from).toBe(302);
 		expect(r.headers().location, from).toBe(to);
@@ -134,13 +141,18 @@ test('2. create GökOpen 2028 from 2027: stations and classes copied, no patrols
 async function fillEdition() {
 	const [c] = await sql`select id from competition where slug = ${NEW}`;
 	const tracks = await sql`select id, name from track where competition_id = ${c.id} order by sort`;
-	const items = await sql`select i.id from score_item i join station s on s.id = i.station_id where s.competition_id = ${c.id} and i.mode = 'RANGE' and s.all_tracks order by s.sort limit 3`;
+	const items =
+		await sql`select i.id from score_item i join station s on s.id = i.station_id where s.competition_id = ${c.id} and i.mode = 'RANGE' and s.all_tracks order by s.sort limit 3`;
 	const T = Object.fromEntries(tracks.map((t) => [t.name, t.id]));
 	const defs: [number, string, string, number[]][] = [
-		[201, 'Spillkråkorna', 'Upptäckare', [18, 15, 12]], [202, 'Sälarna', 'Upptäckare', [14, 19, 16]], [203, 'Lärkorna', 'Spårare', [11, 9, 13]], [204, 'Mårdarna', 'Spårare', [11, 9, 13]]
+		[201, 'Spillkråkorna', 'Upptäckare', [18, 15, 12]],
+		[202, 'Sälarna', 'Upptäckare', [14, 19, 16]],
+		[203, 'Lärkorna', 'Spårare', [11, 9, 13]],
+		[204, 'Mårdarna', 'Spårare', [11, 9, 13]]
 	];
 	for (const [nr, name, track, pts] of defs) {
-		const [p] = await sql`insert into patrol (competition_id, number, name, track_id, troop, status, contact_name, contact_phone, contact_email, manage_token_hash, follow_token_hash)
+		const [p] =
+			await sql`insert into patrol (competition_id, number, name, track_id, troop, status, contact_name, contact_phone, contact_email, manage_token_hash, follow_token_hash)
 			values (${c.id}, ${nr}, ${name}, ${T[track]}, 'Granlidens scoutkår', 'finished', ${NAMES[1]}, '070-000 00 99', 'kontakt@example.org',
 				${nr === 201 ? sha(TOKEN_M) : null}, ${nr === 201 ? sha(TOKEN_F) : null}) returning id`;
 		await sql`insert into member (patrol_id, first_name, last_name) values (${p.id}, 'Tindra', 'Testsson'), (${p.id}, 'Ebbe', 'Exempel')`;
@@ -151,7 +163,9 @@ async function fillEdition() {
 		}
 	}
 	const [inv] = await sql`select id from invite where competition_id = ${c.id} limit 1`;
-	const inviteId = inv?.id ?? (await sql`insert into invite (competition_id, role, secret_hash) values (${c.id}, 'startfinish', ${sha('seriesInvite' + Date.now())}) returning id`)[0].id;
+	const inviteId =
+		inv?.id ??
+		(await sql`insert into invite (competition_id, role, secret_hash) values (${c.id}, 'startfinish', ${sha('seriesInvite' + Date.now())}) returning id`)[0].id;
 	await sql`insert into device (competition_id, invite_id, role, display_name, public_jwk) values (${c.id}, ${inviteId}, 'startfinish', ${NAMES[2]}, ${sql.json({ kty: 'EC' })})`;
 	await sql`insert into message (competition_id, title, body) values (${c.id}, 'Hej', ${'Ring ' + NAMES[2]})`;
 	await sql`update station set contact_name = ${NAMES[2]}, contact_phone = '070-123' where competition_id = ${c.id} and name = 'Kojbygge'`;
@@ -285,7 +299,8 @@ test('4. hide a year from the public archive', async ({ page }) => {
 
 test('5. "Ny tävling": standalone, new series or a new year in an existing series', async ({ page, browser }) => {
 	// The newest GökOpen year depends on whether tests 2–4 ran (2028) or not (2027).
-	const [latest] = await sql`select slug, name, edition_year y from competition where series_id = (select id from series where slug = 'gokopen') order by edition_year desc limit 1`;
+	const [latest] =
+		await sql`select slug, name, edition_year y from competition where series_id = (select id from series where slug = 'gokopen') order by edition_year desc limit 1`;
 	const nextName = `GökOpen ${latest.y + 1}`;
 	await login(page);
 	await page.goto('/admin/new');

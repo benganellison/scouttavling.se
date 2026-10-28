@@ -13,7 +13,14 @@ export const load: PageServerLoad = async ({ params, setHeaders, getClientAddres
 	const code = parsePatrolCode(params.code);
 	if (!code) return { patrol: null };
 	const [row] = await db
-		.select({ number: schema.patrol.number, name: schema.patrol.name, comp: schema.competition.name, slug: schema.competition.slug, key: schema.competition.patrolCodeKey, suspendedAt: schema.competition.suspendedAt })
+		.select({
+			number: schema.patrol.number,
+			name: schema.patrol.name,
+			comp: schema.competition.name,
+			slug: schema.competition.slug,
+			key: schema.competition.patrolCodeKey,
+			suspendedAt: schema.competition.suspendedAt
+		})
 		.from(schema.patrol)
 		.innerJoin(schema.competition, eq(schema.competition.id, schema.patrol.competitionId))
 		.where(and(eq(schema.competition.slug, code.comp), eq(schema.patrol.number, code.nr)))

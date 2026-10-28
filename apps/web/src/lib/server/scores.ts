@@ -54,7 +54,6 @@ export type WriteResult =
 	| { result: 'conflict'; server: { points: number; stylePoints: number; version: number; state: string } }
 	| { result: 'rejected'; reason: string };
 
-
 /**
  * Patrol status follows the scores (rules in @scouttavling/domain nextPatrolStatus):
  * first score → "På banan"; a finish-role station or an AUTO_ON_SCAN item → "I läger"
@@ -63,9 +62,18 @@ export type WriteResult =
  * correction and paper entry behave the same. Resigned/finished are never touched.
  */
 async function applyStatusRules(tx: Tx, w: WriteScore, item: ItemRow) {
-	const [p] = await tx.select({ id: schema.patrol.id, status: schema.patrol.status }).from(schema.patrol).where(eq(schema.patrol.id, w.patrolId)).for('update').limit(1);
+	const [p] = await tx
+		.select({ id: schema.patrol.id, status: schema.patrol.status })
+		.from(schema.patrol)
+		.where(eq(schema.patrol.id, w.patrolId))
+		.for('update')
+		.limit(1);
 	if (!p || p.status === 'resigned' || p.status === 'finished') return;
-	const [st] = await tx.select({ dayId: schema.station.dayId, role: schema.station.role }).from(schema.station).where(eq(schema.station.id, item.stationId)).limit(1);
+	const [st] = await tx
+		.select({ dayId: schema.station.dayId, role: schema.station.role })
+		.from(schema.station)
+		.where(eq(schema.station.id, item.stationId))
+		.limit(1);
 	const days = await tx
 		.select({ id: schema.day.id })
 		.from(schema.day)
@@ -95,10 +103,11 @@ async function applyStatusRules(tx: Tx, w: WriteScore, item: ItemRow) {
 		const fin = others.find((o) => o.role === 'finish' || o.mode === 'AUTO_ON_SCAN');
 		if (fin) campDay = dayIndex(fin.dayId);
 		// …or, when camp was set by hand, the latest day it was seen.
-		else for (const o of others) {
-			const d = dayIndex(o.dayId);
-			if (d !== null && (campDay === null || d > campDay)) campDay = d;
-		}
+		else
+			for (const o of others) {
+				const d = dayIndex(o.dayId);
+				if (d !== null && (campDay === null || d > campDay)) campDay = d;
+			}
 	}
 
 	const next = nextPatrolStatus({
@@ -194,8 +203,16 @@ export async function writeScore(w: WriteScore, outer?: Tx): Promise<WriteResult
 
 		const revision = async (scoreId: string, version: number, state: 'active' | 'void') =>
 			tx.insert(schema.scoreRevision).values({
-				scoreId, version, points: value.points, stylePoints: value.stylePoints, state, origin: w.origin,
-				deviceId: w.deviceId ?? null, userId: w.userId ?? null, commandId: w.commandId ?? null, reason: w.reason ?? null
+				scoreId,
+				version,
+				points: value.points,
+				stylePoints: value.stylePoints,
+				state,
+				origin: w.origin,
+				deviceId: w.deviceId ?? null,
+				userId: w.userId ?? null,
+				commandId: w.commandId ?? null,
+				reason: w.reason ?? null
 			});
 
 		if (!existing) {
@@ -204,8 +221,16 @@ export async function writeScore(w: WriteScore, outer?: Tx): Promise<WriteResult
 			const [row] = await tx
 				.insert(schema.score)
 				.values({
-					competitionId: w.competitionId, patrolId: w.patrolId, itemId: w.itemId, points: value.points, stylePoints: value.stylePoints,
-					raw: w.raw, origin: w.origin, deviceId: w.deviceId ?? null, userId: w.userId ?? null, note: w.note ?? null,
+					competitionId: w.competitionId,
+					patrolId: w.patrolId,
+					itemId: w.itemId,
+					points: value.points,
+					stylePoints: value.stylePoints,
+					raw: w.raw,
+					origin: w.origin,
+					deviceId: w.deviceId ?? null,
+					userId: w.userId ?? null,
+					note: w.note ?? null,
 					scoredAt: visitTime(w)
 				})
 				.onConflictDoNothing({ target: [schema.score.patrolId, schema.score.itemId] })
@@ -226,20 +251,34 @@ export async function writeScore(w: WriteScore, outer?: Tx): Promise<WriteResult
 		const stale = w.baseVersion !== existing.version && !(existing.state === 'void' && w.baseVersion === null);
 		if (stale && !w.force) {
 			await tx.insert(schema.scoreConflict).values({
-				competitionId: w.competitionId, patrolId: w.patrolId, itemId: w.itemId, commandId: w.commandId ?? null,
+				competitionId: w.competitionId,
+				patrolId: w.patrolId,
+				itemId: w.itemId,
+				commandId: w.commandId ?? null,
 				existing: { points: existing.points, stylePoints: existing.stylePoints, version: existing.version, state: existing.state, origin: existing.origin },
 				incoming: { ...value, raw: w.raw, origin: w.origin, deviceId: w.deviceId ?? null, userId: w.userId ?? null, baseVersion: w.baseVersion }
 			});
 			await recordChange(tx, w.competitionId, 'conflict', existing.id);
-			return { result: 'conflict', server: { points: existing.points, stylePoints: existing.stylePoints, version: existing.version, state: existing.state } } as const;
+			return {
+				result: 'conflict',
+				server: { points: existing.points, stylePoints: existing.stylePoints, version: existing.version, state: existing.state }
+			} as const;
 		}
 
 		const version = existing.version + 1;
 		await tx
 			.update(schema.score)
 			.set({
-				points: value.points, stylePoints: value.stylePoints, raw: w.raw, state: 'active', version, origin: w.origin,
-				deviceId: w.deviceId ?? null, userId: w.userId ?? null, note: w.note ?? existing.note, updatedAt: sql`now()`,
+				points: value.points,
+				stylePoints: value.stylePoints,
+				raw: w.raw,
+				state: 'active',
+				version,
+				origin: w.origin,
+				deviceId: w.deviceId ?? null,
+				userId: w.userId ?? null,
+				note: w.note ?? existing.note,
+				updatedAt: sql`now()`,
 				// The first device report sets the visit time; later corrections never move it. A report made
 				// again after an undo is a new visit.
 				scoredAt: existing.state === 'void' ? visitTime(w) : (existing.scoredAt ?? visitTime(w))
@@ -269,18 +308,35 @@ export async function voidScore(w: Omit<WriteScore, 'raw'>, outer?: Tx): Promise
 		if (w.baseVersion !== existing.version && !w.force) {
 			// Someone changed the score after this undo was made: HQ decides, like for any stale write.
 			await tx.insert(schema.scoreConflict).values({
-				competitionId: w.competitionId, patrolId: w.patrolId, itemId: w.itemId, commandId: w.commandId ?? null,
+				competitionId: w.competitionId,
+				patrolId: w.patrolId,
+				itemId: w.itemId,
+				commandId: w.commandId ?? null,
 				existing: { points: existing.points, stylePoints: existing.stylePoints, version: existing.version, state: existing.state, origin: existing.origin },
 				incoming: { type: 'VoidScore', origin: w.origin, deviceId: w.deviceId ?? null, userId: w.userId ?? null, baseVersion: w.baseVersion }
 			});
 			await recordChange(tx, w.competitionId, 'conflict', existing.id);
-			return { result: 'conflict', server: { points: existing.points, stylePoints: existing.stylePoints, version: existing.version, state: existing.state } } as const;
+			return {
+				result: 'conflict',
+				server: { points: existing.points, stylePoints: existing.stylePoints, version: existing.version, state: existing.state }
+			} as const;
 		}
 		const version = existing.version + 1;
-		await tx.update(schema.score).set({ state: 'void', version, updatedAt: sql`now()` }).where(eq(schema.score.id, existing.id));
+		await tx
+			.update(schema.score)
+			.set({ state: 'void', version, updatedAt: sql`now()` })
+			.where(eq(schema.score.id, existing.id));
 		await tx.insert(schema.scoreRevision).values({
-			scoreId: existing.id, version, points: existing.points, stylePoints: existing.stylePoints, state: 'void', origin: w.origin,
-			deviceId: w.deviceId ?? null, userId: w.userId ?? null, commandId: w.commandId ?? null, reason: w.reason ?? 'Ångrad'
+			scoreId: existing.id,
+			version,
+			points: existing.points,
+			stylePoints: existing.stylePoints,
+			state: 'void',
+			origin: w.origin,
+			deviceId: w.deviceId ?? null,
+			userId: w.userId ?? null,
+			commandId: w.commandId ?? null,
+			reason: w.reason ?? 'Ångrad'
 		});
 		await recordChange(tx, w.competitionId, 'score', existing.id);
 		await statusAfterVoid(tx, w, existing.itemId);

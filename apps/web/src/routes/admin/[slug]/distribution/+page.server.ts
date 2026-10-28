@@ -9,7 +9,11 @@ import { loadPatrols, loadStations, loadTracks } from '../print/prep.server.ts';
 const STRATEGIES: Strategy[] = ['BALANCED', 'ALL', 'PER_TRACK'];
 
 async function inputs(competitionId: string) {
-	const [tracks, { stations: allStations, days }, all] = await Promise.all([loadTracks(competitionId), loadStations(competitionId), loadPatrols(competitionId)]);
+	const [tracks, { stations: allStations, days }, all] = await Promise.all([
+		loadTracks(competitionId),
+		loadStations(competitionId),
+		loadPatrols(competitionId)
+	]);
 	const patrols = all.filter((p) => p.status !== 'resigned');
 	// Patrols start on the first day (later days start from that day's start), never at a start or
 	// finish desk: only the first day's ordinary stations can be a start station.

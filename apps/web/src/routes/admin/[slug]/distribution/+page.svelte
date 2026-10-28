@@ -50,10 +50,14 @@
 		<div class="card empty">
 			{#if data.stations.length === 0}
 				Det finns inga kontroller som kan vara start ännu. Lägg till kontroller först.
-				<div class="row" style="justify-content:center;margin-top:12px"><a class="btn btn-primary" href="/admin/{data.competition.slug}/stations">Kontroller</a></div>
+				<div class="row" style="justify-content:center;margin-top:12px">
+					<a class="btn btn-primary" href="/admin/{data.competition.slug}/stations">Kontroller</a>
+				</div>
 			{:else}
 				Inga patruller att fördela ännu.
-				<div class="row" style="justify-content:center;margin-top:12px"><a class="btn btn-primary" href="/admin/{data.competition.slug}/import">Importera patruller</a></div>
+				<div class="row" style="justify-content:center;margin-top:12px">
+					<a class="btn btn-primary" href="/admin/{data.competition.slug}/import">Importera patruller</a>
+				</div>
 			{/if}
 		</div>
 	{:else}
@@ -86,13 +90,23 @@
 				</ul>
 			</div>
 			<div class="bars-scroll">
-				<div class="bars" style="grid-template-columns: repeat({bars.length}, minmax(48px, 1fr))" role="img" aria-label="Patruller per startkontroll: {bars.map((b) => `${b.code} ${b.total}`).join(', ')}">
+				<div
+					class="bars"
+					style="grid-template-columns: repeat({bars.length}, minmax(48px, 1fr))"
+					role="img"
+					aria-label="Patruller per startkontroll: {bars.map((b) => `${b.code} ${b.total}`).join(', ')}"
+				>
 					{#each bars as b (b.id)}
 						<div class="bar">
 							<span class="total">{b.total}</span>
 							<div class="stack-col">
 								{#each b.segs as g (g.id)}
-									<span class="seg" class:outline={needsOutline(g.color)} style="height:{Math.max(4, g.n * scale - 3)}px;background:{g.color}" title="{g.name}: {g.n}"></span>
+									<span
+										class="seg"
+										class:outline={needsOutline(g.color)}
+										style="height:{Math.max(4, g.n * scale - 3)}px;background:{g.color}"
+										title="{g.name}: {g.n}"
+									></span>
 								{/each}
 							</div>
 						</div>
@@ -100,7 +114,9 @@
 				</div>
 				<div class="labels" style="grid-template-columns: repeat({bars.length}, minmax(48px, 1fr))">
 					{#each bars as b (b.id)}
-						<span title={b.name}><strong>{b.code}</strong>{#if b.excluded.length}<em>ej {b.excluded.join(', ')}</em>{/if}</span>
+						<span title={b.name}
+							><strong>{b.code}</strong>{#if b.excluded.length}<em>ej {b.excluded.join(', ')}</em>{/if}</span
+						>
 					{/each}
 				</div>
 			</div>
@@ -122,10 +138,12 @@
 			<input type="hidden" name="seed" value={seed} />
 			<div class="savetext">
 				<strong>
-					{#if form?.saved !== undefined}Fördelningen är sparad för {form.saved} patruller.{:else if data.saved}{data.saved} patruller har redan en startkontroll — sparar du skrivs den över.{:else}Ingen fördelning sparad ännu.{/if}
+					{#if form?.saved !== undefined}Fördelningen är sparad för {form.saved} patruller.{:else if data.saved}{data.saved} patruller har redan en startkontroll
+						— sparar du skrivs den över.{:else}Ingen fördelning sparad ännu.{/if}
 				</strong>
 				<span class="muted">
-					{#if data.locked}{data.locked} patruller du flyttat manuellt är låsta och behåller sin kontroll.{:else}Patruller som du låser behåller alltid sin kontroll.{/if}
+					{#if data.locked}{data.locked} patruller du flyttat manuellt är låsta och behåller sin kontroll.{:else}Patruller som du låser behåller alltid sin
+						kontroll.{/if}
 				</span>
 				{#if form?.message}<span class="error-text" role="alert" id="err-message">{form.message}</span>{/if}
 			</div>

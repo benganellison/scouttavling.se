@@ -27,12 +27,17 @@
 {:else}
 	<div class="pick">
 		<div class="inner stack">
-			<div class="row brand">{#if data.branding.eventLogo}<EventLogo logo={data.branding.eventLogo} height={48} onDark />{:else}<ScouternaSymbol size={36} onDark />{/if} <span>{data.comp.name}</span></div>
+			<div class="row brand">
+				{#if data.branding.eventLogo}<EventLogo logo={data.branding.eventLogo} height={48} onDark />{:else}<ScouternaSymbol size={36} onDark />{/if}
+				<span>{data.comp.name}</span>
+			</div>
 			<h1>Prisutdelning</h1>
 			<p>Välj klass. Resultatet fryses när prisutdelningen startar, så sena ändringar påverkar inte avslöjandet.</p>
 			<ul>
 				{#each data.classes as c (c.id)}
-					<li><a class="btn cls" href="?class={c.id}"><span class="cn"><TrackChip color={c.color} size={18} />{c.name}</span> <span>{c.count} patruller</span></a></li>
+					<li>
+						<a class="btn cls" href="?class={c.id}"><span class="cn"><TrackChip color={c.color} size={18} />{c.name}</span> <span>{c.count} patruller</span></a>
+					</li>
 				{/each}
 			</ul>
 			<a class="back" href="/admin/{data.comp.slug}/results">← Till resultaten</a>

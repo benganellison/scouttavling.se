@@ -49,7 +49,11 @@
 					<strong>{r.actorName}</strong> · {r.actionText}{what(r) ? `: ${what(r)}` : ''}
 					{#if showTarget && (r.competition || r.series || r.targetName)}
 						{@const href = targetHref(r)}
-						<span class="muted"> · {#if href}<a {href}>{r.competition?.name ?? r.series?.name ?? r.targetName}</a>{:else}{r.competition?.name ?? r.series?.name ?? r.targetName}{/if}</span>
+						<span class="muted">
+							· {#if href}<a {href}>{r.competition?.name ?? r.series?.name ?? r.targetName}</a>{:else}{r.competition?.name ??
+									r.series?.name ??
+									r.targetName}{/if}</span
+						>
 					{/if}
 				</p>
 				{#if r.reason}<p class="reason muted">Anledning: {r.reason}</p>{/if}

@@ -116,7 +116,11 @@ export async function listAudit(f: AuditFilter = {}): Promise<AuditRow[]> {
 	if (f.seriesId) where.push(eq(a.seriesId, f.seriesId));
 	if (f.competitionOrSeries) {
 		const c = f.competitionOrSeries;
-		where.push(c.seriesId ? or(eq(a.competitionId, c.competitionId), and(eq(a.seriesId, c.seriesId), sql`${a.competitionId} is null`))! : eq(a.competitionId, c.competitionId));
+		where.push(
+			c.seriesId
+				? or(eq(a.competitionId, c.competitionId), and(eq(a.seriesId, c.seriesId), sql`${a.competitionId} is null`))!
+				: eq(a.competitionId, c.competitionId)
+		);
 	}
 	if (f.actorUserId) where.push(eq(a.actorUserId, f.actorUserId));
 	if (f.action) where.push(f.action.endsWith('.') ? sql`${a.action} like ${f.action + '%'}` : eq(a.action, f.action));
@@ -141,9 +145,24 @@ export async function listAudit(f: AuditFilter = {}): Promise<AuditRow[]> {
 		if (r.seriesId) seriesIds.add(r.seriesId);
 	}
 	const [users, comps, sers] = await Promise.all([
-		userIds.size ? db.select({ id: schema.appUser.id, name: schema.appUser.name }).from(schema.appUser).where(inArray(schema.appUser.id, [...userIds])) : [],
-		compIds.size ? db.select({ id: schema.competition.id, slug: schema.competition.slug, name: schema.competition.name }).from(schema.competition).where(inArray(schema.competition.id, [...compIds])) : [],
-		seriesIds.size ? db.select({ id: schema.series.id, slug: schema.series.slug, name: schema.series.name }).from(schema.series).where(inArray(schema.series.id, [...seriesIds])) : []
+		userIds.size
+			? db
+					.select({ id: schema.appUser.id, name: schema.appUser.name })
+					.from(schema.appUser)
+					.where(inArray(schema.appUser.id, [...userIds]))
+			: [],
+		compIds.size
+			? db
+					.select({ id: schema.competition.id, slug: schema.competition.slug, name: schema.competition.name })
+					.from(schema.competition)
+					.where(inArray(schema.competition.id, [...compIds]))
+			: [],
+		seriesIds.size
+			? db
+					.select({ id: schema.series.id, slug: schema.series.slug, name: schema.series.name })
+					.from(schema.series)
+					.where(inArray(schema.series.id, [...seriesIds]))
+			: []
 	]);
 	const uName = new Map(users.map((u) => [u.id, u.name]));
 	const cMap = new Map(comps.map((c) => [c.id, c]));
@@ -154,10 +173,16 @@ export async function listAudit(f: AuditFilter = {}): Promise<AuditRow[]> {
 		const ser = r.seriesId ? sMap.get(r.seriesId) : undefined;
 		const sub = typeof r.details?.userId === 'string' ? (uName.get(r.details.userId as string) ?? gone) : null;
 		const actorName =
-			r.actorKind === 'cli' ? `Kommandoraden${typeof r.details?.by === 'string' ? ` (${r.details.by})` : ''}` : r.actorUserId ? (uName.get(r.actorUserId) ?? gone) : '–';
+			r.actorKind === 'cli'
+				? `Kommandoraden${typeof r.details?.by === 'string' ? ` (${r.details.by})` : ''}`
+				: r.actorUserId
+					? (uName.get(r.actorUserId) ?? gone)
+					: '–';
 		const targetName =
 			r.targetType === 'user' || r.targetType === 'site_admin'
-				? r.targetId ? (uName.get(r.targetId) ?? gone) : null
+				? r.targetId
+					? (uName.get(r.targetId) ?? gone)
+					: null
 				: r.targetType === 'competition'
 					? (comp?.name ?? (r.competitionId ? 'Borttagen tävling' : null))
 					: (ser?.name ?? (r.seriesId ? 'Borttagen serie' : null));

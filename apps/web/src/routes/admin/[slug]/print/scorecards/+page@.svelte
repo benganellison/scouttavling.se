@@ -48,7 +48,9 @@
 									<div class="grid" style="grid-template-columns: repeat({data.cols}, minmax(0, 1fr))">
 										{#each d.cells as c (c.id)}
 											<div class="cell" class:na={c.na}>
-												<span class="ctop"><strong class:big={data.multi}>{c.code}</strong>{#if c.checkpoint}<span class="tag">CP</span>{/if}</span>
+												<span class="ctop"
+													><strong class:big={data.multi}>{c.code}</strong>{#if c.checkpoint}<span class="tag">CP</span>{/if}</span
+												>
 												{#if data.showNames}<span class="cname">{c.name}</span>{/if}
 												{#if c.na}
 													<span class="state">Ingår ej</span>
@@ -67,7 +69,10 @@
 							{/each}
 						</div>
 						<footer>
-							<span>{#if k.start}{`Start: ${k.start} · `}{/if}Tappat kortet? Gå till närmaste kontroll{#if data.competition.hqPhone} eller ring {data.competition.hqPhone}{/if}.</span>
+							<span
+								>{#if k.start}{`Start: ${k.start} · `}{/if}Tappat kortet? Gå till närmaste kontroll{#if data.competition.hqPhone}
+									eller ring {data.competition.hqPhone}{/if}.</span
+							>
 							<strong>Summa: ________</strong>
 							<ScouternaLogo print />
 						</footer>

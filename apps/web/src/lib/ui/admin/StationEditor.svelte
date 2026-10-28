@@ -77,14 +77,19 @@
 
 	const auto = $derived(suggestCode(multiDay ? dayId : null, name, role));
 	const code = $derived(customCode.trim().toUpperCase() || auto);
-	const payload = $derived(
-		JSON.stringify({ id: station.id, name, customCode, dayId: multiDay ? dayId : null, role, allTracks, trackIds, startable, items })
-	);
+	const payload = $derived(JSON.stringify({ id: station.id, name, customCode, dayId: multiDay ? dayId : null, role, allTracks, trackIds, startable, items }));
 	const dirty = $derived(
 		payload !==
 			JSON.stringify({
-				id: init.id, name: init.name, customCode: init.customCode ?? '', dayId: multiDay ? (init.dayId ?? days[0]?.id ?? null) : null, role: init.role ?? null,
-				allTracks: init.allTracks, trackIds: init.trackIds, startable: init.startable, items: init.items
+				id: init.id,
+				name: init.name,
+				customCode: init.customCode ?? '',
+				dayId: multiDay ? (init.dayId ?? days[0]?.id ?? null) : null,
+				role: init.role ?? null,
+				allTracks: init.allTracks,
+				trackIds: init.trackIds,
+				startable: init.startable,
+				items: init.items
 			})
 	);
 	const scorable = (m: ItemMode) => m === 'RANGE' || m === 'DISTINCT' || m === 'COUNT';
@@ -122,8 +127,18 @@
 
 	function addItem() {
 		items.push({
-			id: null, name: items.length ? `Del ${items.length + 1}` : name, mode: 'RANGE', min: 0, max: 20, distinctValues: [], countMultiplier: 1,
-			styleEnabled: false, styleMin: 0, styleMax: 5, countsForTiebreak: true, scores: 0
+			id: null,
+			name: items.length ? `Del ${items.length + 1}` : name,
+			mode: 'RANGE',
+			min: 0,
+			max: 20,
+			distinctValues: [],
+			countMultiplier: 1,
+			styleEnabled: false,
+			styleMin: 0,
+			styleMax: 5,
+			countsForTiebreak: true,
+			scores: 0
 		});
 		queueMicrotask(() => document.getElementById(`it-${items.length - 1}-name`)?.focus());
 	}
@@ -184,7 +199,15 @@
 				<div class="row3">
 					<div class="field">
 						<label for="st-code">Kod på papper</label>
-						<input id="st-code" bind:value={customCode} placeholder={auto} maxlength="6" class="strong" aria-describedby="st-code-help" aria-invalid={err('customCode') ? 'true' : undefined} />
+						<input
+							id="st-code"
+							bind:value={customCode}
+							placeholder={auto}
+							maxlength="6"
+							class="strong"
+							aria-describedby="st-code-help"
+							aria-invalid={err('customCode') ? 'true' : undefined}
+						/>
 					</div>
 					<div class="field">
 						<label for="st-name">Namn</label>
@@ -206,7 +229,9 @@
 								</label>
 							{/each}
 						</div>
-						<span class="help">Koden föreslås av dag + ordning (start = {days.find((d) => d.id === dayId)?.prefix}S, mål = {days.find((d) => d.id === dayId)?.prefix}M).</span>
+						<span class="help"
+							>Koden föreslås av dag + ordning (start = {days.find((d) => d.id === dayId)?.prefix}S, mål = {days.find((d) => d.id === dayId)?.prefix}M).</span
+						>
 						{#if err('dayId')}<span class="error-text">{err('dayId')}</span>{/if}
 					</fieldset>
 				{/if}
@@ -269,8 +294,25 @@
 									{#if err(`items.${i}.name`)}<span class="error-text">{err(`items.${i}.name`)}</span>{/if}
 								</div>
 								{#if items.length > 1}
-									<button type="button" class="btn btn-ghost rm" onclick={() => items.splice(i, 1)} aria-label="Ta bort del {i + 1}, {it.name}" disabled={it.scores > 0} title={it.scores ? 'Har registrerade poäng' : undefined}>
-										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+									<button
+										type="button"
+										class="btn btn-ghost rm"
+										onclick={() => items.splice(i, 1)}
+										aria-label="Ta bort del {i + 1}, {it.name}"
+										disabled={it.scores > 0}
+										title={it.scores ? 'Har registrerade poäng' : undefined}
+									>
+										<svg
+											width="18"
+											height="18"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg
+										>
 									</button>
 								{/if}
 							</div>
@@ -300,7 +342,13 @@
 									{#if it.mode === 'COUNT'}
 										<div class="field">
 											<label for="it-{i}-mult">Poäng per styck</label>
-											<input id="it-{i}-mult" type="number" min="1" bind:value={it.countMultiplier} aria-invalid={err(`items.${i}.mult`) ? 'true' : undefined} />
+											<input
+												id="it-{i}-mult"
+												type="number"
+												min="1"
+												bind:value={it.countMultiplier}
+												aria-invalid={err(`items.${i}.mult`) ? 'true' : undefined}
+											/>
 										</div>
 									{/if}
 								</div>
@@ -314,25 +362,43 @@
 										{#each it.distinctValues as d (d.value)}
 											<li class="val">
 												<strong>{d.value}</strong>{#if d.label}<span class="vl">{d.label}</span>{/if}
-												<button type="button" aria-label="Ta bort värdet {d.value}" onclick={() => (it.distinctValues = it.distinctValues.filter((x) => x.value !== d.value))}>×</button>
+												<button
+													type="button"
+													aria-label="Ta bort värdet {d.value}"
+													onclick={() => (it.distinctValues = it.distinctValues.filter((x) => x.value !== d.value))}>×</button
+												>
 											</li>
 										{/each}
 									</ul>
 									<div class="addval">
 										<div class="field small">
 											<label for="it-{i}-nv">Värde</label>
-											<input id="it-{i}-nv" type="number" value={newValue[i]?.value ?? ''} oninput={(e) => (newValue[i] = { value: e.currentTarget.value, label: newValue[i]?.label ?? '' })} onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), addValue(i))} />
+											<input
+												id="it-{i}-nv"
+												type="number"
+												value={newValue[i]?.value ?? ''}
+												oninput={(e) => (newValue[i] = { value: e.currentTarget.value, label: newValue[i]?.label ?? '' })}
+												onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), addValue(i))}
+											/>
 										</div>
 										<div class="field grow">
 											<label for="it-{i}-nl">Etikett (valfri)</label>
-											<input id="it-{i}-nl" value={newValue[i]?.label ?? ''} placeholder="t.ex. Oöppnat" oninput={(e) => (newValue[i] = { value: newValue[i]?.value ?? '', label: e.currentTarget.value })} onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), addValue(i))} />
+											<input
+												id="it-{i}-nl"
+												value={newValue[i]?.label ?? ''}
+												placeholder="t.ex. Oöppnat"
+												oninput={(e) => (newValue[i] = { value: newValue[i]?.value ?? '', label: e.currentTarget.value })}
+												onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), addValue(i))}
+											/>
 										</div>
 										<button type="button" class="btn dashed" onclick={() => addValue(i)}>+ värde</button>
 									</div>
 									{#if err(`items.${i}.distinct`)}<span class="error-text">{err(`items.${i}.distinct`)}</span>{/if}
 								</div>
 							{:else if it.mode === 'CHECKIN'}
-								<p class="note">Funktionären checkar bara in patrullen. Räknas inte i poäng eller skiljeregeln, passar för lunch, övernattning eller vattenstation.</p>
+								<p class="note">
+									Funktionären checkar bara in patrullen. Räknas inte i poäng eller skiljeregeln, passar för lunch, övernattning eller vattenstation.
+								</p>
 							{:else}
 								<p class="note">Registreras automatiskt när patrullens QR-kod skannas, t.ex. målgång. Inga poäng.</p>
 							{/if}
@@ -355,7 +421,12 @@
 											{#if err(`items.${i}.style`)}<span class="error-text">{err(`items.${i}.style`)}</span>{/if}
 										{/if}
 									{/if}
-									<Toggle bind:checked={it.countsForTiebreak} compact label="Räknas i skiljeregeln" description="Vid lika poäng jämförs bästa resultat på delarna." />
+									<Toggle
+										bind:checked={it.countsForTiebreak}
+										compact
+										label="Räknas i skiljeregeln"
+										description="Vid lika poäng jämförs bästa resultat på delarna."
+									/>
 								</div>
 							{/if}
 							{#if it.scores}<span class="help">{it.scores} registrerade poäng på den här delen.</span>{/if}
@@ -371,7 +442,14 @@
 			</div>
 
 			<div class="preview">
-				<PhonePreview {code} {name} item={previewItem} checkpoint={items.some((i) => i.mode === 'CHECKIN')} count={items.length} index={items.findIndex((i) => scorable(i.mode)) + 1} />
+				<PhonePreview
+					{code}
+					{name}
+					item={previewItem}
+					checkpoint={items.some((i) => i.mode === 'CHECKIN')}
+					count={items.length}
+					index={items.findIndex((i) => scorable(i.mode)) + 1}
+				/>
 			</div>
 		</div>
 

@@ -43,7 +43,10 @@ export async function load(event) {
 	// be able to see and disconnect them (a code that leaked, a lost phone).
 	const phones = await db
 		.select({
-			id: schema.device.id, name: schema.device.displayName, joinedAt: schema.device.createdAt, lastSeenAt: schema.device.lastSeenAt,
+			id: schema.device.id,
+			name: schema.device.displayName,
+			joinedAt: schema.device.createdAt,
+			lastSeenAt: schema.device.lastSeenAt,
 			oldCode: schema.invite.revokedAt
 		})
 		.from(schema.device)
