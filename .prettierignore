@@ -1,0 +1,17 @@
+# Generated or not ours
+node_modules
+build
+.svelte-kit
+**/drizzle/meta
+package-lock.json
+CHANGELOG.md
+# Never touch local data or downloads
+.local-data
+**/.db-backups
+*.xls
+*.xlsx
+*.csv
+e2e/fixtures
+test-results
+playwright-report
+docs/media

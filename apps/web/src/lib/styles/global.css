@@ -1,0 +1,296 @@
+/*
+ * Design tokens: Scouterna's graphic profile (Oct 2023), see static/brand/scouterna/README.md.
+ * Use the variables, never hard-code colours in components.
+ * - Scoutblå (--brand) dominates: sidebars, headers, primary buttons (white on it: 12.4:1).
+ *   Scoutblå is never tinted or made transparent; light surfaces are neutral greys.
+ * - Complementary colours (--orange, class colours) are decoration only, never tinted,
+ *   never transparent, never text on white. Text on --orange is black (6.0:1).
+ * - --warn-ink / --danger are functional state colours, not brand colours.
+ */
+:root {
+	--ink: #0d1117;
+	--ink-2: #434c57;
+	--ink-3: #5c6570;
+	--ground: #f4f6f8;
+	--surface: #ffffff;
+	--line: #dde2e8;
+	--line-strong: #aab3be;
+	/* Borders that identify a control (inputs, switch track): at least 3:1 against white (WCAG 1.4.11). */
+	--line-input: #7d8794;
+	--tint: #edf0f4;
+
+	/* Scoutblå and interaction states (hover = slightly darker shade). */
+	--brand: #003660;
+	--brand-2: #00284a;
+	--brand-dark: #001f38;
+	--on-brand: #e8edf2;
+	--on-brand-2: #b9c6d3;
+	/* Hairlines and outlines on Scoutblå. */
+	--line-on-brand: #6d88a2;
+	/* Highlight text on Scoutblå (Rovergul, 9.3:1). Small doses only. */
+	--on-brand-hi: #e2e000;
+	/* The single main action. */
+	--cta: var(--brand);
+
+	/* Complementary colours (profile palette). Decoration only. */
+	--orange: #e95f13;
+	--green: #41a62a;
+	--sky: #00a8e1;
+	--pink: #da005e;
+	--yellow: #e2e000;
+	--yellow-dark: #837a02;
+
+	/* Done/ok: green marks (graphics, 3.1:1 with white), text stays Scoutblå. */
+	--ok: #41a62a;
+	--ok-tint: var(--tint);
+	--warn-ink: #9a3412;
+	--warn-tint: #f7f5f2; /* near-neutral: complementary colours are never tinted */
+	--danger: #b42318;
+	--danger-tint: #fff4f2;
+
+	/* Patrol status pills, told apart by lightness: Anmäld white (outline) > I läger light grey
+	   > På banan Äventyrarorange (black text) > Återbud dark grey > I mål Scoutblå. */
+	--st-camp: #d3dbe4;
+	--st-resigned: #5c6570;
+
+	/* Per-event accent (set on public/event shells; falls back to Scoutblå). */
+	--event-accent: var(--brand);
+	--on-event-accent: #ffffff;
+
+	/* Self-hosted (bundled + precached by the service worker): works offline, no third-party requests.
+	   Libre Franklin ~ TeeFranklin (headings, UI); EB Garamond ~ Adobe Garamond Pro (long public body text). */
+	--font-display: 'Libre Franklin Variable', 'Franklin Gothic Medium', system-ui, sans-serif;
+	--font-ui: 'Libre Franklin Variable', 'Franklin Gothic Book', system-ui, sans-serif;
+	--font-body: 'EB Garamond Variable', Garamond, Georgia, serif;
+
+	--r-sm: 10px;
+	--r-md: 14px;
+	--r-lg: 18px;
+	--r-xl: 22px;
+	--tap: 48px;
+	--tap-field: 56px;
+	--gap: 16px;
+	color-scheme: light;
+}
+
+/* "Sol" sunlight / high-contrast mode: <html data-contrast="high"> */
+:root[data-contrast='high'] {
+	--ink: #000000;
+	--ink-2: #1a1f26;
+	--ink-3: #2b323b;
+	--line: #7d8794;
+	--line-strong: #0d1117;
+	--line-input: #0d1117;
+	--ground: #ffffff;
+	--tint: #e3e8ee;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	background: var(--ground);
+	color: var(--ink);
+	font-family: var(--font-ui);
+	font-size: 16px;
+	line-height: 1.45;
+	-webkit-font-smoothing: antialiased;
+	-webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3 {
+	font-family: var(--font-display);
+	letter-spacing: -0.02em;
+	line-height: 1.1;
+	margin: 0;
+}
+
+a {
+	color: var(--brand);
+}
+a:hover {
+	color: var(--ink);
+}
+
+:focus-visible {
+	outline: 3px solid var(--orange);
+	outline-offset: 2px;
+}
+
+button,
+input,
+select,
+textarea {
+	font: inherit;
+	color: inherit;
+}
+
+input[type='text'],
+input[type='email'],
+input[type='tel'],
+input[type='date'],
+input[type='search'],
+input[type='number'],
+input:not([type]),
+select,
+textarea {
+	min-height: var(--tap);
+	border: 1.5px solid var(--line-input);
+	border-radius: var(--r-sm);
+	padding: 0 12px;
+	background: var(--surface);
+	width: 100%;
+}
+textarea {
+	padding: 10px 12px;
+}
+
+/* ---- shared building blocks ---- */
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: var(--tap);
+	padding: 0 18px;
+	border-radius: var(--r-md);
+	border: 1.5px solid var(--line-strong);
+	background: var(--surface);
+	color: var(--ink);
+	font-weight: 800;
+	text-decoration: none;
+	cursor: pointer;
+}
+.btn:hover {
+	color: var(--ink);
+	border-color: var(--ink-3);
+}
+.btn-primary {
+	background: var(--brand);
+	border-color: var(--brand);
+	color: #fff;
+}
+.btn-primary:hover {
+	color: #fff;
+	background: var(--brand-2);
+}
+/* Kept for the single main action; same Scoutblå as primary (the profile has one action colour). */
+.btn-accent {
+	background: var(--cta);
+	border-color: var(--cta);
+	color: #fff;
+}
+.btn-accent:hover {
+	color: #fff;
+	background: var(--brand-2);
+}
+.btn[disabled],
+.btn[aria-disabled='true'] {
+	background: var(--line);
+	border-color: var(--line);
+	color: var(--ink-2);
+	cursor: not-allowed;
+}
+.btn-ghost {
+	border-color: transparent;
+	background: transparent;
+}
+.card {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--r-lg);
+	padding: 18px 20px;
+}
+.pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	font-weight: 800;
+	padding: 4px 10px;
+	border-radius: 999px;
+	background: var(--tint);
+	color: var(--brand);
+}
+.pill-ok {
+	background: var(--tint);
+	color: var(--brand);
+}
+.pill-warn {
+	background: var(--orange);
+	color: #000;
+}
+.pill-bad {
+	background: #fde2de;
+	color: var(--danger);
+}
+.muted {
+	color: var(--ink-2);
+}
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.field > label,
+.label {
+	font-weight: 700;
+	font-size: 14px;
+}
+/* "Hoppa till innehållet": first in the tab order, visible only when focused. */
+.skip-link {
+	position: absolute;
+	left: 12px;
+	top: -100px;
+	z-index: 100;
+	background: var(--surface);
+	color: var(--brand);
+	font-weight: 800;
+	padding: 12px 18px;
+	border-radius: var(--r-md);
+	box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+}
+.skip-link:focus {
+	top: 12px;
+}
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+.stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap);
+}
+.row {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+.error-text {
+	color: var(--danger);
+	font-weight: 700;
+	font-size: 14px;
+}
+
+/* Long body text on public pages (competition info): Garamond, per the profile. */
+.prose {
+	font-family: var(--font-body);
+	font-size: 1.15rem;
+	line-height: 1.55;
+}
+#innehall:focus {
+	outline: none;
+}

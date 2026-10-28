@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "include-v-in-tag": true,
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": false,
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "package-name": "scouttavling",
+      "changelog-path": "CHANGELOG.md",
+      "release-as": "0.1.0",
+      "extra-files": [
+        { "type": "json", "path": "apps/web/package.json", "jsonpath": "$.version" }
+      ],
+      "changelog-sections": [
+        { "type": "feat", "section": "Nytt" },
+        { "type": "fix", "section": "Rättat" },
+        { "type": "perf", "section": "Snabbare" },
+        { "type": "security", "section": "Säkerhet" },
+        { "type": "docs", "section": "Dokumentation", "hidden": false },
+        { "type": "chore", "section": "Övrigt", "hidden": true },
+        { "type": "test", "section": "Tester", "hidden": true },
+        { "type": "ci", "section": "CI", "hidden": true }
+      ]
+    }
+  }
+}
