@@ -78,6 +78,7 @@
 			</div>
 			{#if sel.qr && sel.link}
 				<div class="qr" role="img" aria-label="QR-kod för att gå med {isSF ? 'i start och mål' : `på kontroll ${sel.code}`}">
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -- server-generated SVG from qrcode -->
 					{@html sel.qr}
 				</div>
 				<p class="hint">Skanna med mobilkameran. Fungerar för flera funktionärer på samma {isSF ? 'station' : 'kontroll'}.</p>

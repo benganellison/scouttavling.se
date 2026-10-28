@@ -7,5 +7,5 @@ export default defineConfig({
 	timeout: 90_000,
 	expect: { timeout: 15_000 },
 	workers: 1,
-	use: { baseURL: process.env.BRANDING_BASE_URL ?? 'http://localhost:5205', locale: 'sv-SE', timezoneId: 'Europe/Stockholm' }
+	use: { baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:5205', locale: 'sv-SE', timezoneId: 'Europe/Stockholm' }
 });

@@ -33,7 +33,10 @@
 				<h1 class="name">{s.name}</h1>
 				<footer>
 					{#if s.qr}
-						<div class="qr">{@html s.qr}</div>
+						<div class="qr">
+							<!-- eslint-disable-next-line svelte/no-at-html-tags -- server-generated SVG from qrcode -->
+							{@html s.qr}
+						</div>
 					{:else}
 						<div class="qr none">Ingen QR-kod ännu</div>
 					{/if}

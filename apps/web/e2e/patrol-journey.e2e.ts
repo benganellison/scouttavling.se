@@ -10,7 +10,7 @@
  *   npx playwright test -c e2e/patrol-journey.config.ts
  */
 import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { SLUG, clearScores, compId, createInvite, patrolId, sql, stationItems } from './field-db.ts';
+import { SLUG, clearScores, compId, createInvite, patrolId, sql } from './field-db.ts';
 
 test.describe.configure({ mode: 'serial' });
 

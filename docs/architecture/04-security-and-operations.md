@@ -1,5 +1,7 @@
 # 04 – Identity, Security, Privacy and Operations
 
+> **Status:** written as the proposal (2026-10-15) and updated where noted ("As built", review sections). Where it differs from the code, [01 §0 As built](01-overview.md#0-as-built-in-v01) and the code win.
+
 Status: proposal · Scope: identity & access (ScoutID), authorisation, threat model, GDPR, hosting, deployment, operations, migration from gokapp.
 Versions verified against official release channels on 2026-10-15.
 
@@ -398,7 +400,10 @@ Changes from gokapp: no `ddl-auto=update` (drizzle-kit migrations); no `:latest`
 
 ### 7.6 CI/CD
 
-GitHub Actions in the new repo:
+> **As built (v0.1):** `ci.yml` on every PR and on `main`: `svelte-check`, `tsc -p apps/web/tsconfig.tools.json`, ESLint (module boundaries included), Prettier, Vitest, migration drift, the database tests (`REQUIRE_DB=1`), the UAT on a production build, and an image build without push. `e2e-nightly.yml` runs the dev-server e2e suites (`apps/web/scripts/e2e-dev.sh`) nightly and on demand. `release-please.yml` keeps the release PR (SemVer from Conventional Commits) and, on release, calls `container.yml`, which pushes `ghcr.io/…:<version>` with SBOM and build provenance. All actions are pinned to commit SHAs. Deploy is by hand on the VPS: `scripts/deploy.sh` (guards in 04 §11). **Not built:** Testcontainers, dependency-cruiser, gitleaks, a personnummer scan, CodeQL, Trivy, Renovate, staging, event-mode and the change-freeze job below. The personnummer scan is the most worthwhile next one (§6.5).
+
+The proposal:
+
 
 1. `ci.yml` on PR: `actions/checkout@v7.0.1`, `actions/setup-node@v7.1.0` (Node 24.22.1, npm cache), `npm ci`, typecheck, lint, dependency-cruiser, Vitest (unit + property), integration tests (Testcontainers `postgres:18.6`), Playwright e2e against the built container, `gitleaks`, personnummer-pattern check, CodeQL for JS/TS (`github/codeql-action`, current bundle v2.27.2).
 2. `release.yml` on push to `main`: `docker/setup-buildx-action@v4.4.1`, `docker/metadata-action@v6.2.0`, `docker/build-push-action@v7.4.0` with a multi-stage Dockerfile (build, then `npm prune --omit=dev` into the slim runtime stage), `provenance: mode=max` and `sbom: true`. It pushes to `ghcr.io/<org>/scouttavling:<git-sha>` and `:<semver>` (immutable; never deploy `:latest`), scans with `aquasecurity/trivy-action@v0.36.0` (fail on HIGH/CRITICAL with a fix available), and attests with `actions/attest-build-provenance@v4.2.2`. All actions are pinned to commit SHAs with the version in a comment, and Renovate updates them. Cloud credentials use OIDC workload identity federation where the platform supports it, otherwise an Environment-scoped API key.

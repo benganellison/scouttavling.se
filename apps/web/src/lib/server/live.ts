@@ -2,7 +2,7 @@ import { and, asc, desc, eq, gt, inArray, isNull, max } from 'drizzle-orm';
 import postgres from 'postgres';
 import { maxPoints, rank, stationCodes, type RankedPatrol } from '@scouttavling/domain';
 import { DATABASE_URL } from '$app/env/private';
-import { db, schema } from './db/index.ts';
+import { db, schema, type CompRow } from './db/index.ts';
 import { itemDef } from './scores.ts';
 
 /*
@@ -10,7 +10,6 @@ import { itemDef } from './scores.ts';
  * change_log cursor) and the realtime hub behind the SSE endpoints.
  */
 
-type CompRow = typeof schema.competition.$inferSelect;
 type ItemRow = typeof schema.scoreItem.$inferSelect;
 type StationRow = typeof schema.station.$inferSelect;
 

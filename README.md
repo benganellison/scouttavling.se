@@ -37,8 +37,8 @@ re-cut the clips and upload them as described in docs/media/README.md, then swap
 
 ## About
 
-- Architecture: [`docs/architecture/`](docs/architecture/README.md). Start with 01-overview.md.
-- Developer handbook: [`docs/dev/TEAM.md`](docs/dev/TEAM.md)
+- Architecture: [`docs/architecture/`](docs/architecture/README.md). Start with 01-overview.md §0 (as built).
+- **Contributing:** [`CONTRIBUTING.md`](CONTRIBUTING.md): getting started, tests, conventions
 - Stack: SvelteKit 3 + Svelte 5 (TypeScript 6), PostgreSQL 18, Drizzle, Node 24 LTS.
 
 ## Develop
@@ -48,17 +48,11 @@ npm install
 docker compose -f compose.dev.yaml up -d      # PostgreSQL 18.6 on 127.0.0.1:5544
 cd apps/web
 cp .env.example .env
-npm run db:reset                              # migrate + demo data (GökOpen, GökHajk)
+npm run db:reset                                 # migrate + demo data (GökOpen, GökHajk)
 npm run dev                                   # http://localhost:5173 → /login → "Logga in som Bengt"
 ```
 
-| Task | Command (in `apps/web`) |
-|---|---|
-| Type check | `npx svelte-check --tsconfig ./tsconfig.json` |
-| Unit tests | `npx vitest run` (repo root) |
-| Schema change | follow [docs/dev/MIGRATIONS.md](docs/dev/MIGRATIONS.md) (generate → review → migrate with auto-backup → commit) |
-| Apply migrations | `npm run db:migrate` |
-| UAT (production build) | see the header of `e2e/uat.e2e.ts` |
+Checks, tests and conventions: [CONTRIBUTING.md](CONTRIBUTING.md). Schema changes: [docs/dev/MIGRATIONS.md](docs/dev/MIGRATIONS.md).
 
 ## Run with Docker
 
@@ -68,7 +62,7 @@ npm run gen:grant-key -w apps/web
 docker compose up -d --build                                 # http://localhost:3000
 ```
 
-Production (Traefik + Let's Encrypt + periodic DB dumps). Hosting is not decided yet; this is one option:
+Production on a VPS (Traefik + Let's Encrypt, nightly DB dumps, restic offsite backups):
 
 ```sh
 cp .env.example .env.prod                                    # DOMAIN, ACME_EMAIL, passwords, keys, APP_IMAGE

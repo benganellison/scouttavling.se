@@ -277,7 +277,7 @@ export const invite = pgTable('invite', {
 	/** SHA-256 of the 128-bit secret in the /j/<secret> link. */
 	secretHash: text('secret_hash').notNull().unique(),
 	generation: integer('generation').notNull().default(1),
-	/** AES-GCM encrypted secret so organisers can re-display the QR (admin-patrols, see invites/inviteCrypto.server.ts). */
+	/** AES-GCM encrypted secret so organisers can re-display the QR (admin-patrols, see lib/server/invites.ts). */
 	secretEnc: text('secret_enc'),
 	revokedAt: timestamp('revoked_at', { withTimezone: true }),
 	createdAt: createdAt()

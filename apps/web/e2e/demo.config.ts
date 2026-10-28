@@ -9,5 +9,5 @@ export default defineConfig({
 	expect: { timeout: 15_000 },
 	workers: 1,
 	reporter: [['line']],
-	use: { baseURL: 'http://localhost:5210', locale: 'sv-SE', timezoneId: 'Europe/Stockholm' }
+	use: { baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:5210', locale: 'sv-SE', timezoneId: 'Europe/Stockholm' }
 });

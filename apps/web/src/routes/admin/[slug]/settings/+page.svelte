@@ -15,7 +15,6 @@
 	const c = $derived(data.competition);
 	const errs = (section: string): Record<string, string> => (form && form.section === section && 'errors' in form ? (form.errors as Record<string, string>) : {});
 	const ok = (section: string) => Boolean(form && form.section === section && 'ok' in form && form.ok);
-	const ROLE: Record<string, string> = { owner: 'Ägare', organiser: 'Arrangör', hq: 'Ledningscentral', startfinish: 'Start & mål' };
 	const keep = () => async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) => update({ reset: false });
 	const ownerOptions = $derived(
 		data.groups.some((g) => g.groupNo === c.ownerGroupNo) || !c.ownerGroupNo

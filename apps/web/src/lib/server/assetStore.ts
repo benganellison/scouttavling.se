@@ -1,5 +1,5 @@
 import { and, eq, inArray, or, type SQL } from 'drizzle-orm';
-import { db, schema } from './db/index.ts';
+import { db, schema, type Tx } from './db/index.ts';
 import type { AssetKind } from '#lib/brand/branding.ts';
 
 /**
@@ -12,7 +12,6 @@ import type { AssetKind } from '#lib/brand/branding.ts';
 /** An image belongs to one edition (its override) or to one series (shared branding). */
 export type AssetOwner = { competitionId: string; seriesId?: never } | { seriesId: string; competitionId?: never };
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Q = typeof db | Tx;
 
 export interface ValidImage {

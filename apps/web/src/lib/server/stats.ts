@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { histogram, maxPoints, perDate, stationTimes, summarize, type Bucket, type Summary } from '@scouttavling/domain';
-import { db, schema } from './db/index.ts';
+import { db, schema, type CompRow } from './db/index.ts';
 import { itemDef } from './scores.ts';
 import { loadStations, showStationResults, stationAppliesTo } from './live.ts';
 
@@ -12,7 +12,6 @@ import { loadStations, showStationResults, stationAppliesTo } from './live.ts';
  * Internal only: registration dates and payments.
  */
 
-type CompRow = typeof schema.competition.$inferSelect;
 
 export interface Participation {
 	/** Every patrol, also those who withdrew. */

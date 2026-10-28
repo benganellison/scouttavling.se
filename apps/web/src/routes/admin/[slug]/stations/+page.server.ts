@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { and, asc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import * as v from 'valibot';
 import { stationCodes, type ItemMode } from '@scouttavling/domain';
-import { db, schema } from '#lib/server/db/index.ts';
+import { db, schema, type Tx } from '#lib/server/db/index.ts';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { recordChange } from '#lib/server/changes.ts';
 
@@ -174,7 +174,6 @@ function displayOrder(stations: (typeof schema.station.$inferSelect)[], days: (t
 	return [...stations].sort((a, b) => (dayIdx.get(a.dayId ?? '') ?? 99) - (dayIdx.get(b.dayId ?? '') ?? 99) || a.sort - b.sort);
 }
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 async function renumber(tx: Tx, ordered: { id: string; sort: number }[]) {
 	for (const [i, s] of ordered.entries()) {
 		if (s.sort !== i + 1) await tx.update(schema.station).set({ sort: i + 1 }).where(eq(schema.station.id, s.id));

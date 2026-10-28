@@ -28,30 +28,10 @@ export function dateRange(start: string, end: string): string {
 }
 
 /** Today's date in Sweden as ISO yyyy-mm-dd. */
-export function todayIso(now = new Date()): string {
-	return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-}
+import { daysUntil, todayIso } from '#lib/time.ts';
+export { daysUntil, todayIso };
+export { slugify } from '#lib/routing/slugs.ts';
 
-export function daysUntil(iso: string, now = new Date()): number {
-	const a = Date.parse(`${todayIso(now)}T12:00:00Z`);
-	const b = Date.parse(`${iso}T12:00:00Z`);
-	return Math.round((b - a) / 86400_000);
-}
-
-/** URL slug from a competition name: "GökOpen 2027" → "gokopen-2027". */
-export function slugify(name: string): string {
-	return name
-		.toLowerCase()
-		.replace(/[åä]/g, 'a')
-		.replace(/ö/g, 'o')
-		.replace(/é/g, 'e')
-		.normalize('NFKD')
-		.replace(/[̀-ͯ]/g, '')
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-+|-+$/g, '')
-		.slice(0, 48)
-		.replace(/-+$/g, '');
-}
 
 export type CompStatus = 'draft' | 'live' | 'closed';
 
@@ -135,7 +115,7 @@ export interface NavItem {
 	key: string;
 }
 
-/** The admin sidebar, grouped by phase (docs/dev/TEAM.md). */
+/** The admin sidebar, grouped by phase: before, on the day, after. */
 export function adminNav(slug: string): { group: string; items: NavItem[] }[] {
 	const b = `/admin/${slug}`;
 	return [

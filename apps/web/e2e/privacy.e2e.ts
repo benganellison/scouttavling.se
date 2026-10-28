@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { login } from './support.ts';
 import { readFileSync } from 'node:fs';
 import postgres from 'postgres';
 
@@ -13,12 +14,6 @@ function databaseUrl() {
 	const env = readFileSync(new URL('../.env', import.meta.url), 'utf8');
 	return /^DATABASE_URL=(.*)$/m.exec(env)![1].trim().replace(/^["']|["']$/g, '');
 }
-async function login(page: Page, who: 'Bengt' | 'Anna') {
-	await page.goto('/login');
-	await page.getByRole('button', { name: new RegExp(`Logga in som ${who}`) }).click();
-	await page.waitForURL(/\/admin/);
-}
-
 test.describe.configure({ mode: 'serial' });
 
 test('1. the privacy notice is linked at registration and names the kår', async ({ page }) => {

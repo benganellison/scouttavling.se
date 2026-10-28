@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { stationCodes } from '@scouttavling/domain';
 import { GRANT_SIGNING_KEY } from '$app/env/private';
 import { dev } from '$app/env';
-import { db, schema } from '#lib/server/db/index.ts';
+import { db, schema, type CompRow } from '#lib/server/db/index.ts';
 import { sha256 } from '#lib/server/auth.ts';
 import { itemDef, writeScore, voidScore } from '#lib/server/scores.ts';
 import { recordChange } from '#lib/server/changes.ts';
@@ -67,7 +67,6 @@ export async function publicKeys(): Promise<JWK[]> {
 
 // ---------- invites ----------
 
-type CompRow = typeof schema.competition.$inferSelect;
 
 export async function stationCodeMap(competitionId: string) {
 	const [stations, days] = await Promise.all([
@@ -418,14 +417,17 @@ export type Snapshot = Exclude<Awaited<ReturnType<typeof buildSnapshot>>, { unch
 // ---------- commands ----------
 
 function resultFromRow(id: string, row: { result: string; resultDetail: unknown }): CommandResult {
-	const d = (row.resultDetail ?? {}) as Record<string, any>;
+	// command.result_detail as written below (the parts of a CommandResult beyond id and result).
+	const d = (row.resultDetail ?? {}) as Partial<{ version: number; reason: string; server: Extract<CommandResult, { result: 'conflict' }>['server'] }>;
 	switch (row.result) {
 		case 'accepted':
 			return { commandId: id, result: 'accepted', version: d.version ?? 0 };
 		case 'duplicate':
 			return { commandId: id, result: 'duplicate', version: d.version };
 		case 'conflict':
-			return { commandId: id, result: 'conflict', server: d.server };
+			// Always stored by finish(); without it the phone could not show the conflict.
+			if (d.server) return { commandId: id, result: 'conflict', server: d.server };
+			return { commandId: id, result: 'rejected', reason: 'Konflikt' };
 		case 'quarantined':
 			return { commandId: id, result: 'quarantined', reason: d.reason ?? '' };
 		default:

@@ -54,7 +54,6 @@
 
 <div class="cam" class:compact>
 	<div class="finder">
-		<!-- svelte-ignore a11y_media_has_caption -->
 		<video bind:this={video} playsinline muted></video>
 		<span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
 		{#if problem}

@@ -1,6 +1,6 @@
 import { requireCompetition } from '#lib/server/auth.ts';
 import { loadPatrols, loadStations } from './prep.server.ts';
-import { activeInvites } from '../invites/inviteCrypto.server.ts';
+import { activeInvites } from '#lib/server/invites.ts';
 
 export async function load(event) {
 	const { comp } = await requireCompetition(event, event.params.slug);

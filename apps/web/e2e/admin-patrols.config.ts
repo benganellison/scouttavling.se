@@ -5,5 +5,5 @@ export default defineConfig({
 	testDir: '.',
 	testMatch: 'admin-patrols.e2e.ts',
 	timeout: 90_000,
-	use: { channel: 'chromium', baseURL: 'http://localhost:5202', viewport: { width: 1440, height: 1000 } }
+	use: { channel: 'chromium', baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:5202', viewport: { width: 1440, height: 1000 } }
 });

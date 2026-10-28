@@ -68,7 +68,12 @@ function expected(nr: number) {
 	const p = plan(nr);
 	let points = 0;
 	let style = 0;
-	for (const k of ['F1', 'F2', 'LS', 'L1', 'L2'] as const) if (p[k]) ((points += p[k]![0]), (style += p[k]![1]));
+	for (const k of ['F1', 'F2', 'LS', 'L1', 'L2'] as const) {
+		const v = p[k];
+		if (!v) continue;
+		points += v[0];
+		style += v[1];
+	}
 	if (p.mal) points += p.mal[0] + p.mal[1] + p.mal[2] * 2;
 	return { points, style, total: points + style };
 }
@@ -666,7 +671,7 @@ test('9 results vs independent calculation, public page, ceremony, close, CSV', 
 	const dl = p.waitForEvent('download');
 	await p.getByRole('link', { name: /Exportera CSV/ }).click();
 	const file = await (await dl).path();
-	const text = readFileSync(file!, 'utf8').replace(/^﻿/, '');
+	const text = readFileSync(file!, 'utf8').replace(/^\uFEFF/, '');
 	const [head, ...rows] = text.trim().split(/\r?\n/).map((l) => l.split(';'));
 	expect(head.slice(0, 8)).toEqual(['Klass', 'Placering', 'Nummer', 'Patrull', 'Kår', 'Totalt', 'Poäng', 'Stil']);
 	for (const x of PLAN.filter((y) => y.F1)) {

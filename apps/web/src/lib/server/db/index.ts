@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import * as schema from './schema';
+import * as schema from './schema.ts';
 import { DATABASE_URL } from '$app/env/private';
 
 if (!DATABASE_URL) throw new Error('DATABASE_URL is not set');
@@ -28,4 +28,9 @@ export const healthSql = (g.__healthClient ??= postgres(DATABASE_URL, { max: 1, 
 /** Closes both pools (graceful shutdown; see hooks.server.ts). */
 export const closeDb = () => Promise.all([client.end({ timeout: 5 }), healthSql.end({ timeout: 2 })]);
 export type DB = typeof db;
+/** A transaction handle (what db.transaction passes to its callback). */
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+/** Either the pool or a transaction: for helpers that work inside or outside one. */
+export type Queryable = Tx | DB;
+export type CompRow = typeof schema.competition.$inferSelect;
 export { schema };

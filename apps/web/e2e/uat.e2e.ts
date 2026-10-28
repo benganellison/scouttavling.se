@@ -651,7 +651,7 @@ test.describe('8 accessibility smoke', () => {
 		await shot(page, '48-keyboard-save-focused');
 		console.log('A11Y_REPORT ' + JSON.stringify(report, null, 1));
 		await test.info().attach('a11y.json', { body: JSON.stringify(report, null, 2), contentType: 'application/json' });
-		const missingH1 = Object.entries(report).filter(([k, v]) => !k.includes('/print/')).filter(([, v]) => typeof v === 'object' && v && 'h1' in v && (v as { h1: number }).h1 !== 1);
+		const missingH1 = Object.entries(report).filter(([k]) => !k.includes('/print/')).filter(([, v]) => typeof v === 'object' && v && 'h1' in v && (v as { h1: number }).h1 !== 1);
 		const unnamed = Object.entries(report).filter(([, v]) => typeof v === 'object' && v && 'unnamed' in v && (v as { unnamed: string[] }).unnamed.length);
 		expect.soft(missingH1.map(([k, v]) => `${k}: ${(v as { h1: number }).h1}`), 'pages without exactly one h1').toEqual([]);
 		expect.soft(unnamed.map(([k, v]) => `${k}: ${(v as { unnamed: string[] }).unnamed.join(' | ')}`), 'unnamed controls').toEqual([]);

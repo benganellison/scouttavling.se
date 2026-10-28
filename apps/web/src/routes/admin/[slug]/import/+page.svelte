@@ -118,7 +118,10 @@
 	const counts = $derived.by(() => {
 		let created = 0;
 		let updated = 0;
-		for (const r of importable) (matchStatus(r) === 'update' ? updated++ : created++);
+		for (const r of importable) {
+			if (matchStatus(r) === 'update') updated++;
+			else created++;
+		}
 		return { created, updated, members: importable.reduce((a, r) => a + r.members.length, 0) };
 	});
 	const unresolvedTracks = $derived(base.issues.filter((i) => i.kind === 'unknownTrack' && !trackFix[i.values[0]]).length);
@@ -332,7 +335,7 @@
 			<section class="card stack">
 				<div class="field">
 					<label for="paste">Klistra in rader (första raden är rubriker)</label>
-					<textarea id="paste" rows="8" bind:value={pasteText} placeholder={'Patrullnamn\tKlass\tKår\nEkorrarna\tUpptäckare\tExempelkåren'}></textarea>
+					<textarea id="paste" rows="8" bind:value={pasteText} placeholder="Patrullnamn&#9;Klass&#9;Kår&#10;Ekorrarna&#9;Upptäckare&#9;Exempelkåren"></textarea>
 				</div>
 				<div><button type="button" class="btn btn-primary" onclick={usePaste}>Läs in raderna</button></div>
 			</section>

@@ -1,9 +1,50 @@
 # scouttavling.se — Architecture overview
 
-Status: proposal, 2026-10-15 (revised: TypeScript end-to-end, hosting deferred) · Sections: [02 Backend & domain](02-backend-and-domain.md) · [03 Client](03-client.md) · [04 Security & operations](04-security-and-operations.md)
+Status: v0.1 as built, see §0 (proposal of 2026-10-15 below) · Sections: [02 Backend & domain](02-backend-and-domain.md) · [03 Client](03-client.md) · [04 Security & operations](04-security-and-operations.md)
 UI design (all screens and user journeys): https://claude.ai/artifact/53qBCbWvJdNHSihkWFGqd6
 
-This document summarises the proposal and is **binding where the sections disagree**. Section 4 lists every such case and the decision taken.
+**Status: v0.1 as built (2026-10-28).** The sections below §0 are the original proposal (2026-10-15) and are kept for the reasoning behind each decision. **Where they differ from the code, §0 and the code win.** Sections 05 and 06 were written after the build and describe it as it is.
+
+## 0. As built in v0.1
+
+**Stack actually in use** (exact versions in `package.json`; everything is pinned):
+
+| Layer | In use |
+|---|---|
+| Runtime | Node.js 24.22.1 (Debian trixie slim, pinned by digest), npm workspaces `apps/web` + `packages/domain`, TypeScript 6.0.3 |
+| App | SvelteKit 3.1.0 + adapter-node 6, Svelte 5 (runes), Vite 8. Config lives in `apps/web/vite.config.ts` (Kit 3 has no `svelte.config.js`). |
+| Data | PostgreSQL 18.6, Drizzle ORM 0.45.4 + postgres.js, migrations with drizzle-kit (`docs/dev/MIGRATIONS.md`) |
+| Auth | openid-client (ScoutID BFF, Postgres sessions), jose (device grants and signed field commands) |
+| Validation | Valibot, next to the code that uses it (`#lib/registration/rules.ts`, `#lib/field/protocol.ts`, …) |
+| Client | Dexie (IndexedDB outbox and snapshot), barcode-detector (QR), a hand-written service worker (`src/service-worker.ts`) for the field app only |
+| Other | qrcode (SVG), mysql2 (gokapp import CLI only) |
+| Tests | Vitest + fast-check (unit, property and `*.db.test.ts` against a real Postgres), Playwright (e2e) |
+| Quality | ESLint (incl. the module boundaries below), Prettier, `svelte-check`, `tsc -p apps/web/tsconfig.tools.json` |
+| Hosting | **Decided: one VPS** with Docker Compose: Traefik v3.7.16 (TLS, www redirect, compression) behind a read-only docker-socket proxy, the app, Postgres, nightly local dumps and restic offsite backups (`compose.prod.yaml`, `scripts/deploy.sh`, 04 §7) |
+
+**Proposed but not built** (each can still be added; none is needed for v0.1):
+
+| Proposed | Instead |
+|---|---|
+| `packages/schema` (shared Valibot contract) | Schemas live in `apps/web` next to their use. The only code shared by browser and server outside `packages/domain` is `src/lib/field/protocol.ts` and `verify.ts`. |
+| pg-boss queue, `POST /internal/jobs/tick`, scheduler | No background jobs. Expired sessions are purged on login; the retention reminder is the site admin's "Personuppgifter kvar" list. |
+| Paraglide (i18n), Bits UI, TanStack Query | Swedish strings inline; own components (`src/lib/ui`); SvelteKit `load` + `invalidate` and SSE. |
+| Workbox, `@vite-pwa` | Hand-written service worker, registered only from `/f` and `/j`. |
+| SheetJS | Scoutnet's ".xls" is an HTML table and is parsed in the browser; real Excel workbooks are refused with "Spara som CSV". |
+| Sentry/GlitchTip, pino | Errors go to the container log (04 §6.5). |
+| rate-limiter-flexible | Own in-process limiter (`lib/server/rateLimit.ts`, `limits.ts`). |
+| nodemailer, e-mail | No e-mail is sent: links are shown on screen. |
+| S3 / object storage | Images in Postgres behind `lib/server/assetStore.ts` (05 §6). |
+| Testcontainers, MSW, axe-core, dependency-cruiser | DB tests use the dev/CI database (`REQUIRE_DB=1` in CI); boundaries are ESLint `no-restricted-imports` rules in `eslint.config.js`. |
+| Several app instances | **One instance.** Per-process state (results and competition caches, the SSE hub and its shared frames, rate limiters, sync concurrency counters, the media cache) would have to move to Postgres before a second instance is added. |
+
+**Module boundaries (enforced by ESLint):** `packages/domain` is pure (no `node:*`, database or SvelteKit); `src/lib/**` never imports from `src/routes/**`; `src/lib/server/**` never imports UI modules; client code never imports `#lib/server/**`.
+
+**Names that changed from the contracts in §4:** field sync is `POST /api/v1/field/<slug>/sync/commands` and `GET …/sync/snapshot` (C1, slug instead of id); the field app is `/f/<slug>` and the follow page `/folj/<token>` (C6); `/<slug>` is a short address for a competition or series (02 §1).
+
+**CI** (`.github/workflows/ci.yml`, every PR): types (`svelte-check` and `tsconfig.tools.json`), ESLint, Prettier, unit tests, migration drift, the database tests, the UAT on a production build and the image build. `e2e-nightly.yml` runs the other e2e suites every night and on demand.
+
+This document summarised the proposal and was **binding where the sections disagreed**. Section 4 lists every such case and the decision taken.
 
 ## 1. What we are building
 

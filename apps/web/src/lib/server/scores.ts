@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, ne, sql } from 'drizzle-orm';
 import { evaluate, InvalidScoreError, nextPatrolStatus, type ScoreItemDef } from '@scouttavling/domain';
-import { db, schema } from './db';
-import { recordChange } from './changes';
+import { db, schema, type Tx, type CompRow } from './db/index.ts';
+import { recordChange } from './changes.ts';
 
 /**
  * THE score write path — used by field devices (sync commands), HQ edits and
@@ -11,7 +11,6 @@ import { recordChange } from './changes';
  */
 
 type ItemRow = typeof schema.scoreItem.$inferSelect;
-type CompRow = typeof schema.competition.$inferSelect;
 
 /** DB row → domain definition. Style needs both the competition and the item switch on. */
 export function itemDef(item: ItemRow, comp: Pick<CompRow, 'styleEnabled'>): ScoreItemDef {
@@ -55,7 +54,6 @@ export type WriteResult =
 	| { result: 'conflict'; server: { points: number; stylePoints: number; version: number; state: string } }
 	| { result: 'rejected'; reason: string };
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * Patrol status follows the scores (rules in @scouttavling/domain nextPatrolStatus):

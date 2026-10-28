@@ -12,3 +12,17 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
 ]);
 
 export const isReservedSlug = (slug: string) => RESERVED_SLUGS.has(slug.toLowerCase());
+
+export function slugify(name: string): string {
+	return name
+		.toLowerCase()
+		.replace(/[åä]/g, 'a')
+		.replace(/ö/g, 'o')
+		.replace(/é/g, 'e')
+		.normalize('NFKD')
+		.replace(/[̀-ͯ]/g, '')
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '')
+		.slice(0, 48)
+		.replace(/-+$/g, '');
+}

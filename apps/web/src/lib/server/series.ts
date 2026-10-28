@@ -1,14 +1,14 @@
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
-import { db, schema } from './db/index.ts';
+import { db, schema, type Tx, type CompRow } from './db/index.ts';
 import { randomToken, requireUser, type CompetitionRole } from './auth.ts';
 import { recordChange } from './changes.ts';
 import { copyAssets } from './assetStore.ts';
 import { loadTrackColors } from './assets.ts';
 import { getResults } from './live.ts';
-import { activeInvites, rotateInvite } from '../../routes/admin/[slug]/invites/inviteCrypto.server.ts';
+import { activeInvites, rotateInvite } from './invites.ts';
 import { addDays, editionShiftDays, shiftDate } from '#lib/series/dates.ts';
-import { slugify } from '#lib/ui/admin/format.ts';
+import { slugify } from '#lib/routing/slugs.ts';
 import { seriesRole } from './ownership.ts';
 import { isReservedSlug } from '#lib/routing/slugs.ts';
 
@@ -20,8 +20,7 @@ import { isReservedSlug } from '#lib/routing/slugs.ts';
  */
 
 export type SeriesRow = typeof schema.series.$inferSelect;
-export type CompRow = typeof schema.competition.$inferSelect;
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type { CompRow } from './db/index.ts';
 
 const YEAR = /\b(19|20)\d{2}\b/g;
 

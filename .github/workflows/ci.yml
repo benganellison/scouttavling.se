@@ -1,5 +1,6 @@
-# Checks every pull request (and main): types, unit tests, migrations, the full
-# UAT on a production build, and that the container image builds.
+# Checks every pull request (and main): types, lint, formatting, unit and database tests,
+# migrations, the full UAT on a production build, and that the container image builds.
+# The other e2e suites run nightly (e2e-nightly.yml).
 name: CI
 
 on:
@@ -34,6 +35,13 @@ jobs:
           cp .env.example .env
           npx svelte-kit sync
           npx svelte-check --tsconfig ./tsconfig.json --threshold error
+      - name: Typecheck scripts, e2e specs and domain tests
+        working-directory: apps/web
+        run: npx tsc -p tsconfig.tools.json
+      - name: Lint (incl. module boundaries)
+        run: npx eslint .
+      - name: Formatting
+        run: npx prettier --check .
       - name: Unit tests
         run: npx vitest run
       - name: Migrations are in sync with the schema
@@ -80,9 +88,12 @@ jobs:
           # CI's database is a throwaway service container: migrate directly, no backup step.
           node --env-file=.env scripts/migrate.ts
           npm run db:seed
-      - name: Database integration tests (personal-data removal)
+      - name: Database integration tests (scores, removal, site admin, statistics)
         working-directory: .
-        run: npx vitest run apps/web/src/lib/server/anonymise.db.test.ts
+        # REQUIRE_DB=1: a database problem fails the run instead of silently skipping the tests.
+        env:
+          REQUIRE_DB: '1'
+        run: npx vitest run --exclude '**/gokappImport.db.test.ts' .db.test
       - name: Build (production, ORIGIN baked in)
         run: ORIGIN=http://localhost:5210 npx vite build
       - name: Start production server

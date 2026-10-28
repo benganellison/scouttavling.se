@@ -1,8 +1,7 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
-import QRCode from 'qrcode';
-import { db, schema } from '#lib/server/db/index.ts';
-import { randomToken, sha256 } from '#lib/server/auth.ts';
-import { dataKey } from '#lib/server/dataKey.ts';
+import { db, schema, type Queryable } from './db/index.ts';
+import { randomToken, sha256 } from './auth.ts';
+import { seal, unseal } from './sealed.ts';
 
 /**
  * Invite secrets (contract: /j/<secret>, 128-bit base64url, sha256 stored).
@@ -11,50 +10,27 @@ import { dataKey } from '#lib/server/dataKey.ts';
  * to re-display the QR (invite panel, printed station signs) long after the
  * invite was created, so the secret is additionally stored encrypted in
  * `invite.secret_enc`: AES-256-GCM, random 96-bit IV, key from a server secret
- * that is not in the database (#lib/server/dataKey.ts). A database dump alone
+ * that is not in the database (#lib/server/sealed.ts). A database dump alone
  * does not reveal working links; rotating a code revokes the old row and
  * disconnects its phones, so a leaked secret is cut off with one click.
  */
 const KEY_CONTEXT = 'scouttavling.invite-secret.v1';
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0] | typeof db;
+export const encryptSecret = (patrolCodeKey: string, secret: string) => seal(patrolCodeKey, KEY_CONTEXT, secret);
+export const decryptSecret = (patrolCodeKey: string, enc: string | null) => unseal(patrolCodeKey, KEY_CONTEXT, enc);
 
-const key = (patrolCodeKey: string, usage: KeyUsage[]) => dataKey(patrolCodeKey, KEY_CONTEXT, usage);
-
-export async function encryptSecret(patrolCodeKey: string, secret: string): Promise<string> {
-	const iv = crypto.getRandomValues(new Uint8Array(12));
-	const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await key(patrolCodeKey, ['encrypt']), new TextEncoder().encode(secret)));
-	const out = new Uint8Array(iv.length + ct.length);
-	out.set(iv);
-	out.set(ct, iv.length);
-	return Buffer.from(out).toString('base64url');
-}
-
-export async function decryptSecret(patrolCodeKey: string, enc: string | null): Promise<string | null> {
-	if (!enc) return null;
-	try {
-		const buf = new Uint8Array(Buffer.from(enc, 'base64url'));
-		const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(0, 12) }, await key(patrolCodeKey, ['decrypt']), buf.slice(12));
-		return new TextDecoder().decode(pt);
-	} catch {
-		return null;
-	}
-}
-
-export { publicOrigin } from '#lib/server/origin.ts';
+export { publicOrigin } from './origin.ts';
 
 export function inviteUrl(origin: string, secret: string): string {
 	return `${origin}/j/${secret}`;
 }
 
-export async function qrSvg(text: string, opts: { dark?: string; margin?: number } = {}): Promise<string> {
-	return QRCode.toString(text, { type: 'svg', errorCorrectionLevel: 'M', margin: opts.margin ?? 1, color: { dark: opts.dark ?? '#000000', light: '#ffffff' } });
-}
+export { qrSvg } from './qr.ts';
 
 export type InviteRow = typeof schema.invite.$inferSelect;
 
 /** Creates a new invite (generation = previous + 1) and revokes any active one for the same target. */
-export async function rotateInvite(tx: Tx, comp: { id: string; patrolCodeKey: string }, stationId: string | null) {
+export async function rotateInvite(tx: Queryable, comp: { id: string; patrolCodeKey: string }, stationId: string | null) {
 	const target = stationId ? eq(schema.invite.stationId, stationId) : and(isNull(schema.invite.stationId), eq(schema.invite.role, 'startfinish'));
 	const [prev] = await tx
 		.select()

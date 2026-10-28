@@ -1,5 +1,7 @@
 # 03 – Client architecture
 
+> **Status:** written as the proposal (2026-10-15) and updated where noted ("As built", review sections). Where it differs from the code, [01 §0 As built](01-overview.md#0-as-built-in-v01) and the code win.
+
 Status: proposal · Scope: web/PWA clients, offline, UI architecture · Related: 02-backend (domain/API, same codebase), 04-security-operations
 
 This section decides how the browser side of scouttavling.se is built. It covers the patrol leader's phone, the station volunteer's phone in the forest, the start/finish tablet, the organiser's and HQ's desktop, the public results page, the projector, and paper. Each section starts with the decision, then gives the reasons and the alternatives we considered. The same SvelteKit app also runs the server side (API, BFF, sync, SSE; 02 §1), and client and server share `packages/domain` and `packages/schema`. Interfaces with server modules and security are collected in §15.

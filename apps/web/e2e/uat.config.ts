@@ -13,7 +13,7 @@ export default defineConfig({
 	workers: 1,
 	reporter: [['line']],
 	use: {
-		baseURL: 'http://localhost:5210',
+		baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:5210',
 		locale: 'sv-SE',
 		timezoneId: 'Europe/Stockholm',
 		viewport: { width: 1440, height: 900 },

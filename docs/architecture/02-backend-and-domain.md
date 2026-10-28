@@ -1,5 +1,7 @@
 # 02 – Backend, domain model, API and sync
 
+> **Status:** written as the proposal (2026-10-15) and updated where noted ("As built", review sections). Where it differs from the code, [01 §0 As built](01-overview.md#0-as-built-in-v01) and the code win.
+
 Status: proposal · Scope: server side of scouttavling.se · Companion sections: 03 (client), 04 (security & operations)
 
 This section makes the backend decisions for scouttavling.se: the stack, the domain model, the API and realtime channel, the offline sync protocol, the core algorithms (ranking, start distribution, import), background work and how data moves over from gokapp. Each subsection gives a recommendation first and the reasoning after it. Interfaces the other sections depend on are marked **[→ 03 client]** or **[→ 04 security/ops]**.

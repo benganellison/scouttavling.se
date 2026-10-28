@@ -6,6 +6,7 @@
  * Run: (in apps/web) npm run db:seed && PORT=5205 scripts/dev-server.sh start && npx playwright test -c e2e/series.config.ts
  */
 import { test, expect, type Page, type Browser } from '@playwright/test';
+import { login } from './support.ts';
 import { createHash } from 'node:crypto';
 import { sql } from './field-db.ts';
 
@@ -18,12 +19,6 @@ const NEW = 'gokopen-2028';
 const TOKEN_M = 'seriesManageToken01234';
 const TOKEN_F = 'seriesFollowToken01234';
 const NAMES = ['Tindra Testsson', 'Kontakt Påhittad', 'Volontär Exempelsson'];
-
-async function login(page: Page) {
-	await page.goto('/login');
-	await page.getByRole('button', { name: /Logga in som Bengt/ }).click();
-	await page.waitForURL(/\/admin/);
-}
 
 async function cleanup() {
 	await sql`delete from competition where slug = ${NEW} or slug like 'e2e-varcup%'`;

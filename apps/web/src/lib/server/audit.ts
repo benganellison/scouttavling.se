@@ -1,5 +1,5 @@
 import { and, desc, eq, gte, inArray, lt, or, sql, type SQL } from 'drizzle-orm';
-import { db, schema } from './db/index.ts';
+import { db, schema, type Tx } from './db/index.ts';
 
 /**
  * The append-only audit log (docs/architecture/04-security-and-operations.md §10). The only write
@@ -8,7 +8,6 @@ import { db, schema } from './db/index.ts';
  * The `reason` text is free text from an organiser or site admin and must never name patrol members.
  */
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 export type AuditActorKind = (typeof schema.auditLog.$inferInsert)['actorKind'];
 export type AuditTargetType = (typeof schema.auditLog.$inferInsert)['targetType'];
 
@@ -136,7 +135,7 @@ export async function listAudit(f: AuditFilter = {}): Promise<AuditRow[]> {
 	const seriesIds = new Set<string>();
 	for (const r of rows) {
 		if (r.actorUserId) userIds.add(r.actorUserId);
-		if (r.targetType === 'user' || r.targetType === 'site_admin') r.targetId && userIds.add(r.targetId);
+		if ((r.targetType === 'user' || r.targetType === 'site_admin') && r.targetId) userIds.add(r.targetId);
 		for (const k of ['userId', 'replaced']) if (typeof r.details?.[k] === 'string') userIds.add(r.details[k] as string);
 		if (r.competitionId) compIds.add(r.competitionId);
 		if (r.seriesId) seriesIds.add(r.seriesId);

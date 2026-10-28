@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
-import { db, schema } from './db/index.ts';
+import { db, schema, type Tx } from './db/index.ts';
 import { recordChange } from './changes.ts';
 import { reasonError, writeAudit, type Actor } from './audit.ts';
 
@@ -21,7 +21,6 @@ import { reasonError, writeAudit, type Actor } from './audit.ts';
  * Every operation writes an audit row in the same transaction.
  */
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 export type ManagedRole = 'owner' | 'organiser';
 export type Scope = { kind: 'competition'; id: string } | { kind: 'series'; id: string };
 export type MemberOp = { op: 'set'; userId: string; role: ManagedRole } | { op: 'remove'; userId: string };

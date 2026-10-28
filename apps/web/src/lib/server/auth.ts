@@ -15,6 +15,7 @@ const SESSION_DAYS = 7;
  * is refused, and the result must parse to a path on our own origin.
  */
 export function safeNext(next: string | null | undefined, fallback = '/admin'): string {
+	// eslint-disable-next-line no-control-regex -- rejecting control characters is the point
 	if (!next || !next.startsWith('/') || /[\u0000-\u001f\u007f\\]/.test(next)) return fallback;
 	try {
 		const base = 'https://scouttavling.invalid';

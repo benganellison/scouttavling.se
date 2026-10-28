@@ -5,35 +5,14 @@
  * All data is invented and removed afterwards (audit rows stay: the log is append-only).
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import postgres from 'postgres';
+import { databaseReady, databaseUrl } from './testing/dbTestEnv.ts';
 
-function databaseUrl(): string | undefined {
-	if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
-	try {
-		const env = readFileSync(fileURLToPath(new URL('../../../.env', import.meta.url)), 'utf8');
-		return /^DATABASE_URL=["']?([^"'\n]+)/m.exec(env)?.[1];
-	} catch {
-		return undefined;
-	}
-}
 const URL_ = databaseUrl();
-async function reachable() {
-	if (!URL_) return false;
-	const probe = postgres(URL_, { max: 1, connect_timeout: 2, onnotice: () => {} });
-	try {
-		const [{ n }] = await probe`select count(*)::int n from information_schema.tables where table_name = 'audit_log'`;
-		return n === 1;
-	} catch {
-		return false;
-	} finally {
-		await probe.end({ timeout: 1 });
-	}
-}
-const ok = await reachable();
+const ok = await databaseReady(URL_);
 
 vi.mock('$app/env/private', () => ({ DATABASE_URL: URL_, ORIGIN: 'http://localhost', GRANT_SIGNING_KEY: undefined }));
 vi.mock('$app/env', () => ({ dev: true }));

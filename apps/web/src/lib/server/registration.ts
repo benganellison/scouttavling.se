@@ -6,19 +6,17 @@
  * show the follow link again (same scheme as invite.secret_enc, own key context).
  */
 import { and, asc, eq, max, ne, sql } from 'drizzle-orm';
-import QRCode from 'qrcode';
 import { dev } from '$app/env';
-import { db, schema } from './db/index.ts';
+import { db, schema, type CompRow } from './db/index.ts';
 import { randomToken, sha256 } from './auth.ts';
 import { recordChange } from './changes.ts';
 import { RateLimiter } from './rateLimit.ts';
 import { registrationWindow, type ManageData, type RegistrationData } from '#lib/registration/rules.ts';
-import { todayIso } from '#lib/ui/admin/format.ts';
+import { todayIso } from '#lib/time.ts';
 import { trackColors } from '#lib/brand/colors.ts';
 import { classColorTemplate } from './assets.ts';
-import { dataKey } from './dataKey.ts';
+import { seal, unseal } from './sealed.ts';
 
-type CompRow = typeof schema.competition.$inferSelect;
 export type PatrolRow = typeof schema.patrol.$inferSelect;
 
 const FOLLOW_KEY_CONTEXT = 'scouttavling.follow-token.v1';
@@ -31,34 +29,10 @@ export const missLimiter = new RateLimiter(30, 600_000);
 
 export { publicOrigin } from './origin.ts';
 
-export async function qrSvg(text: string): Promise<string> {
-	return QRCode.toString(text, { type: 'svg', errorCorrectionLevel: 'M', margin: 1, color: { dark: '#000000', light: '#ffffff' } });
-}
+export { qrSvg } from './qr.ts';
 
-// ---------- crypto ----------
-
-// Key from a server secret, not only from data in the same row (#lib/server/dataKey.ts).
-const key = (patrolCodeKey: string, usage: KeyUsage[]) => dataKey(patrolCodeKey, FOLLOW_KEY_CONTEXT, usage);
-
-export async function encryptToken(patrolCodeKey: string, token: string): Promise<string> {
-	const iv = crypto.getRandomValues(new Uint8Array(12));
-	const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await key(patrolCodeKey, ['encrypt']), new TextEncoder().encode(token)));
-	const out = new Uint8Array(iv.length + ct.length);
-	out.set(iv);
-	out.set(ct, iv.length);
-	return Buffer.from(out).toString('base64url');
-}
-
-export async function decryptToken(patrolCodeKey: string, enc: string | null): Promise<string | null> {
-	if (!enc) return null;
-	try {
-		const buf = new Uint8Array(Buffer.from(enc, 'base64url'));
-		const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(0, 12) }, await key(patrolCodeKey, ['decrypt']), buf.slice(12));
-		return new TextDecoder().decode(pt);
-	} catch {
-		return null;
-	}
-}
+export const encryptToken = (patrolCodeKey: string, token: string) => seal(patrolCodeKey, FOLLOW_KEY_CONTEXT, token);
+export const decryptToken = (patrolCodeKey: string, enc: string | null) => unseal(patrolCodeKey, FOLLOW_KEY_CONTEXT, enc);
 
 // ---------- competition ----------
 

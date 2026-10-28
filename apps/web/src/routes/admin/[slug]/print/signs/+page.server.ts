@@ -2,7 +2,7 @@ import { loadBranding } from '#lib/server/assets.ts';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { db } from '#lib/server/db/index.ts';
 import { loadStations } from '../prep.server.ts';
-import { activeInvites, decryptSecret, inviteUrl, publicOrigin, qrSvg, rotateInvite } from '../../invites/inviteCrypto.server.ts';
+import { activeInvites, decryptSecret, inviteUrl, publicOrigin, qrSvg, rotateInvite } from '#lib/server/invites.ts';
 
 export async function load(event) {
 	const { comp } = await requireCompetition(event, event.params.slug);

@@ -4,7 +4,7 @@ import { requireCompetition } from '#lib/server/auth.ts';
 import { recordChange } from '#lib/server/changes.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { loadStations } from '../print/prep.server.ts';
-import { activeInvites, decryptSecret, inviteUrl, publicOrigin, qrSvg, rotateInvite } from './inviteCrypto.server.ts';
+import { activeInvites, decryptSecret, inviteUrl, publicOrigin, qrSvg, rotateInvite } from '#lib/server/invites.ts';
 
 const SF = 'startfinish';
 

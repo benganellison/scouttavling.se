@@ -4,7 +4,7 @@ import { maxPoints, patrolCodeUrl } from '@scouttavling/domain';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { itemDef } from '#lib/server/scores.ts';
 import { loadPatrols, loadStations, loadTracks, scoredItems, stationDoesTrack } from '../prep.server.ts';
-import { publicOrigin, qrSvg } from '../../invites/inviteCrypto.server.ts';
+import { publicOrigin, qrSvg } from '#lib/server/invites.ts';
 
 export async function load(event) {
 	const { comp } = await requireCompetition(event, event.params.slug);

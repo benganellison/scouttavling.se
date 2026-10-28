@@ -9,6 +9,7 @@
  * Run: (in apps/web) PORT=5205 scripts/dev-server.sh start && npx playwright test -c e2e/site-admin.config.ts
  */
 import { test, expect, type Page, type Browser } from '@playwright/test';
+import { login as devLogin } from './support.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { sql } from './field-db.ts';
@@ -27,9 +28,7 @@ const ANNA = '3000002';
 async function login(browser: Browser, who: 'Bengt' | 'Anna', viewport = { width: 1280, height: 900 }) {
 	const ctx = await browser.newContext({ viewport });
 	const page = await ctx.newPage();
-	await page.goto('/login');
-	await page.getByRole('button', { name: new RegExp(`Logga in som ${who}`) }).click();
-	await page.waitForURL(/\/admin/);
+	await devLogin(page, who);
 	return page;
 }
 
@@ -218,7 +217,7 @@ test('3. a non-admin and a logged-out visitor get 404 on /site-admin', async ({ 
 		expect((await open(anna, path))?.status()).toBe(404);
 	}
 	await expect(anna.getByRole('heading', { level: 1 })).toHaveText('Sidan finns inte');
-	const forged = await anna.request.post(`/site-admin/c/${GONE}?/suspend`, { form: { suspend: '1', reason: 'Försöker utan behörighet' }, headers: { origin: 'http://localhost:5205' } });
+	const forged = await anna.request.post(`/site-admin/c/${GONE}?/suspend`, { form: { suspend: '1', reason: 'Försöker utan behörighet' }, headers: { origin: new URL(anna.url()).origin } });
 	expect(forged.status()).toBe(404);
 	const [c] = await sql`select suspended_at from competition where slug = ${GONE}`;
 	expect(c.suspended_at).toBeNull();

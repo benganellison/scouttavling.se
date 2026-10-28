@@ -5,33 +5,10 @@
  * Skipped when no database is reachable. All data is invented and removed afterwards.
  */
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import postgres from 'postgres';
+import { databaseReady, databaseUrl } from './testing/dbTestEnv.ts';
 
-function databaseUrl(): string | undefined {
-	if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
-	try {
-		const env = readFileSync(fileURLToPath(new URL('../../../.env', import.meta.url)), 'utf8');
-		return /^DATABASE_URL=["']?([^"'\n]+)/m.exec(env)?.[1];
-	} catch {
-		return undefined;
-	}
-}
 const URL_ = databaseUrl();
-async function reachable() {
-	if (!URL_) return false;
-	const probe = postgres(URL_, { max: 1, connect_timeout: 2, onnotice: () => {} });
-	try {
-		await probe`select 1 from score limit 1`;
-		return true;
-	} catch {
-		return false;
-	} finally {
-		await probe.end({ timeout: 1 });
-	}
-}
-const ok = await reachable();
+const ok = await databaseReady(URL_);
 
 vi.mock('$app/env/private', () => ({ DATABASE_URL: URL_, ORIGIN: 'http://localhost' }));
 vi.mock('$app/env', () => ({ dev: true }));

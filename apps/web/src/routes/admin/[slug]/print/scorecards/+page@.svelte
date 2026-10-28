@@ -35,7 +35,10 @@
 							</div>
 							<div class="qrbox">
 								<span>Visa kortet på varje kontroll. Funktionären fyller i och signerar.</span>
-								<div class="qr" role="img" aria-label="QR-kod patrull {k.nr}">{@html k.qr}</div>
+								<div class="qr" role="img" aria-label="QR-kod patrull {k.nr}">
+									<!-- eslint-disable-next-line svelte/no-at-html-tags -- server-generated SVG from qrcode -->
+									{@html k.qr}
+								</div>
 							</div>
 						</header>
 						<div class="days">

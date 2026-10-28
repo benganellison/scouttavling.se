@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { selectableValues, styleValues, evaluate } from '@scouttavling/domain';
 	import { useField, hhmm, shortTroop, UNDO_MS, type PackItem } from '#lib/field/app.svelte.ts';

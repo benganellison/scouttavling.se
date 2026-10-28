@@ -137,7 +137,12 @@ export function competitionDays(saved: (Date | null)[], minShare = 0.03, timeZon
 	const fmt = new Intl.DateTimeFormat('sv-SE', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' });
 	const counts = new Map<string, number>();
 	let n = 0;
-	for (const d of saved) if (d) (counts.set(fmt.format(d), (counts.get(fmt.format(d)) ?? 0) + 1), n++);
+	for (const d of saved) {
+		if (!d) continue;
+		const day = fmt.format(d);
+		counts.set(day, (counts.get(day) ?? 0) + 1);
+		n++;
+	}
 	return [...counts].filter(([, c]) => c >= n * minShare).map(([d]) => d).sort();
 }
 

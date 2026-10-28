@@ -84,7 +84,7 @@ export const MAX_MEMBERS = 12;
 const text = (min: number, max: number, msg: string) => v.pipe(v.string(), v.trim(), v.minLength(min, msg), v.maxLength(max, `Högst ${max} tecken`));
 
 /** Swedish or international mobile: 7–15 digits, spaces, dashes and a leading + allowed. */
-const PHONE = /^\+?[0-9][0-9 \-]{5,18}[0-9]$/;
+const PHONE = /^\+?[0-9][0-9 -]{5,18}[0-9]$/;
 
 export const MemberSchema = v.object({
 	firstName: text(1, 40, 'Skriv förnamn'),

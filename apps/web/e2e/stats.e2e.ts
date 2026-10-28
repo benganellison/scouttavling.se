@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { login } from './support.ts';
 import { readFileSync } from 'node:fs';
 import postgres from 'postgres';
 
@@ -14,12 +15,6 @@ function databaseUrl() {
 	if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
 	const env = readFileSync(new URL('../.env', import.meta.url), 'utf8');
 	return /^DATABASE_URL=(.*)$/m.exec(env)![1].trim().replace(/^["']|["']$/g, '');
-}
-
-async function login(page: Page) {
-	await page.goto('/login');
-	await page.getByRole('button', { name: /Logga in som Bengt/ }).click();
-	await page.waitForURL(/\/admin/);
 }
 
 test.describe.configure({ mode: 'serial' });
