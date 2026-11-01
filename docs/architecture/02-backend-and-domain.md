@@ -572,3 +572,22 @@ Second round, from the same reviews:
 - **Smaller:** the phone's snapshot format is an explicit `Snapshot` interface in `lib/field/protocol.ts` (the server must return exactly it); joining is `joinDevice()` in `lib/field/join.ts` with a typed `JoinResponse`; one `competitionLive()`/`liveKey()` for the admin pages' live channel; `FieldApp.stationReport()` and one `SYNC_SEVERITY` order for the log; score writers take `Queryable` (no casts), `recordChange` takes a transaction only; the auth guard takes `readOnly` from the layout instead of knowing a route.
 
 **For later:** a shared label + input + error component for the long admin forms; the settings page's day rules (auto names, prefixes, start/end dates from the days) as pure functions next to `daysBetween`.
+
+## 15. Load test 2026-11-01 (dev machine)
+
+`apps/web/scripts/loadtest.ts` (`setup` / `run` / `explain`; how to run it is in the file's header) runs a big competition day against a production build on its own database: 300 patrols, 2 days, 24 stations, and 100 archived years with full history in the background (200,000 scores, revisions and change-log rows). For 3 minutes, much faster than a real day, 30 phones join with real device keys and send a signed report every ~2 s (≈15 reports/s; a real big event has a few thousand over a whole day), 300 parents follow live results from their own addresses, 100 open the results page every ~10 s and 3 HQ screens reload the dashboard and results every ~5 s.
+
+Machine: 4 cores, 15 GB, load generator on the same machine. Result (production build, Node 24, Postgres 18):
+
+| Request | p50 | p95 | p99 |
+|---|---|---|---|
+| Phone sync (signed reports) | 38 ms | 112 ms | 164 ms |
+| Phone "anything new?" (snapshot since) | 20 ms | 51 ms | 77 ms |
+| Public results page | 20 ms | 50 ms | 94 ms |
+| HQ dashboard | 46 ms | 88 ms | 188 ms |
+| Admin results | 23 ms | 48 ms | 78 ms |
+| Phone's first full snapshot (once, at join) | 344 ms | 404 ms | 810 ms |
+
+0 errors; every accepted report stored (2,392 of 2,392); all 300 viewers received every results frame; server CPU ≤ 32 %, memory ≤ 433 MB, ≤ 23 database connections. About 5 % of syncs got 503 (busy) at this inflated rate; the phones keep those reports and retry. Query plans (`explain`) on the large tables all use their indexes (hot queries 0.03–1 ms; the HQ feed ≈ 10 ms, growing with the competition's own reports only). A first run showed 1–2 s tails that came from the test itself (100 readers starting in the same millisecond); readers now arrive over 10 s, as people do.
+
+**Verdict:** good margin for a big event on one 4-core instance. Re-run in QA on the production server size (behind Traefik with TLS) if the hardware or the expected size changes much.

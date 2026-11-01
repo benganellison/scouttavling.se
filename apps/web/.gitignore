@@ -35,6 +35,7 @@ e2e/uat/videos/
 e2e/uat/console.json
 .uat-server.pid
 .uat-server.log
+.load-server.log
 .db-backups/
 e2e/demo-results/
 e2e/lifecycle-results/
