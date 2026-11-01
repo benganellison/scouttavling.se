@@ -1,5 +1,6 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
 import { readSession } from '#lib/server/auth.ts';
+import { describeError } from '#lib/server/errorLog.ts';
 import { closeDb } from '#lib/server/db/index.ts';
 import { hub } from '#lib/server/sse.ts';
 import { DEV_LOGIN, GRANT_SIGNING_KEY, ORIGIN } from '$app/env/private';
@@ -35,8 +36,7 @@ process.once('sveltekit:shutdown', async () => {
 export const handleError: HandleServerError = ({ error, event, kind }) => {
 	if (kind !== 'unknown') return;
 	const id = crypto.randomUUID().slice(0, 8);
-	const e = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
-	console.error(JSON.stringify({ level: 'error', id, route: event.route.id, method: event.request.method, ...e }));
+	console.error(JSON.stringify({ level: 'error', id, route: event.route.id, method: event.request.method, ...describeError(error) }));
 	return { message: `Något gick fel (felkod ${id}). Försök igen om en stund.` };
 };
 

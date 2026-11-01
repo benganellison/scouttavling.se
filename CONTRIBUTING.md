@@ -34,6 +34,7 @@ Running several dev servers (e.g. one for e2e): `PORT=5204 scripts/dev-server.sh
 | Types (app, scripts, e2e, domain) | `npm run check` | every PR |
 | Lint, incl. module boundaries | `npm run lint` | every PR |
 | Formatting | `npm run format` (fix) · `npm run format:check` | every PR |
+| No personal data committed | `npm run check:personal-data` | every PR (plus a gitleaks secret scan) |
 | Unit + property tests | `npm test` | every PR |
 | Database tests (`*.db.test.ts`) | `npm test` with the dev DB running; skipped without one (`REQUIRE_DB=1` makes that an error) | every PR |
 | e2e against a dev server | `npm run e2e` (all suites, fresh seed each) or `apps/web/scripts/e2e-dev.sh field stats` | nightly |

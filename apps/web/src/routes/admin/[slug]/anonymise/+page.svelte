@@ -36,7 +36,7 @@
 				<strong>Anteckningar och spår av vem som gjorde vad</strong> <span class="muted">kommentarer på poäng, ändringsorsaker, vem som rapporterade</span>
 			</li>
 			<li>
-				<strong>Medarrangörer och ledningens telefon</strong>
+				<strong>Medarrangörer och tävlingsledningens telefon</strong>
 				<span class="muted">{k.team ? `${n(k.team, 'person', 'personer')} med andra roller än ägare` : 'ägaren behåller sin åtkomst'}</span>
 			</li>
 		</ul>

@@ -478,7 +478,7 @@ test.describe('5 hq live', () => {
 		await beat(page);
 		await shot(page, '31-messages-sent');
 
-		await expect(vp.getByText('Nytt från ledningen:')).toBeVisible({ timeout: 30_000 });
+		await expect(vp.getByText('Nytt från tävlingsledningen:')).toBeVisible({ timeout: 30_000 });
 		await beat(vp);
 		await shot(vp, '32-field-message-banner');
 		await vp

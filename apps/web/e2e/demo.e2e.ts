@@ -266,7 +266,7 @@ test('02 ledningscentralen live', async ({ browser }) => {
 	await hq.getByRole('button', { name: 'Skicka meddelande' }).click();
 	const sent = hq.getByTestId('sent-message').first();
 	await expect(sent).toContainText(/0 av \d+/);
-	await expect(ph.getByText('Nytt från ledningen:')).toBeVisible({ timeout: 30_000 });
+	await expect(ph.getByText('Nytt från tävlingsledningen:')).toBeVisible({ timeout: 30_000 });
 	await say(ph, 'Meddelandet syns direkt i telefonen.');
 	await tap(ph, ph.getByRole('navigation', { name: 'Huvudmeny' }).getByRole('link', { name: /Meddelanden/ }), 700);
 	await tap(ph, ph.getByRole('button', { name: /Fika vid Mål kl 14/ }), 600);

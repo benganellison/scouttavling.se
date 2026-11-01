@@ -510,4 +510,6 @@ WCAG 2.2 AA review of every user group. No blocker; fixed in the same PR:
 | Focus lost after step/confirmation changes; scan result sheet not a dialog | Focus moves to the new step's heading / the safe button; the sheet is `role=dialog aria-modal`, focuses "Ja, sätt poäng", closes on Escape, background inert. |
 | Smaller | Sync pill and follow page no longer re-announce the clock; patrol-pass QR and number named; desk `<h1>`; "Koppla från" asks first; scorecard text ≥ 9 pt; green step label replaced (3.1:1). |
 
-**Known, for later:** tabs/radios on the scan screen and desk use ARIA roles without arrow keys; image alt text is always the competition name (no alt field for covers); "Ring HQ" and a few other field texts still say "HQ"; patrol-detail cell states rely on colour plus a legend.
+**Fixed later (2026-11-01):** "HQ" and "ledningen" in the UI are "tävlingsledningen" everywhere (the phone's tab is "Ring tävlingsledningen", broken at a soft hyphen); the desk filters are plain toggle buttons.
+
+**Known, for later:** tabs/radios on the scan screen and desk use ARIA roles without arrow keys; image alt text is always the competition name (no alt field for covers); patrol-detail cell states rely on colour plus a legend.

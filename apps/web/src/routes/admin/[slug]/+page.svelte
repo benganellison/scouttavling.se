@@ -42,7 +42,7 @@
 
 	const todos = $derived.by<Todo[]>(() => {
 		const basics = Boolean(c.location && c.hqPhone);
-		const missing = [!c.location && 'plats', !c.hqPhone && 'telefon till HQ'].filter(Boolean).join(' och ');
+		const missing = [!c.location && 'plats', !c.hqPhone && 'telefon till tävlingsledningen'].filter(Boolean).join(' och ');
 		const vol = s.withoutInvite;
 		return [
 			{

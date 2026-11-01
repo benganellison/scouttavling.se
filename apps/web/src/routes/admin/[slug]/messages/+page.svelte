@@ -16,7 +16,7 @@
 		{
 			name: 'Väderomslag',
 			title: 'Väderomslag',
-			body: 'Åska närmar sig. Avbryt aktiviteter vid vatten och i höga träd, samla patrullerna i skydd och invänta besked från ledningen.',
+			body: 'Åska närmar sig. Avbryt aktiviteter vid vatten och i höga träd, samla patrullerna i skydd och invänta besked från tävlingsledningen.',
 			important: true
 		},
 		{

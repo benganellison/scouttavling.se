@@ -431,7 +431,7 @@
 							aria-invalid={errors.hqPhone ? 'true' : undefined}
 						/>
 						{#if errors.hqPhone}<span class="error-text" id="err-hqPhone">{errors.hqPhone}</span>{/if}
-						<span id="hq-help" class="help">Visas för funktionärer och ledare som ”Ring HQ”.</span>
+						<span id="hq-help" class="help">Visas för funktionärer och ledare som ”Ring tävlingsledningen”.</span>
 					</div>
 					<div class="field">
 						<label for="owner">Arrangör</label>

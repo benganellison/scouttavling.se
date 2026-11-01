@@ -15,9 +15,9 @@
 		{#if app.unreadCount}<span class="badge" aria-label="{app.unreadCount} olästa">{app.unreadCount}</span>{/if}
 	</a>
 	{#if tel}
-		<a href="tel:{tel}"><Icon name="phone" />Ring HQ</a>
+		<a href="tel:{tel}"><Icon name="phone" /><span class="lbl">Ring tävlings&shy;ledningen</span></a>
 	{:else}
-		<span class="disabled" aria-disabled="true"><Icon name="phone" />Ring HQ</span>
+		<span class="disabled" aria-disabled="true"><Icon name="phone" /><span class="lbl">Ring tävlings&shy;ledningen</span></span>
 	{/if}
 </nav>
 
@@ -46,6 +46,12 @@
 	}
 	.disabled {
 		opacity: 0.5;
+	}
+	/* "Ring tävlingsledningen" breaks at the soft hyphen in the narrow tab. */
+	.lbl {
+		text-align: center;
+		line-height: 1.15;
+		hyphens: manual;
 	}
 	a[aria-current='page'] {
 		color: var(--brand);

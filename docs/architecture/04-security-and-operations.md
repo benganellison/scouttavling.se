@@ -400,7 +400,7 @@ Changes from gokapp: no `ddl-auto=update` (drizzle-kit migrations); no `:latest`
 
 ### 7.6 CI/CD
 
-> **As built (v0.1):** `ci.yml` on every PR and on `main`: `svelte-check`, `tsc -p apps/web/tsconfig.tools.json`, ESLint (module boundaries included), Prettier, Vitest, migration drift, the database tests (`REQUIRE_DB=1`), the UAT on a production build, and an image build without push. `e2e-nightly.yml` runs the dev-server e2e suites (`apps/web/scripts/e2e-dev.sh`) nightly and on demand. `release-please.yml` keeps the release PR (SemVer from Conventional Commits) and, on release, calls `container.yml`, which pushes `ghcr.io/…:<version>` with SBOM and build provenance. All actions are pinned to commit SHAs. Deploy is by hand on the VPS: `scripts/deploy.sh` (guards in 04 §11). **Not built:** Testcontainers, dependency-cruiser, gitleaks, a personnummer scan, CodeQL, Trivy, Renovate, staging, event-mode and the change-freeze job below. The personnummer scan is the most worthwhile next one (§6.5).
+> **As built (v0.1):** `ci.yml` on every PR and on `main`: `svelte-check`, `tsc -p apps/web/tsconfig.tools.json`, ESLint (module boundaries included), Prettier, Vitest, migration drift, the database tests (`REQUIRE_DB=1`), the UAT on a production build, and an image build without push. `e2e-nightly.yml` runs the dev-server e2e suites (`apps/web/scripts/e2e-dev.sh`) nightly and on demand. `release-please.yml` keeps the release PR (SemVer from Conventional Commits) and, on release, calls `container.yml`, which pushes `ghcr.io/…:<version>` with SBOM and build provenance. All actions are pinned to commit SHAs. Deploy is by hand on the VPS: `scripts/deploy.sh` (guards in 04 §11). Also on every PR: a **secret scan** of the full git history (gitleaks, pinned by digest; `.gitleaksignore` lists reviewed false positives), a **personal-data scan** of every committed file (`scripts/check-personal-data.ts`: spreadsheets/CSV, and personnummer/samordningsnummer with a real date and valid check digit) and **`npm audit --omit=dev --audit-level=high`** (production dependencies; dev tools are reviewed by hand). **Not built:** Testcontainers, dependency-cruiser, CodeQL, Trivy, Renovate/Dependabot, staging, event-mode and the change-freeze job below.
 
 The proposal:
 
@@ -569,12 +569,12 @@ A read-only review of the whole branch against this document. Fixed in the same 
 | "Skapa ny kod" did not cut off phones that had already joined; no way to disconnect one phone | A device whose invite is revoked is *superseded*: no snapshot (401 `grant_revoked`), its commands go to quarantine. HQ sees every phone per station (also those on an old code) and can "Koppla från" one. `field.e2e.ts` test 7. |
 | Quarantine skipped the station/patrol scope checks; start & finish could send station scores; quarantine could be flooded | Scope is checked first for every command (out of scope = rejected, never quarantined); start & finish never record scores; ≤ 200 open quarantined reports per device; `writeScore`/`voidScore` refuse a patrol or item of another competition. `verify.test.ts`. |
 | Expiry and clock judged only by the phone's own `clientNow` | Also by server time; commands dated before the phone joined are quarantined; `deviceSeq`/`baseVersion` bounded. |
-| Rate limits keyed on Traefik's address (one client could block everyone) | `ADDRESS_HEADER=X-Forwarded-For`, `XFF_DEPTH=1` in `compose.prod.yaml` (verified: Traefik replaces a forged header). New per-client limits on joining (60/10 min, ≤ 25 phones per invite) and patrol passes. |
+| Rate limits keyed on Traefik's address (one client could block everyone) | `ADDRESS_HEADER=X-Forwarded-For`, `XFF_DEPTH=1` in `compose.prod.yaml` (verified: Traefik replaces a forged header). Per-client limits on joining (redeem 300/10 min and invite page 600/10 min: a camp may share one address; ≤ 25 phones per invite) and patrol passes (120/10 min). |
 | Open redirect after login (`/login?next=/%09/evil.example`) | `safeNext` refuses control characters and backslashes and requires the same origin. `safeNext.test.ts`. |
 | Login without a real member number could merge accounts | Refused unless the member number is digits (`userFromClaims`). |
 | Developer login only behind a runtime variable | Off whenever `ORIGIN` is https; the server refuses to start with `DEV_LOGIN=1` and an https origin; `scripts/deploy.sh` refuses `DEV_LOGIN=1` and the example DB password. |
 | No Content-Security-Policy | `kit.csp` in `vite.config.ts` (nonces for SvelteKit's scripts, `wasm-unsafe-eval` for the QR scanner, `frame-ancestors 'none'`, `base-uri 'none'`, `object-src 'none'`). No violations on public, admin or field pages. |
-| Public live-results stream: unlimited connections, one computation per connection | ≤ 8 streams per client, 4000 in total; results computed once per change (single flight). |
+| Public live-results stream: unlimited connections, one computation per connection | ≤ 50 streams per client address (mobile CGNAT, camp Wi-Fi), 4000 in total; results computed once per change (single flight). |
 | Invite secrets and follow links encrypted with a key derived from the same database row | Key also derived from the server's signing key (`#lib/server/dataKey.ts`): a dump or backup alone yields no working link. Rotating `GRANT_SIGNING_KEY` means organisers create new codes. |
 | Drafts readable on `/r`, `/r/…/statistik` and the live stream | 404 unless the visitor is a member. |
 | CSV formula guard missed tab/CR | Also neutralised. |
@@ -588,6 +588,21 @@ A read-only review of the whole branch against this document. Fixed in the same 
 - Series rights follow any edition's owners/organisers even after removal from `series_member`.
 - Import and registration refuse personnummer-shaped values, not plain birth dates (§6.3).
 - Local backups in the `backups` volume are not encrypted (§7.10): encrypt the offsite copies (restic does).
+
+### 11.1 Security re-review 2026-11-01 (after the refactors)
+
+The changes since the security fixes (`43abe44..`) were re-reviewed: every write path still has its own guard (the layout's `readOnly` never protected writes; actions run before layout loads), scoping, signing and crypto are unchanged. Fixed:
+
+| Finding | Fix |
+|---|---|
+| A disconnected phone looping in parallel could hold both per-competition sync slots, so every other phone got 503 (performance-review regression) | One sync at a time per device; 4 per competition for working phones; disconnected, superseded and expired phones (quarantine only) share one separate slot. |
+| Public stream limit per address raised to 200 (about 20 addresses could take all 4000) | 50 per address. |
+| Invite page (`/j/<secret>`) had no rate limit | 600/10 min per address (cheap guard; guessing 128-bit secrets was never feasible). |
+| `handleError` logged a failed query's message, which lists its parameters (names, phones) | `lib/server/errorLog.ts`: SQL text and Postgres code/message only, stack frames only (tested). |
+| (Pre-existing) "Skapa nästa år" worked from a suspended competition | `requireNextEditionSource` refuses suspended competitions (423). |
+
+CI now also scans for secrets (gitleaks, full history), personal data (`scripts/check-personal-data.ts`) and vulnerable production dependencies (`npm audit`, high/critical), see §7.6.
+
 
 ## 12. Privacy review 2026-10-27 (before v0.1.0)
 

@@ -65,12 +65,14 @@
 
 	<main>
 		{#if app.pack?.competition.backupMode}
-			<div class="backup" role="alert"><Icon name="alert" /> <span><strong>Reservläge:</strong> skriv poängen på papper tills HQ meddelar annat.</span></div>
+			<div class="backup" role="alert">
+				<Icon name="alert" /> <span><strong>Reservläge:</strong> skriv poängen på papper tills tävlingsledningen meddelar annat.</span>
+			</div>
 		{/if}
 		{#if latestMsg}
 			<a class="msg" href="{base}/messages">
 				<Icon name="bell" />
-				<span><strong>Nytt från ledningen:</strong> {latestMsg.title}</span>
+				<span><strong>Nytt från tävlingsledningen:</strong> {latestMsg.title}</span>
 				<span class="read">Läs</span>
 			</a>
 		{/if}

@@ -208,9 +208,9 @@ export const frame = (event: string, id: number | null, data: unknown) =>
  * every change, so one client cannot hold thousands open (the admin stream needs a login).
  */
 const streams = { total: 0, byClient: new Map<string, number>() };
-// perClient is high on purpose: mobile operators put many users behind one IPv4 address (CGNAT),
-// and a whole camp may share one Wi-Fi address. The total cap protects the server.
-export const STREAM_LIMITS = { perClient: 200, total: 4000 };
+// perClient allows for many users behind one IPv4 address (mobile CGNAT, a camp's Wi-Fi), but no
+// single address may take more than a small share of the total: 80 addresses to fill it, not 20.
+export const STREAM_LIMITS = { perClient: 50, total: 4000 };
 /** Reserves a slot for a public stream; null when over a limit. Call the returned release on close. */
 export function acquireStream(client: string): (() => void) | null {
 	const mine = streams.byClient.get(client) ?? 0;

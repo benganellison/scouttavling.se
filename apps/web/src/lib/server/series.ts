@@ -3,6 +3,7 @@ import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db, schema, type Tx, type CompRow } from './db/index.ts';
 import { randomToken, requireUser, type CompetitionRole } from './auth.ts';
 import { recordChange } from './changes.ts';
+import { refuseIfSuspended } from './suspended.ts';
 import { insertCompetition, slugTaken as isTaken } from './competitions.ts';
 import { copyAssets } from './assetStore.ts';
 import { loadTrackColors } from './assets.ts';
@@ -79,6 +80,8 @@ export async function requireNextEditionSource(event: RequestEvent, slug: string
 	const [comp] = await db.select().from(schema.competition).where(eq(schema.competition.slug, slug)).limit(1);
 	if (!comp) error(404, 'Tävlingen finns inte');
 	if (!(await organisesEdition(user.id, comp.id))) error(403, 'Du har inte behörighet till den här tävlingen');
+	// A suspended competition (site admin) is frozen: no new year from it either.
+	refuseIfSuspended(comp);
 	return { user, comp };
 }
 

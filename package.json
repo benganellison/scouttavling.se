@@ -16,6 +16,7 @@
     "test": "vitest run",
     "check": "npm run check -w apps/web && npm run check:tools -w apps/web",
     "lint": "eslint .",
+    "check:personal-data": "node scripts/check-personal-data.ts",
     "format": "prettier --write \"apps/web/{src,e2e,scripts}/**/*.{ts,js,svelte,css}\" \"apps/web/*.ts\" \"packages/*/src/**/*.ts\" eslint.config.js",
     "format:check": "prettier --check \"apps/web/{src,e2e,scripts}/**/*.{ts,js,svelte,css}\" \"apps/web/*.ts\" \"packages/*/src/**/*.ts\" eslint.config.js",
     "db:up": "docker compose -f compose.dev.yaml up -d",

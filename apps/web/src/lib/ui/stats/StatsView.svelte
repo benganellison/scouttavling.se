@@ -139,7 +139,7 @@
 		<h2 id="h-time">Tider</h2>
 		{#if t.timedPatrols === 0}
 			<p class="muted">
-				Inga tider{scope.trackId ? ' i klassen' : ''} ännu. Tider finns bara för rapporter från funktionärernas telefoner (pappersprotokoll och ändringar i ledningen
+				Inga tider{scope.trackId ? ' i klassen' : ''} ännu. Tider finns bara för rapporter från funktionärernas telefoner (pappersprotokoll och ändringar av tävlingsledningen
 				saknar tid).
 			</p>
 		{:else}

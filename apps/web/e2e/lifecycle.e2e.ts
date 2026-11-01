@@ -617,7 +617,7 @@ test('8 HQ: correction with reason, message with read receipt, backup mode on/of
 	await expect(sent).toContainText(/0 av \d+/);
 	const total = Number((await sent.locator('.receipt strong').textContent())!.split(' av ')[1]);
 	const bo = phones.bo.page;
-	await expect(bo.getByText('Nytt från ledningen:')).toBeVisible({ timeout: 40_000 });
+	await expect(bo.getByText('Nytt från tävlingsledningen:')).toBeVisible({ timeout: 40_000 });
 	await bo
 		.getByRole('navigation', { name: 'Huvudmeny' })
 		.getByRole('link', { name: /Meddelanden/ })

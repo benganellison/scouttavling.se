@@ -14,7 +14,7 @@ import { seal, unseal } from './sealed.ts';
  * does not reveal working links; rotating a code revokes the old row and
  * disconnects its phones, so a leaked secret is cut off with one click.
  */
-const KEY_CONTEXT = 'scouttavling.invite-secret.v1';
+const KEY_CONTEXT = 'scouttavling.invite-secret.v1'; // gitleaks:allow (a public key-derivation label, not a secret)
 
 export const encryptSecret = (patrolCodeKey: string, secret: string) => seal(patrolCodeKey, KEY_CONTEXT, secret);
 export const decryptSecret = (patrolCodeKey: string, enc: string | null) => unseal(patrolCodeKey, KEY_CONTEXT, enc);
