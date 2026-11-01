@@ -307,14 +307,12 @@ async function run(seconds: number) {
 	const secrets: string[] = [];
 	for (let i = 0; i < PHONES; i++) {
 		const secret = createHash('sha256').update(`lasttest-${i}-${Date.now()}`).digest('base64url').slice(0, 22);
-		await db
-			.insert(s.invite)
-			.values({
-				competitionId: comp.id,
-				stationId: stations[i % stations.length].id,
-				role: 'station_volunteer',
-				secretHash: createHash('sha256').update(secret).digest('base64url')
-			});
+		await db.insert(s.invite).values({
+			competitionId: comp.id,
+			stationId: stations[i % stations.length].id,
+			role: 'station_volunteer',
+			secretHash: createHash('sha256').update(secret).digest('base64url')
+		});
 		secrets.push(secret);
 	}
 	const cookie = await devLogin();
