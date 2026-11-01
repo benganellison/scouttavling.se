@@ -1,0 +1,14 @@
+import { dev } from '$app/env';
+import { RateLimiter } from './rateLimit.ts';
+
+/*
+ * Per-client limits for public entry points (the client address comes from X-Forwarded-For behind
+ * Traefik, see compose.prod.yaml). Higher in dev: the e2e suites join many phones from one address.
+ */
+
+/** Joining with an invite (the redeem POST only): generous, a whole campsite may share one address. */
+export const joinLimiter = new RateLimiter(dev ? 2000 : 300, 600_000);
+/** Opening an invite page (/j/<secret>): each costs a hash and a few queries. Generous for the same reason. */
+export const invitePageLimiter = new RateLimiter(dev ? 5000 : 600, 600_000);
+/** Patrol-pass lookups (/p/<code>): a phone camera opens a few, a script many. */
+export const passLimiter = new RateLimiter(dev ? 2000 : 120, 600_000);

@@ -1,0 +1,7 @@
+{
+	// Typecheck for what svelte-check does not see: scripts, e2e specs and the domain package's tests.
+	"extends": "./tsconfig.json",
+	"compilerOptions": { "noEmit": true },
+	"include": ["src/app.d.ts", "scripts/**/*.ts", "e2e/**/*.ts", "../../packages/domain/src/**/*.ts"],
+	"exclude": []
+}

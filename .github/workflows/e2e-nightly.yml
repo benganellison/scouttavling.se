@@ -1,0 +1,63 @@
+# The e2e suites that run against the dev server (field app, registration, series, site admin,
+# branding, statistics, privacy, live, import, …): too slow for every push, so nightly and on demand.
+name: E2E (nightly)
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 24.22.1
+
+jobs:
+  e2e:
+    name: Dev-server e2e suites
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:18.6@sha256:edb0c08dc33befd0262ab3b5cf1c4f3f8cfd8b09e88c05b45adee29d6761ddb6
+        env:
+          POSTGRES_USER: scout
+          POSTGRES_PASSWORD: scout
+          POSTGRES_DB: scouttavling
+        ports: ['5544:5432']
+        options: >-
+          --health-cmd "pg_isready -U scout -d scouttavling"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+        working-directory: .
+      - run: npx playwright install --with-deps chromium
+      - name: Prepare env and migrate
+        run: |
+          cp .env.example .env
+          sed -i 's/^DEV_LOGIN=.*/DEV_LOGIN="1"/' .env
+          node --env-file=.env scripts/migrate.ts
+      - name: Run the suites (one dev server, fresh seed per suite)
+        # db:reset normally takes a backup first; CI's database is a throwaway container.
+        env:
+          SKIP_BACKUP: '1'
+        run: scripts/e2e-dev.sh
+      - name: Upload traces and the server log
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-nightly-${{ github.run_id }}
+          path: |
+            apps/web/e2e/test-results/
+            apps/web/.dev-server-*.log
+          retention-days: 7
+          if-no-files-found: ignore
