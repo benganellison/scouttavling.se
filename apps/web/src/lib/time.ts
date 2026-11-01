@@ -15,3 +15,12 @@ export function daysUntil(iso: string, now = new Date()): number {
 }
 
 /** URL slug from a competition name: "GökOpen 2027" → "gokopen-2027". */
+
+const TIME = new Intl.DateTimeFormat('sv-SE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Stockholm' });
+/** "14:05" in Swedish time (fixed time zone, so server rendering and hydration agree). */
+export const formatTime = (d: Date) => TIME.format(d);
+/** "35 min", "1 h 5 min". */
+export const formatDuration = (min: number) => (min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${min % 60} min`);
+
+/** A calendar date as stored and sent by <input type="date">: 2027-05-15. */
+export const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;

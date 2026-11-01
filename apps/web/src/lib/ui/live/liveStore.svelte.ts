@@ -1,5 +1,6 @@
 import { invalidate } from '$app/navigation';
 import { untrack } from 'svelte';
+import { liveEventsUrl, liveKey } from '#lib/live.ts';
 
 export interface LiveOptions {
 	/** SSE endpoint, e.g. `/api/v1/live/<slug>/events`. */
@@ -17,6 +18,13 @@ export interface LiveOptions {
 	/** Also invalidate on a timer so "x min sedan" texts stay fresh. */
 	refreshMs?: number;
 }
+
+/** Options for an admin page that refreshes when anything in the competition changes. */
+export const competitionLive = (slug: string, extra: Omit<LiveOptions, 'url' | 'depends'> = {}): LiveOptions => ({
+	url: liveEventsUrl(slug),
+	depends: liveKey(slug),
+	...extra
+});
 
 export type LiveStatus = 'connecting' | 'open' | 'reconnecting';
 

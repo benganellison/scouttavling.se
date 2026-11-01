@@ -50,6 +50,11 @@ export interface BatchContext {
 	/** Grant issue time, unix seconds (no command can be older than the device's join). */
 	grantIat: number;
 	lastSeq: number;
+	/**
+	 * The competition is closed: results are locked for volunteers, but a late report (a phone that
+	 * was offline at the prize ceremony) is kept for HQ instead of being dropped (C4).
+	 */
+	closed?: boolean;
 	now?: Date;
 }
 
@@ -60,7 +65,7 @@ export interface BatchDeps {
 	finish(body: CommandBody, result: CommandResult, detail?: Record<string, unknown>): Promise<void>;
 	/** Scope facts: the station owning the item (score commands) and whether the patrol belongs to the competition. */
 	lookup(body: CommandBody): Promise<{ stationId: string | null; patrolOk: boolean }>;
-	/** Applies an authorised command (writeScore / voidScore / status). */
+	/** Applies an authorised command that passed every check (writeScore / voidScore / status). Never quarantines. */
 	apply(body: CommandBody): Promise<CommandResult>;
 	/**
 	 * Runs one command's claim → checks → apply/quarantine → finish as one unit (a DB transaction):
@@ -151,7 +156,9 @@ async function processOne(body: CommandBody, ctx: BatchContext, deps: BatchDeps,
 							? 'Telefonens klocka går fel'
 							: body.deviceSeq <= ctx.lastSeq
 								? 'Kommandot kom i fel ordning'
-								: null;
+								: ctx.closed
+									? 'Tävlingen är avslutad'
+									: null;
 			if (quarantineReason) {
 				result = (await deps.quarantine(body, quarantineReason))
 					? { commandId: body.commandId, result: 'quarantined', reason: quarantineReason }

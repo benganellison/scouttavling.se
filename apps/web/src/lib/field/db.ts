@@ -3,8 +3,7 @@
  * field UI shows is read from here; every write goes to the outbox first.
  */
 import Dexie, { type EntityTable } from 'dexie';
-import type { CommandResult, CommandType, PatrolStatus } from './protocol.ts';
-import type { Snapshot } from '#lib/server/field.ts';
+import type { CommandResult, CommandType, PatrolStatus, Snapshot } from './protocol.ts';
 
 export type Pack = Snapshot;
 
@@ -116,8 +115,9 @@ export class FieldDB extends Dexie {
 	statuses!: EntityTable<LocalStatus, 'key'>;
 	reads!: EntityTable<PendingRead, 'key'>;
 
-	constructor() {
-		super('st-field');
+	/** `name` only differs in tests (one database per test). */
+	constructor(name = 'st-field') {
+		super(name);
 		this.version(1).stores({
 			grants: 'slug',
 			packs: 'slug',

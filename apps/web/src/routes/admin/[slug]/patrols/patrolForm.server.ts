@@ -5,6 +5,7 @@ import * as v from 'valibot';
 import { db, schema } from '#lib/server/db/index.ts';
 import { paidAtFor, paidAtNew } from '#lib/server/payments.ts';
 import { recordChange } from '#lib/server/changes.ts';
+import { setPatrolStatus } from '#lib/server/patrolStatus.ts';
 
 /** Server side of the add/edit patrol form. No birth data is ever accepted. */
 
@@ -113,17 +114,17 @@ export async function savePatrol(competitionId: string, patrolId: string | null,
 			const changed = !!cur && data.status !== statusWas && data.status !== cur.status;
 			await tx
 				.update(schema.patrol)
-				.set({ ...row, paidAt: paidAtFor(row.paid), ...(changed ? { status: data.status } : {}) })
+				.set({ ...row, paidAt: paidAtFor(row.paid) })
 				.where(and(eq(schema.patrol.id, id), eq(schema.patrol.competitionId, competitionId)));
-			if (changed) await tx.insert(schema.statusEvent).values({ patrolId: id, status: data.status, userId });
+			if (changed) await setPatrolStatus(tx, { competitionId, patrolId: id, from: cur.status, to: data.status, userId, feed: false });
 			await tx.delete(schema.member).where(eq(schema.member.patrolId, id));
 		} else {
 			const [created] = await tx
 				.insert(schema.patrol)
-				.values({ ...row, status: data.status, paidAt: paidAtNew(row.paid), competitionId })
+				.values({ ...row, paidAt: paidAtNew(row.paid), competitionId })
 				.returning({ id: schema.patrol.id });
 			id = created.id;
-			if (data.status !== 'registered') await tx.insert(schema.statusEvent).values({ patrolId: id, status: data.status, userId });
+			if (data.status !== 'registered') await setPatrolStatus(tx, { competitionId, patrolId: id, from: 'registered', to: data.status, userId, feed: false });
 		}
 		if (data.members.length) {
 			await tx.insert(schema.member).values(data.members.map((m) => ({ patrolId: id!, firstName: m.firstName, lastName: m.lastName, troopText: m.troopText })));

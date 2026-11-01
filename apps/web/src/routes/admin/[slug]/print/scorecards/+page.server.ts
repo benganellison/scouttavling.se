@@ -3,7 +3,7 @@ import { trackColors } from '#lib/brand/colors.ts';
 import { maxPoints, patrolCodeUrl } from '@scouttavling/domain';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { itemDef } from '#lib/server/scores.ts';
-import { loadPatrols, loadStations, loadTracks, scoredItems, stationDoesTrack } from '../prep.server.ts';
+import { loadPatrols, loadStations, loadTracks, scoredItems, stationDoesTrack } from '#lib/server/prep.ts';
 import { publicOrigin, qrSvg } from '#lib/server/invites.ts';
 
 export async function load(event) {

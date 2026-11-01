@@ -3,11 +3,23 @@ import { desc, eq } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { recordChange } from '#lib/server/changes.ts';
-import { deviceInAudience, devicesFor, formatTime, loadStations, readsFor } from '#lib/server/live.ts';
+import { deviceInAudience, devicesFor, readsFor } from '#lib/server/messages.ts';
+import { formatTime } from '#lib/time.ts';
+import { loadStations } from '#lib/server/queries.ts';
+import * as v from 'valibot';
+import { checkbox, formInput, parseForm, requiredText } from '#lib/server/forms.ts';
+import { liveKey } from '#lib/live.ts';
+
+const MessageSchema = v.object({
+	title: requiredText(1, 80, 'Skriv både rubrik och meddelande'),
+	body: requiredText(1, 600, 'Skriv både rubrik och meddelande'),
+	important: checkbox,
+	audience: v.pipe(v.array(v.string()), v.minLength(1, 'Välj vilka som ska få meddelandet'))
+});
 
 export async function load(event) {
 	const { comp } = await requireCompetition(event, event.params.slug);
-	event.depends(`live:${comp.slug}`);
+	event.depends(liveKey(comp.slug));
 	const [stations, devices, messages] = await Promise.all([
 		loadStations(comp.id),
 		devicesFor(comp.id),
@@ -48,13 +60,14 @@ export async function load(event) {
 export const actions = {
 	send: async (event) => {
 		const { comp, user } = await requireCompetition(event, event.params.slug);
-		const f = await event.request.formData();
-		const title = String(f.get('title') ?? '').trim();
-		const body = String(f.get('body') ?? '').trim();
-		const important = f.get('important') === 'on';
-		let audience = f.getAll('audience').map(String);
-		if (!title || !body) return fail(400, { title, body, message: 'Skriv både rubrik och meddelande' });
-		if (audience.length === 0) return fail(400, { title, body, message: 'Välj vilka som ska få meddelandet' });
+		const input = formInput(await event.request.formData(), ['audience']);
+		const r = parseForm(MessageSchema, input);
+		if (!r.ok) {
+			const message = r.errors.title ?? r.errors.body ?? r.errors.audience ?? 'Kontrollera meddelandet';
+			return fail(400, { title: String(input.title ?? '').trim(), body: String(input.body ?? '').trim(), message });
+		}
+		const { title, body, important } = r.data;
+		let audience = r.data.audience;
 		if (audience.includes('all')) audience = ['all'];
 		const stations = new Set((await loadStations(comp.id)).map((s) => s.id));
 		audience = audience.filter((a) => a === 'all' || a === 'startfinish' || stations.has(a));

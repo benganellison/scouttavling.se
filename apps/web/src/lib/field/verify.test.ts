@@ -140,6 +140,14 @@ describe('processBatch', () => {
 		expect(f.applied).toHaveLength(0);
 	});
 
+	it('keeps a late report for HQ when the competition is closed (never applied, never dropped)', async () => {
+		const { key, ctx } = await setup({ closed: true, lastSeq: seq });
+		const f = fakeDeps();
+		const out = await processBatch([await signCommand(key.privateKey, cmd())], ctx, f.deps);
+		expect(out.results[0]).toMatchObject({ result: 'quarantined', reason: 'Tävlingen är avslutad' });
+		expect(f.applied).toHaveLength(0);
+	});
+
 	it('judges expiry by server time: once the grant has expired, HQ decides about everything', async () => {
 		const exp = Math.floor(Date.now() / 1000) - 60;
 		const { key, ctx } = await setup({ grantExp: exp, grantIat: exp - 7200, lastSeq: seq });

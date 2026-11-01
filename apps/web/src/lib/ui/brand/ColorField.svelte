@@ -64,7 +64,17 @@
 			</button>
 		{/each}
 		<label class="opt pickr" class:on={custom} title="Välj egen färg">
-			<input type="color" value={effective} oninput={(e) => pick(e.currentTarget.value)} aria-label="Egen färg för {label}" />
+			<!-- Set on the client, not rendered as value="…": Svelte's hydration removes a server-rendered value
+			     for a moment, which Chrome reports as an invalid colour. The picker has no name (the hex
+			     field and the hidden input carry the value), so nothing depends on it without JavaScript. -->
+			<input
+				type="color"
+				{@attach (el: HTMLInputElement) => {
+					el.value = effective;
+				}}
+				oninput={(e) => pick(e.currentTarget.value)}
+				aria-label="Egen färg för {label}"
+			/>
 			<span class:sr-only={compact}>Egen</span>
 		</label>
 		<input

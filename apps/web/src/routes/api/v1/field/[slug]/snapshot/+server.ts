@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { authenticateDevice, buildSnapshot } from '#lib/server/field.ts';
+import { authenticateDevice } from '#lib/server/field/device.ts';
+import { buildSnapshot } from '#lib/server/field/snapshot.ts';
 
 /** Station pack (C1 pull). `?since=<cursor>` returns `{unchanged:true}` when nothing changed. */
 export const GET: RequestHandler = async ({ request, params, url }) => {

@@ -1,7 +1,7 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
 import { readSession } from '#lib/server/auth.ts';
 import { closeDb } from '#lib/server/db/index.ts';
-import { hub } from '#lib/server/live.ts';
+import { hub } from '#lib/server/sse.ts';
 import { DEV_LOGIN, GRANT_SIGNING_KEY, ORIGIN } from '$app/env/private';
 import { dev } from '$app/env';
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { stationCodes } from '@scouttavling/domain';
+	import { isCheckpointOnly, stationCodes } from '@scouttavling/domain';
 	import StationEditor from '#lib/ui/admin/StationEditor.svelte';
 	import { shortDate, stationSummary, tracksText } from '#lib/ui/admin/format.ts';
 
@@ -40,7 +40,7 @@
 		return stationSummary(s.items, c.styleEnabled, tracksText(s.allTracks, s.trackIds, data.tracks));
 	}
 	function isCheckpoint(s: (typeof data.stations)[number]) {
-		return s.items.length > 0 && s.items.every((i) => i.mode === 'CHECKIN' || i.mode === 'AUTO_ON_SCAN');
+		return isCheckpointOnly(s.items);
 	}
 	function suggestCode(dayId: string | null, name: string, role: 'start' | 'finish' | null) {
 		if (!selected) return '';

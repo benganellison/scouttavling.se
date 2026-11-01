@@ -1,4 +1,5 @@
 <script lang="ts" module>
+	import { isCheckpointOnly, isScorable } from '@scouttavling/domain';
 	import type { DistinctValue, ItemMode } from '@scouttavling/domain';
 
 	export interface EditItem {
@@ -92,7 +93,7 @@
 				items: init.items
 			})
 	);
-	const scorable = (m: ItemMode) => m === 'RANGE' || m === 'DISTINCT' || m === 'COUNT';
+	const scorable = isScorable;
 	const firstScorable = $derived(items.find((i) => scorable(i.mode)));
 	const previewItem = $derived<ScoreItemDef | null>(
 		firstScorable
@@ -446,7 +447,7 @@
 					{code}
 					{name}
 					item={previewItem}
-					checkpoint={items.some((i) => i.mode === 'CHECKIN')}
+					checkpoint={isCheckpointOnly(items)}
 					count={items.length}
 					index={items.findIndex((i) => scorable(i.mode)) + 1}
 				/>

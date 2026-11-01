@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isCheckpointOnly } from '@scouttavling/domain';
 	import { goto } from '$app/navigation';
 	import { tick } from 'svelte';
 	import { forgetCompetition, useField, hhmm, shortTroop } from '#lib/field/app.svelte.ts';
@@ -6,7 +7,6 @@
 	import Icon from '#lib/field/ui/Icon.svelte';
 	import SyncPill from '#lib/field/ui/SyncPill.svelte';
 	import TabBar from '#lib/field/ui/TabBar.svelte';
-	import { scoreKey } from '#lib/field/db.ts';
 
 	const app = useField();
 	const base = `/f/${app.slug}`;
@@ -30,35 +30,17 @@
 	}
 
 	const styleOn = $derived(app.items.some((i) => i.styleEnabled));
-	const checkin = $derived(app.items.length > 0 && app.items.every((i) => i.mode === 'CHECKIN' || i.mode === 'AUTO_ON_SCAN'));
+	const checkin = $derived(isCheckpointOnly(app.items));
 
 	/** One row per patrol that has (or had, pending a void) a report at this station. */
 	const rows = $derived.by(() => {
 		const out = [];
 		for (const p of app.patrols) {
-			const scores = app.items.map((it) => ({ it, s: app.scoreByKey.get(scoreKey(app.slug, p.id, it.id)), d: app.display(p.id, it.id) }));
-			if (!scores.some((x) => x.d)) continue;
-			const res = app.stationResult(p.id);
-			const voidPending = !res && scores.some((x) => x.d?.state === 'void' && x.d.sync === 'pending');
-			if (!res && !voidPending && !scores.some((x) => x.s?.conflict || x.s?.problem)) continue;
-			const conflict = scores.find((x) => x.s?.conflict);
-			const problem = scores.find((x) => x.s?.problem)?.s?.problem ?? null;
-			const at = Math.max(...scores.map((x) => x.d?.at ?? 0));
-			const sync: 'conflict' | 'problem' | 'review' | 'pending' | 'synced' = conflict
-				? 'conflict'
-				: problem
-					? 'problem'
-					: scores.some((x) => x.d?.sync === 'review')
-						? 'review'
-						: scores.some((x) => x.d?.sync === 'pending')
-							? 'pending'
-							: 'synced';
-			let serverText = '';
-			if (conflict?.s?.conflict) {
-				const c = conflict.s.conflict;
-				serverText = c.state === 'void' ? 'borttagen' : styleOn ? `${c.points} + ${c.stylePoints}` : `${c.points + c.stylePoints}`;
-			}
-			out.push({ p, res, at, sync, voidPending, conflict: !!conflict, serverText, problem });
+			const r = app.stationReport(p.id);
+			if (!r) continue;
+			const c = r.conflict;
+			const serverText = !c ? '' : c.state === 'void' ? 'borttagen' : styleOn ? `${c.points} + ${c.stylePoints}` : `${c.points + c.stylePoints}`;
+			out.push({ p, res: r.result, at: r.at, sync: r.sync, voidPending: r.voidPending, conflict: !!c, serverText, problem: r.problem });
 		}
 		const needle = q.trim().toLowerCase();
 		return out.filter((r) => !needle || String(r.p.number).startsWith(needle) || r.p.name.toLowerCase().includes(needle)).sort((a, b) => b.at - a.at);

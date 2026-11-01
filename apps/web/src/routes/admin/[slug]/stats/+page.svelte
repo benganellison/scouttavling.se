@@ -2,17 +2,17 @@
 	import StatsView from '#lib/ui/stats/StatsView.svelte';
 	import DateBars from '#lib/ui/stats/DateBars.svelte';
 	import LiveBadge from '#lib/ui/live/LiveBadge.svelte';
-	import { LiveStream } from '#lib/ui/live/liveStore.svelte.ts';
+	import { competitionLive, LiveStream } from '#lib/ui/live/liveStore.svelte.ts';
 
 	let { data } = $props();
 
-	const live = new LiveStream(() => ({
-		url: `/api/v1/live/${data.comp.slug}/events`,
-		depends: `live:${data.comp.slug}`,
-		debounceMs: 3000,
-		maxWaitMs: 10_000,
-		minIntervalMs: 10_000
-	}));
+	const live = new LiveStream(() =>
+		competitionLive(data.comp.slug, {
+			debounceMs: 3000,
+			maxWaitMs: 10_000,
+			minIntervalMs: 10_000
+		})
+	);
 	const s = $derived(data.stats);
 	const pay = $derived(s.payments);
 	const kr = (n: number) => `${n.toLocaleString('sv-SE')} kr`;

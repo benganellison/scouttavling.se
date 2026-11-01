@@ -3,11 +3,12 @@ import { eq } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { recordChange } from '#lib/server/changes.ts';
-import { acknowledgeAlarm, loadDashboard } from '#lib/server/live.ts';
+import { acknowledgeAlarm, loadDashboard } from '#lib/server/dashboard.ts';
+import { liveKey } from '#lib/live.ts';
 
 export async function load(event) {
 	const { comp } = await requireCompetition(event, event.params.slug);
-	event.depends(`live:${comp.slug}`);
+	event.depends(liveKey(comp.slug));
 	const dash = await loadDashboard(comp);
 	return {
 		comp: { slug: comp.slug, name: comp.name, backupMode: comp.backupMode, status: comp.status, multiDay: comp.multiDay },

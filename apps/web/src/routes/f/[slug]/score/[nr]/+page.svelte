@@ -1,7 +1,8 @@
 <script lang="ts">
+	import ItemInput from '#lib/field/ui/ItemInput.svelte';
 	import { onDestroy } from 'svelte';
 	import { page } from '$app/state';
-	import { selectableValues, styleValues, evaluate } from '@scouttavling/domain';
+	import { evaluate, isCheckpointOnly, scorableItems } from '@scouttavling/domain';
 	import { useField, hhmm, shortTroop, UNDO_MS, type PackItem } from '#lib/field/app.svelte.ts';
 	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
 	import Icon from '#lib/field/ui/Icon.svelte';
@@ -38,9 +39,9 @@
 		prefilled = patrol.id;
 	});
 
-	const manual = $derived(app.items.filter((i) => i.mode !== 'AUTO_ON_SCAN' && i.mode !== 'CHECKIN'));
+	const manual = $derived(scorableItems(app.items));
 	const autoItems = $derived(app.items.filter((i) => i.mode === 'AUTO_ON_SCAN'));
-	const checkin = $derived(app.items.length > 0 && app.items.every((i) => i.mode === 'CHECKIN' || i.mode === 'AUTO_ON_SCAN') && !manual.length);
+	const checkin = $derived(isCheckpointOnly(app.items));
 	const single = $derived(manual.length === 1);
 
 	function complete(it: PackItem) {
@@ -74,11 +75,6 @@
 
 	const already = $derived(patrol ? app.stationResult(patrol.id) : null);
 
-	function cols(it: PackItem) {
-		const n = selectableValues(it).length;
-		return n <= 6 ? n : n <= 12 ? 4 : 5;
-	}
-
 	async function save() {
 		if (!patrol || !ready || busy) return;
 		busy = true;
@@ -111,15 +107,6 @@
 		saved = null;
 		undone = true;
 		prefilled = null;
-	}
-
-	function countStep(it: PackItem, d: number) {
-		const cur = values[it.id];
-		values[it.id] = cur == null ? (d > 0 ? Math.min(it.min + 1, it.max) : it.min) : Math.max(it.min, Math.min(it.max, cur + d));
-	}
-	function distinctLabel(it: PackItem, v: number) {
-		const l = it.distinctValues?.find((d) => d.value === v)?.label;
-		return l ? `${l} · ${v} p` : `${v} p`;
 	}
 </script>
 
@@ -177,56 +164,13 @@
 			{/if}
 
 			{#each manual as it (it.id)}
-				<section class="item" class:grow={it.mode === 'RANGE' || (single && it.mode === 'DISTINCT')} aria-labelledby="h-{it.id}">
-					<div class="item-head">
-						<h2 id="h-{it.id}">
-							{manual.length > 1 || it.name !== app.station?.name ? it.name : 'Poäng'}
-							<span class="range"
-								>{it.mode === 'RANGE' ? `${it.min}–${it.max}` : it.mode === 'COUNT' ? `${it.min}–${it.max} × ${it.countMultiplier ?? 1} p` : ''}</span
-							>
-						</h2>
-						<span class="shown">{values[it.id] ?? '–'}</span>
-					</div>
-
-					{#if it.mode === 'RANGE'}
-						<div class="grid" style="grid-template-columns: repeat({cols(it)}, minmax(0, 1fr))">
-							{#each selectableValues(it) as v (v)}
-								<button type="button" class="chip" aria-pressed={values[it.id] === v} onclick={() => (values[it.id] = v)}>{v}</button>
-							{/each}
-						</div>
-					{:else if it.mode === 'DISTINCT'}
-						<div class="stacked">
-							{#each selectableValues(it) as v (v)}
-								<button type="button" class="opt" aria-pressed={values[it.id] === v} onclick={() => (values[it.id] = v)}>{distinctLabel(it, v)}</button>
-							{/each}
-						</div>
-					{:else if it.mode === 'COUNT'}
-						<div class="stepper">
-							<button type="button" class="step" aria-label="Minska {it.name}" onclick={() => countStep(it, -1)}
-								><Icon name="minus" size={34} stroke={3} /></button
-							>
-							<span class="count" aria-live="polite">
-								<span class="cnum">{values[it.id] ?? '–'} <span class="cmax">/ {it.max}</span></span>
-								<span class="cpts">→ {values[it.id] == null ? '–' : values[it.id]! * (it.countMultiplier ?? 1)} p</span>
-							</span>
-							<button type="button" class="step" aria-label="Öka {it.name}" onclick={() => countStep(it, 1)}><Icon name="plus" size={34} stroke={3} /></button>
-						</div>
-					{/if}
-
-					{#if it.styleEnabled}
-						<div class="item-head style-head">
-							<h3>Stilpoäng <span class="range">{it.styleMin}–{it.styleMax} · samarbete &amp; glädje</span></h3>
-							<span class="shown">{styles[it.id] ?? '–'}</span>
-						</div>
-						<div class="style-row" style="grid-template-columns: repeat({styleValues(it).length}, minmax(0, 1fr))">
-							{#each styleValues(it) as v (v)}
-								<button type="button" class="chip style" aria-pressed={styles[it.id] === v} aria-label="Stil {v}" onclick={() => (styles[it.id] = v)}
-									>{v}</button
-								>
-							{/each}
-						</div>
-					{/if}
-				</section>
+				<ItemInput
+					item={it}
+					heading={manual.length > 1 || it.name !== app.station?.name ? it.name : 'Poäng'}
+					bind:value={values[it.id]}
+					bind:style={styles[it.id]}
+					fill={single}
+				/>
 			{/each}
 
 			{#if showNote}
@@ -358,132 +302,6 @@
 	.editing {
 		background: var(--tint);
 		color: var(--brand);
-	}
-	.item {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-	.item.grow {
-		flex: 1 0 auto;
-	}
-	.single .item.grow {
-		min-height: 0;
-		flex: 1 1 0;
-	}
-	.item-head {
-		display: flex;
-		justify-content: space-between;
-		align-items: baseline;
-	}
-	h2,
-	h3 {
-		font-family: var(--font-ui);
-		font-size: 17px;
-		font-weight: 800;
-		letter-spacing: 0;
-	}
-	.range {
-		font-weight: 600;
-		color: var(--ink-2);
-		font-size: 15px;
-	}
-	.shown {
-		font-family: var(--font-display);
-		font-weight: 800;
-		font-size: 30px;
-		line-height: 1;
-		color: var(--brand);
-	}
-	.grid {
-		flex: 1;
-		min-height: 0;
-		display: grid;
-		grid-auto-rows: minmax(56px, 1fr);
-		gap: 8px;
-	}
-	.chip,
-	.opt {
-		min-height: 56px;
-		border-radius: 16px;
-		border: 1.5px solid var(--line-strong);
-		background: var(--surface);
-		color: var(--ink);
-		font-family: var(--font-display);
-		font-weight: 800;
-		font-size: 34px;
-		cursor: pointer;
-		touch-action: manipulation;
-	}
-	.chip[aria-pressed='true'],
-	.opt[aria-pressed='true'] {
-		background: var(--brand);
-		border: 2px solid var(--brand);
-		color: #fff;
-	}
-	.stacked {
-		flex: 1;
-		display: grid;
-		grid-auto-rows: minmax(64px, 1fr);
-		gap: 8px;
-	}
-	.opt {
-		font-size: 22px;
-		text-align: left;
-		padding: 0 20px;
-	}
-	.style-head {
-		margin-top: 4px;
-	}
-	.style-row {
-		display: grid;
-		gap: 8px;
-	}
-	.chip.style {
-		height: 68px;
-	}
-	.stepper {
-		display: grid;
-		grid-template-columns: 84px 1fr 84px;
-		gap: 10px;
-		align-items: stretch;
-	}
-	.step {
-		height: 84px;
-		border-radius: 18px;
-		border: 1.5px solid var(--line-strong);
-		background: var(--surface);
-		color: var(--ink);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	.step:active {
-		background: var(--tint);
-	}
-	.count {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		background: var(--surface);
-		border: 1px solid var(--line);
-		border-radius: 18px;
-	}
-	.cnum {
-		font-family: var(--font-display);
-		font-weight: 800;
-		font-size: 38px;
-		line-height: 1;
-	}
-	.cmax {
-		font-size: 22px;
-		color: var(--ink-2);
-	}
-	.cpts {
-		font-weight: 800;
-		color: var(--brand);
-		font-size: 17px;
 	}
 	.auto {
 		display: flex;

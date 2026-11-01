@@ -40,6 +40,8 @@ Running several dev servers (e.g. one for e2e): `PORT=5204 scripts/dev-server.sh
 | UAT on a production build | start commands in the header of `apps/web/e2e/uat.e2e.ts` | every PR |
 | Lifecycle UAT, README demo videos | headers of `e2e/lifecycle.e2e.ts`, `e2e/demo.e2e.ts` | by hand |
 
+**Form actions** validate with Valibot through `#lib/server/forms.ts` (`parseForm(Schema, formInput(formData))`), with error messages keyed by field name; rules that need the database come after. **Queries** many pages need (classes, stations, items in display order) are in `#lib/server/queries.ts`.
+
 Put unit tests next to the code as `*.test.ts`. A database test uses `#lib/server/testing/dbTestEnv.ts` and removes the rows it creates. e2e specs are `apps/web/e2e/<area>.e2e.ts` with a `<area>.config.ts`; shared helpers (login, browser) are in `e2e/support.ts`, and the address comes from `E2E_BASE_URL`. Use a phone viewport (390×844) for field screens.
 
 ## Branches, commits and releases
@@ -54,7 +56,7 @@ Put unit tests next to the code as `*.test.ts`. A database test uses `#lib/serve
 apps/web/src/
   routes/          pages and endpoints: admin/ (organisers), f/ + j/ (field app), t/ (public competition and registration),
                    r/ (results, ceremony), m/ + folj/ (patrol manage and follow links), site-admin/, api/v1/
-  lib/server/      server only: db/, auth, scores (the only score writer), field (sync), live (results, SSE), …
+  lib/server/      server only: db/, auth, scores (the only score writer), field (sync), results, sse (live streams), dashboard, queries (shared selects), …
   lib/field/       the offline field app (Dexie outbox, signing) and the sync protocol shared with the server
   lib/ui/          components; lib/styles/global.css holds the design tokens
 packages/domain/   pure TypeScript: ranking, score rules, patrol status, distribution, import parsing, gokapp mapping

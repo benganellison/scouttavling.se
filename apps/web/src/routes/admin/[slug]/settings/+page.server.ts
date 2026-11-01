@@ -11,9 +11,57 @@ import { listMembers, type OwnershipActor } from '#lib/server/ownership.ts';
 import { memberAction, type MemberAction } from '#lib/server/memberActions.ts';
 import { listAudit } from '#lib/server/audit.ts';
 import { accessNotices } from '#lib/server/siteAdmin.ts';
+import { tracksOf } from '#lib/server/queries.ts';
+import * as v from 'valibot';
+import { checkbox, checkField, formInput, isoDate, optionalInt, optionalIsoDate, parseForm, requiredText, text } from '#lib/server/forms.ts';
 
 const EDIT = ['owner', 'organiser'] as const;
-const ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+const BasicsSchema = v.object({
+	name: requiredText(2, 80, 'Namnet ska vara 2–80 tecken.'),
+	location: text(120),
+	hqPhone: text(30, 'Telefonnumret är för långt.'),
+	owner: text(20),
+	date: text(10),
+	styleEnabled: checkbox,
+	publicResults: checkbox,
+	stationResultsLive: checkbox
+});
+
+const RegistrationSchema = v.pipe(
+	v.object({
+		registrationOpen: checkbox,
+		registrationOpensOn: optionalIsoDate(),
+		registrationClosesOn: optionalIsoDate(),
+		maxPatrols: v.pipe(
+			optionalInt(/^\d{1,4}$/, 'Skriv ett antal (1–9999) eller lämna tomt.'),
+			v.check((n) => n === null || n >= 1, 'Skriv ett antal (1–9999) eller lämna tomt.')
+		),
+		// "120 kr" and "1 200" are fine: spaces and "kr" are dropped before the check.
+		feePerPatrol: v.pipe(
+			v.optional(v.string(), ''),
+			v.transform((s) => s.trim().replace(/\s|kr$/gi, '')),
+			v.check((s) => s === '' || /^\d{1,6}$/.test(s), 'Skriv ett belopp i hela kronor (0–999999) eller lämna tomt.'),
+			v.transform((s) => (s === '' ? null : Number(s)))
+		),
+		infoText: text(4000),
+		confirmationText: text(1000),
+		followEnabled: checkbox,
+		followShowScores: checkbox
+	}),
+	v.forward(
+		v.partialCheck(
+			[['registrationOpensOn'], ['registrationClosesOn']],
+			(d) => !d.registrationOpensOn || !d.registrationClosesOn || d.registrationOpensOn <= d.registrationClosesOn,
+			'Sista dagen kan inte vara före första dagen.'
+		),
+		['registrationClosesOn']
+	)
+);
+
+const dayName = requiredText(1, 30, 'Namn: 1–30 tecken.');
+const dayPrefix = v.pipe(v.string(), v.regex(/^[A-ZÅÄÖ]{1,3}$/, 'Prefix: 1–3 bokstäver.'));
+const trackName = requiredText(1, 40, 'Namn: 1–40 tecken.');
 const WEEKDAYS = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'];
 type Errors = Record<string, string>;
 
@@ -49,36 +97,35 @@ export async function load(event) {
 export const actions = {
 	basics: async (event) => {
 		const { comp, user } = await requireCompetition(event, event.params.slug, [...EDIT]);
-		const f = await event.request.formData();
-		const s = (k: string) => String(f.get(k) ?? '').trim();
-		const name = s('name');
-		const location = s('location');
-		const hqPhone = s('hqPhone');
-		const ownerNo = s('owner');
-		const date = s('date');
-		const errors: Errors = {};
-		if (name.length < 2 || name.length > 80) errors.name = 'Namnet ska vara 2–80 tecken.';
-		if (hqPhone.length > 30) errors.hqPhone = 'Telefonnumret är för långt.';
-		if (!comp.multiDay && !ISO.test(date)) errors.date = 'Välj ett datum.';
+		const input = formInput(await event.request.formData());
+		const r = parseForm(BasicsSchema, input);
+		const errors: Errors = r.ok ? {} : r.errors;
+		const d = r.ok ? r.data : null;
+		// Checked even when another field is wrong, so every error shows at once.
+		const ownerNo = String(input.owner ?? '').trim();
+		if (!comp.multiDay) {
+			const bad = checkField(isoDate(), input.date);
+			if (bad) errors.date = bad;
+		}
 		// The current owner stays selectable even if the user is not a member of it.
 		const group =
 			user.groups.find((g) => g.groupNo === ownerNo) ??
 			(ownerNo === comp.ownerGroupNo ? { groupNo: comp.ownerGroupNo, name: comp.ownerGroupName ?? '' } : null);
 		if (!group) errors.owner = 'Välj en kår eller ett distrikt du tillhör.';
-		if (Object.keys(errors).length) return fail(400, { section: 'basics', errors });
+		if (!d || Object.keys(errors).length) return fail(400, { section: 'basics', errors });
 		await db.transaction(async (tx) => {
 			await tx
 				.update(schema.competition)
 				.set({
-					name,
-					location: location || null,
-					hqPhone: hqPhone || null,
+					name: d.name,
+					location: d.location || null,
+					hqPhone: d.hqPhone || null,
 					ownerGroupNo: group!.groupNo,
 					ownerGroupName: group!.name,
-					styleEnabled: f.get('styleEnabled') === 'on',
-					publicResults: f.get('publicResults') === 'on',
-					stationResultsLive: f.get('stationResultsLive') === 'on',
-					...(comp.multiDay ? {} : { startDate: date, endDate: date })
+					styleEnabled: d.styleEnabled,
+					publicResults: d.publicResults,
+					stationResultsLive: d.stationResultsLive,
+					...(comp.multiDay ? {} : { startDate: d.date, endDate: d.date })
 				})
 				.where(eq(schema.competition.id, comp.id));
 			await recordChange(tx, comp.id, 'competition', comp.id);
@@ -88,37 +135,22 @@ export const actions = {
 
 	registration: async (event) => {
 		const { comp } = await requireCompetition(event, event.params.slug, [...EDIT]);
-		const f = await event.request.formData();
-		const s = (k: string) => String(f.get(k) ?? '').trim();
-		const opensOn = s('registrationOpensOn');
-		const closesOn = s('registrationClosesOn');
-		const max = s('maxPatrols');
-		const fee = s('feePerPatrol').replace(/\s|kr$/gi, '');
-		const infoText = s('infoText');
-		const confirmationText = s('confirmationText');
-		const errors: Errors = {};
-		if (opensOn && !ISO.test(opensOn)) errors.registrationOpensOn = 'Välj ett datum.';
-		if (closesOn && !ISO.test(closesOn)) errors.registrationClosesOn = 'Välj ett datum.';
-		if (opensOn && closesOn && !errors.registrationOpensOn && !errors.registrationClosesOn && opensOn > closesOn)
-			errors.registrationClosesOn = 'Sista dagen kan inte vara före första dagen.';
-		if (max && (!/^\d{1,4}$/.test(max) || Number(max) < 1)) errors.maxPatrols = 'Skriv ett antal (1–9999) eller lämna tomt.';
-		if (fee && !/^\d{1,6}$/.test(fee)) errors.feePerPatrol = 'Skriv ett belopp i hela kronor (0–999999) eller lämna tomt.';
-		if (infoText.length > 4000) errors.infoText = 'Högst 4000 tecken.';
-		if (confirmationText.length > 1000) errors.confirmationText = 'Högst 1000 tecken.';
-		if (Object.keys(errors).length) return fail(400, { section: 'registration', errors });
+		const r = parseForm(RegistrationSchema, formInput(await event.request.formData()));
+		if (!r.ok) return fail(400, { section: 'registration', errors: r.errors });
+		const d = r.data;
 		await db.transaction(async (tx) => {
 			await tx
 				.update(schema.competition)
 				.set({
-					registrationOpen: f.get('registrationOpen') === 'on',
-					registrationOpensOn: opensOn || null,
-					registrationClosesOn: closesOn || null,
-					maxPatrols: max ? Number(max) : null,
-					feePerPatrol: fee ? Number(fee) : null,
-					infoText: infoText || null,
-					confirmationText: confirmationText || null,
-					followEnabled: f.get('followEnabled') === 'on',
-					followShowScores: f.get('followShowScores') === 'on'
+					registrationOpen: d.registrationOpen,
+					registrationOpensOn: d.registrationOpensOn || null,
+					registrationClosesOn: d.registrationClosesOn || null,
+					maxPatrols: d.maxPatrols,
+					feePerPatrol: d.feePerPatrol,
+					infoText: d.infoText || null,
+					confirmationText: d.confirmationText || null,
+					followEnabled: d.followEnabled,
+					followShowScores: d.followShowScores
 				})
 				.where(eq(schema.competition.id, comp.id));
 			await recordChange(tx, comp.id, 'competition', comp.id);
@@ -142,10 +174,13 @@ export const actions = {
 		const prefixes = new Set<string>();
 		const dates = new Set<string>();
 		for (const d of next) {
-			if (!d.name || d.name.length > 30) errors[`name_${d.id}`] = 'Namn: 1–30 tecken.';
-			if (!/^[A-ZÅÄÖ]{1,3}$/.test(d.prefix)) errors[`prefix_${d.id}`] = 'Prefix: 1–3 bokstäver.';
+			const badName = checkField(dayName, d.name);
+			const badPrefix = checkField(dayPrefix, d.prefix);
+			const badDate = checkField(isoDate(), d.date);
+			if (badName) errors[`name_${d.id}`] = badName;
+			if (badPrefix) errors[`prefix_${d.id}`] = badPrefix;
 			else if (prefixes.has(d.prefix)) errors[`prefix_${d.id}`] = 'Prefixet används redan.';
-			if (!ISO.test(d.date)) errors[`date_${d.id}`] = 'Välj ett datum.';
+			if (badDate) errors[`date_${d.id}`] = badDate;
 			else if (dates.has(d.date)) errors[`date_${d.id}`] = 'Två dagar har samma datum.';
 			prefixes.add(d.prefix);
 			dates.add(d.date);
@@ -221,7 +256,7 @@ export const actions = {
 	tracks: async (event) => {
 		const { comp } = await requireCompetition(event, event.params.slug, [...EDIT]);
 		const f = await event.request.formData();
-		const tracks = await db.select().from(schema.track).where(eq(schema.track.competitionId, comp.id)).orderBy(asc(schema.track.sort));
+		const tracks = await tracksOf(comp.id);
 		const errors: Errors = {};
 		const renamed = tracks.map((t) => {
 			const raw = f.get(`color_${t.id}`);
@@ -234,7 +269,8 @@ export const actions = {
 		const names = new Set<string>();
 		for (const t of renamed) {
 			if (errors[`track_${t.id}`]) continue;
-			if (!t.name || t.name.length > 40) errors[`track_${t.id}`] = 'Namn: 1–40 tecken.';
+			const bad = checkField(trackName, t.name);
+			if (bad) errors[`track_${t.id}`] = bad;
 			else if (names.has(t.name.toLowerCase())) errors[`track_${t.id}`] = 'Två klasser har samma namn.';
 			names.add(t.name.toLowerCase());
 		}

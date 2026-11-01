@@ -6,7 +6,8 @@
  * non-extractable P-256 key. WebCrypto's ECDSA output is already the raw r||s
  * form JWS expects, so no DER conversion is needed.
  */
-import { PATROL_STATUSES, type PatrolStatusValue } from '@scouttavling/domain';
+import { PATROL_STATUSES, type PatrolStatusValue, type ScoreItemDef } from '@scouttavling/domain';
+import type { Branding } from '#lib/brand/branding.ts';
 import * as v from 'valibot';
 
 export const CMD_TYP = 'st-cmd+jwt';
@@ -142,4 +143,90 @@ export interface GrantClaims {
 	iat: number;
 	exp: number;
 	cnf: { jkt: string };
+}
+
+/** POST /api/v1/join answer: the device grant and what the phone stores with it (04 §3.5). */
+export interface JoinResponse {
+	grant: string;
+	deviceId: string;
+	slug: string;
+	role: 'station_volunteer' | 'startfinish';
+	stations: string[];
+	displayName: string;
+	exp: number;
+	publicKeys: JsonWebKey[];
+}
+
+/**
+ * The station pack (C1 pull, GET …/snapshot): what a phone stores in IndexedDB and works from
+ * offline. It is a versioned wire format: change it backward-compatibly (phones may hold an older
+ * pack for days), never by accident through a server query.
+ */
+export interface Snapshot {
+	unchanged: false;
+	cursor: number;
+	serverTime: string;
+	device: { id: string; displayName: string; role: 'station_volunteer' | 'startfinish'; revoked: boolean; superseded: boolean };
+	competition: {
+		id: string;
+		slug: string;
+		name: string;
+		styleEnabled: boolean;
+		backupMode: boolean;
+		hqPhone: string | null;
+		patrolCodeKey: string;
+		status: 'draft' | 'live' | 'closed';
+		startDate: string;
+		endDate: string;
+		branding: Branding;
+	};
+	myStationIds: string[];
+	stations: { id: string; code: string; name: string; sort: number; dayId: string | null; startable: boolean; trackIds: string[] | null; items: number }[];
+	items: (ScoreItemDef & { stationId: string })[];
+	tracks: { id: string; name: string; color: string | null }[];
+	patrols: {
+		id: string;
+		number: number;
+		name: string;
+		trackId: string | null;
+		track: string;
+		troop: string;
+		status: PatrolStatus;
+		startStationId: string | null;
+		/** Start & finish desk only. */
+		phone?: string | null;
+	}[];
+	scores: {
+		patrolId: string;
+		itemId: string;
+		points: number;
+		stylePoints: number;
+		raw: { value: number; style: number | null };
+		state: 'active' | 'void';
+		version: number;
+		at: string;
+		by: string;
+		mine: boolean;
+	}[];
+	/** Start & finish desk: per-patrol progress (stations done, points, last seen, times). */
+	progress: Record<
+		string,
+		{
+			stationsDone: number;
+			points: number;
+			lastSeenAt: string | null;
+			lastStationId: string | null;
+			startedAt: string | null;
+			finishedAt: string | null;
+			campAt: string | null;
+		}
+	>;
+	messages: { id: string; title: string; body: string; important: boolean; createdAt: string; read: boolean }[];
+}
+
+/** Nothing that concerns this phone changed since `since`. */
+export interface SnapshotUnchanged {
+	unchanged: true;
+	cursor: number;
+	serverTime: string;
 }

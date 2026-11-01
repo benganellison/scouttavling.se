@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { LiveStream } from '#lib/ui/live/liveStore.svelte.ts';
+	import { competitionLive, LiveStream } from '#lib/ui/live/liveStore.svelte.ts';
 
 	let { data, form } = $props();
 
-	new LiveStream(() => ({ url: `/api/v1/live/${data.comp.slug}/events`, depends: `live:${data.comp.slug}` }));
+	new LiveStream(() => competitionLive(data.comp.slug));
 
 	const TEMPLATES = [
 		{

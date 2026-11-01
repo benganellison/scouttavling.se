@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { redeemInvite } from '#lib/server/field.ts';
+import { redeemInvite } from '#lib/server/field/join.ts';
 import { joinLimiter } from '#lib/server/limits.ts';
 
 /** Redeems an invite secret for a device grant (04 §3.2b). Not cookie-based, so exempt from CSRF in hooks. */

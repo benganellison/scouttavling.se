@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { editionSlug, stripYear } from '#lib/series/names.ts';
 	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 	import { daysBetween } from '@scouttavling/domain';
@@ -42,19 +43,12 @@
 	let submitting = $state(false);
 
 	const errors = $derived<Record<string, string>>(form?.errors ?? {});
-	/** "GökOpen 2027" → "GökOpen" (same rule as the server's stripYear). */
-	const stripYear = (n: string) =>
-		n
-			.replace(/\b(19|20)\d{2}\b/g, '')
-			.replace(/\s+/g, ' ')
-			.trim();
 	const seriesNameEff = $derived(seriesNameTouched ? seriesName : stripYear(name));
 	const seriesSlug = $derived(editSeriesSlug ? slugify(seriesSlugTyped) : slugify(seriesNameEff));
 	const editionYear = $derived((length === 'one' ? date : startDate).slice(0, 4) || null);
 	const picked = $derived(data.series.find((o) => o.id === seriesId) ?? null);
 	const nameSlug = $derived(editSlug ? slugify(slugTyped) : slugify(name));
-	// Mirrors the server: a generated address equal to the new series' address gets the year.
-	const slug = $derived(!editSlug && seriesMode === 'new' && nameSlug && nameSlug === seriesSlug && editionYear ? `${nameSlug}-${editionYear}` : nameSlug);
+	const slug = $derived(!editSlug && seriesMode === 'new' ? editionSlug(nameSlug, seriesSlug, editionYear) : nameSlug);
 	const days = $derived(length === 'multi' && startDate && endDate && endDate > startDate ? daysBetween(startDate, endDate) : []);
 	const perDay = $derived(days.length ? Math.ceil(stations / days.length) : 0);
 	const ALL_SECTIONS = [

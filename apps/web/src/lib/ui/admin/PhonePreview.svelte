@@ -1,9 +1,10 @@
 <script lang="ts">
 	/**
-	 * What the volunteer will see for a station's first scorable item, built
-	 * from the same domain helpers the field app uses.
+	 * What the volunteer will see for a station's first scorable item: the field app's own input
+	 * (ItemInput), shrunk and inert, so the preview can never drift from the real screen.
 	 */
-	import { selectableValues, styleValues, type ScoreItemDef } from '@scouttavling/domain';
+	import type { ScoreItemDef } from '@scouttavling/domain';
+	import ItemInput from '#lib/field/ui/ItemInput.svelte';
 
 	let {
 		code,
@@ -13,12 +14,6 @@
 		count,
 		index = 1
 	}: { code: string; name: string; item: ScoreItemDef | null; checkpoint: boolean; count: number; index?: number } = $props();
-
-	const values = $derived(item ? selectableValues(item) : []);
-	const style = $derived(item ? styleValues(item) : []);
-	const labelled = $derived(item?.mode === 'DISTINCT' && (item.distinctValues ?? []).some((d) => d.label));
-	const cols = $derived(labelled ? 1 : values.length <= 6 ? values.length || 1 : values.length <= 12 ? 4 : 7);
-	const labelOf = (v: number) => item?.distinctValues?.find((d) => d.value === v)?.label;
 </script>
 
 <div class="wrap">
@@ -27,21 +22,9 @@
 		<span class="title">{code} · {name || 'Namnlös'}</span>
 		{#if item}
 			<span class="sub">{item.name}{count > 1 ? ` · del ${index} av ${count}` : ''}</span>
-			<span class="h">{item.mode === 'COUNT' ? `Antal (× ${item.countMultiplier ?? 1} poäng)` : 'Poäng'}</span>
-			<div class="grid" style="grid-template-columns: repeat({cols}, minmax(0, 1fr))">
-				{#each values as v (v)}
-					<span class="chip" class:wide={labelled}>
-						<strong>{v}</strong>{#if labelled && labelOf(v)}<span class="lab">{labelOf(v)}</span>{/if}
-					</span>
-				{/each}
+			<div class="screen" inert>
+				<ItemInput {item} heading={count > 1 ? item.name : 'Poäng'} />
 			</div>
-			{#if values.length === 0}<span class="empty">Inga värden ännu</span>{/if}
-			{#if style.length}
-				<span class="h">Stilpoäng</span>
-				<div class="grid" style="grid-template-columns: repeat({Math.min(style.length, 6)}, minmax(0, 1fr))">
-					{#each style as v (v)}<span class="chip">{v}</span>{/each}
-				</div>
-			{/if}
 			<span class="cta">Spara</span>
 		{:else if checkpoint}
 			<span class="msg">Patrullen checkas in med ett tryck. Inga poäng.</span>
@@ -90,44 +73,13 @@
 		color: var(--ink-2);
 		margin-top: -4px;
 	}
-	.h {
-		font-size: 11px;
-		font-weight: 800;
-		margin-top: 2px;
+	/* The real 360 px screen at 55 %. */
+	.screen {
+		width: 360px;
+		zoom: 0.55;
+		flex: none;
 	}
-	.grid {
-		display: grid;
-		gap: 4px;
-	}
-	.chip {
-		min-height: 30px;
-		border-radius: 7px;
-		background: var(--surface);
-		border: 1px solid var(--line-strong);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-weight: 800;
-		font-size: 12px;
-		gap: 6px;
-		padding: 0 4px;
-	}
-	.chip.wide {
-		justify-content: flex-start;
-		padding: 4px 8px;
-		min-height: 36px;
-	}
-	.chip.wide strong {
-		font-size: 14px;
-		min-width: 20px;
-	}
-	.lab {
-		font-weight: 600;
-		font-size: 11px;
-		color: var(--ink-2);
-	}
-	.msg,
-	.empty {
+	.msg {
 		font-size: 13px;
 		color: var(--ink-2);
 		line-height: 1.4;

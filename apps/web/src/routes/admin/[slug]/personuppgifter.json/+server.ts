@@ -2,6 +2,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { writeAudit } from '#lib/server/audit.ts';
+import { stationsOf, tracksOf } from '#lib/server/queries.ts';
 
 /**
  * Every personal datum this edition holds, as JSON (GDPR access requests, or before "Ta bort
@@ -13,8 +14,8 @@ export async function GET(event) {
 	const ids = patrols.map((p) => p.id);
 	const [members, tracks, stations, devices, messages, organisers] = await Promise.all([
 		ids.length ? db.select().from(schema.member).where(inArray(schema.member.patrolId, ids)) : Promise.resolve([]),
-		db.select().from(schema.track).where(eq(schema.track.competitionId, comp.id)),
-		db.select().from(schema.station).where(eq(schema.station.competitionId, comp.id)).orderBy(asc(schema.station.sort)),
+		tracksOf(comp.id),
+		stationsOf(comp.id),
 		db.select().from(schema.device).where(eq(schema.device.competitionId, comp.id)),
 		db.select().from(schema.message).where(eq(schema.message.competitionId, comp.id)),
 		db

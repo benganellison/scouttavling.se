@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { authenticateDevice, syncCommands } from '#lib/server/field.ts';
+import { authenticateDevice } from '#lib/server/field/device.ts';
+import { syncCommands } from '#lib/server/field/commands.ts';
 import { MAX_BATCH } from '#lib/field/protocol.ts';
 
 /**

@@ -537,16 +537,38 @@ Reviewed for long-term maintenance by volunteers. **Fixed:**
 - **Errors:** `handleError` logs unexpected errors as one JSON line with an id, shown on the error page ("felkod …"). It logs the route pattern, never the URL, because some paths contain secrets.
 - **Docs:** 01 §0 "As built", status banners, `CONTRIBUTING.md`; dead code and the broken root Playwright config removed.
 
+**Done in a second round:**
+
+- `live.ts` split into `results.ts` (ranking and cache), `sse.ts` (hub, streams, limits), `dashboard.ts` (Ledningscentralen), `messages.ts` and `queries.ts`; `latestSeq` lives in `changes.ts` (one copy, `currentCursor` removed), time formatters in `#lib/time.ts`.
+- `field.ts` split into `field/keys.ts`, `join.ts`, `device.ts`, `snapshot.ts` and `commands.ts`; the database side of `processBatch` is the `databaseDeps()` factory, and `field.db.test.ts` covers accepted/duplicate, the pending re-run, a closed competition and the quarantine cap.
+- One form style: `lib/server/forms.ts` (`parseForm`, `formInput`, field schemas, `checkField` for fields named at runtime) in new competition, settings, next year, messages and HQ score edits, beside the existing Valibot forms (patrol, registration, stations). Rules that need the user or the database run after the schema. `ISO_DATE` is in `#lib/time.ts`.
+- Shared queries (`tracksOf`, `stationsOf`, `itemsOf`, `stationTrackLinks`, `stationCodeMap`) replace 22 copies, always in display order.
+
 **For later** (restructuring only; no behaviour depends on it):
 
 | Finding | Suggestion |
 |---|---|
-| `lib/server/live.ts` (≈740 lines) mixes results, caches, SSE and dashboard | Split into `results.ts`, `sse.ts`, `dashboard.ts`; `live.test.ts` already covers the logic. |
-| `syncCommands` in `field.ts` is one long closure; its DB paths (pending re-run, quarantine cap, closed competition) have no DB test | Extract the `BatchDeps` factory, add `field.db.test.ts`. |
-| Form actions validate in two styles (Valibot and hand-rolled `f.get()`), the ISO-date regex is copied 4× | Valibot schemas for settings and `admin/new`; one form-field helper. |
-| "Tracks/stations/items of a competition" queries repeated ≈12×, some without `orderBy` | `lib/server/queries.ts`. |
 | Date/time formatting inline in ≈16 files | Named formatters in `#lib/time.ts` (started). |
 | Per-process state uses `globalThis` in some modules and plain module maps in others | One `processSingleton()` helper; the list of per-process state is in 01 §0. |
 | e2e waits for hydration with `networkidle` and click-until-visible loops; the UAT's video pauses run in CI | A `data-hydrated` attribute set in the root layout's `onMount`; `beat()` a no-op unless recording. |
 | Big Svelte pages (`admin/new`, `import`) | One component per step. |
 | `app_user.phone` is always null; `patrol.contact_member_no` is collected but never used | Drop both in an expand/contract migration (the second also collects less personal data). |
+
+## 14. SOLID review 2026-11-01 (before v0.1.0)
+
+Two reviews (server/domain, client/UI) looked for responsibilities that sit in the wrong place, rules that every new case must edit in many files, and hidden dependencies. Three findings were real drift between copies of one rule and are fixed first:
+
+- **Import preview vs commit:** the preview said "Uppdateras" by name alone; the commit also matches on kår. Both now use `matchAll()` (`import/validate.ts`), which also uses each existing patrol at most once, as the commit does.
+- **Item modes:** what RANGE/DISTINCT/COUNT/CHECKIN/AUTO_ON_SCAN mean was decided in about eight places and had drifted (a station with only AUTO_ON_SCAN items was a check-in in the log but not on the scan page). `MODE_TRAITS`, `isScorable`, `scorableItems` and `isCheckpointOnly` in `packages/domain/scoring.ts` are now the one definition; the `default:` branches became explicit cases, so a new mode is a compile error until every switch handles it.
+- **Admin preview vs field app:** the station editor's phone preview drew COUNT as chips, the phone as a −/+ stepper. The input is one component (`lib/field/ui/ItemInput.svelte`), used by the score screen and, inert and scaled, by the preview.
+
+Also fixed: series names (`stripYear`, `yearIn`, `editionSlug` in `#lib/series/names.ts`, shared by server and the "Ny tävling" preview); the desk's scan rule as `deskScanNext` in the domain (tested), with counts and filters built from `STATUS_ORDER`; one patrol-status writer (`lib/server/patrolStatus.ts`: row, history, change feed); conflict resolution as one locked transaction (`lib/server/conflicts.ts`; before, a crash between the score write and "resolved" left the conflict open, and two people could resolve it at once); the "competition closed" quarantine moved from the database adapter into `processBatch`'s reason chain (unit-tested), so `BatchDeps.apply` only applies.
+
+Second round, from the same reviews:
+
+- **Field app sync engine** (`lib/field/sync.ts`, `SyncEngine`): signing, push, results, read receipts, pull and pruning, with the database and `fetch` passed in. `FieldApp` keeps the UI state, scheduling and lifecycle. `sync.test.ts` runs it against fake-indexeddb and a stub server: signing order and the hash chain, an edit chained to an unsent report, refusals, a disconnected phone.
+- **Stations:** the rules (`validateStation`, `normaliseItem`, `scoringChangeLocked`, `displayOrder`, `DEFAULT_ITEM`/`CHECKPOINT_ITEM`) are pure in `packages/domain/stations.ts` (tested); saving, creating, deleting and moving are in `lib/server/stations.ts`; the route only parses and answers. One station read model (`queries.ts loadStations`, in display order); the preparation pages' loader moved from a route folder to `lib/server/prep.ts` and adapts it; `codeInput()` replaces six copies of the paper-code input (the uniqueness check now uses the stored roles, like the codes shown).
+- **Creating a competition:** `lib/server/competitions.ts` (`insertCompetition`, `slugTaken`), kit-free, used by "Ny tävling", "Skapa nästa år" and the gokapp import (which also uses the shared `slugify` now).
+- **Smaller:** the phone's snapshot format is an explicit `Snapshot` interface in `lib/field/protocol.ts` (the server must return exactly it); joining is `joinDevice()` in `lib/field/join.ts` with a typed `JoinResponse`; one `competitionLive()`/`liveKey()` for the admin pages' live channel; `FieldApp.stationReport()` and one `SYNC_SEVERITY` order for the log; score writers take `Queryable` (no casts), `recordChange` takes a transaction only; the auth guard takes `readOnly` from the layout instead of knowing a route.
+
+**For later:** a shared label + input + error component for the long admin forms; the settings page's day rules (auto names, prefixes, start/end dates from the days) as pure functions next to `daysBetween`.

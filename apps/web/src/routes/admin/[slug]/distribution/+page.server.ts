@@ -4,7 +4,7 @@ import { distribute, type DistPatrol, type DistStation, type Strategy } from '@s
 import { requireCompetition } from '#lib/server/auth.ts';
 import { recordChange } from '#lib/server/changes.ts';
 import { db, schema } from '#lib/server/db/index.ts';
-import { loadPatrols, loadStations, loadTracks } from '../print/prep.server.ts';
+import { loadPatrols, loadStations, loadTracks } from '#lib/server/prep.ts';
 
 const STRATEGIES: Strategy[] = ['BALANCED', 'ALL', 'PER_TRACK'];
 

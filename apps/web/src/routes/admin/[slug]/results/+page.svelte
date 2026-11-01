@@ -4,12 +4,12 @@
 	import Medal from '#lib/ui/live/Medal.svelte';
 	import StationBreakdown from '#lib/ui/live/StationBreakdown.svelte';
 	import LiveBadge from '#lib/ui/live/LiveBadge.svelte';
-	import { LiveStream } from '#lib/ui/live/liveStore.svelte.ts';
+	import { competitionLive, LiveStream } from '#lib/ui/live/liveStore.svelte.ts';
 	import { RULE_TEXT } from '#lib/ui/live/format.ts';
 
 	let { data } = $props();
 
-	const live = new LiveStream(() => ({ url: `/api/v1/live/${data.comp.slug}/events`, depends: `live:${data.comp.slug}`, debounceMs: 800 }));
+	const live = new LiveStream(() => competitionLive(data.comp.slug, { debounceMs: 800 }));
 	const base = $derived(`/admin/${data.comp.slug}`);
 	let open = $state<string[]>([]);
 	const toggle = (id: string) => (open = open.includes(id) ? open.filter((x) => x !== id) : [...open, id]);

@@ -3,14 +3,16 @@ import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db, schema, type Tx, type CompRow } from './db/index.ts';
 import { randomToken, requireUser, type CompetitionRole } from './auth.ts';
 import { recordChange } from './changes.ts';
+import { insertCompetition, slugTaken as isTaken } from './competitions.ts';
 import { copyAssets } from './assetStore.ts';
 import { loadTrackColors } from './assets.ts';
-import { getResults } from './live.ts';
+import { getResults } from './results.ts';
 import { activeInvites, rotateInvite } from './invites.ts';
 import { addDays, editionShiftDays, shiftDate } from '#lib/series/dates.ts';
-import { slugify } from '#lib/routing/slugs.ts';
 import { seriesRole } from './ownership.ts';
-import { isReservedSlug } from '#lib/routing/slugs.ts';
+import { slugify } from '#lib/routing/slugs.ts';
+import { stripYear, yearIn } from '#lib/series/names.ts';
+import { stationsOf, tracksOf } from './queries.ts';
 
 /**
  * Competition series and yearly editions (docs/architecture/05-series-and-archive.md).
@@ -22,27 +24,14 @@ import { isReservedSlug } from '#lib/routing/slugs.ts';
 export type SeriesRow = typeof schema.series.$inferSelect;
 export type { CompRow } from './db/index.ts';
 
-const YEAR = /\b(19|20)\d{2}\b/g;
-
-/** "GökOpen 2027" → "GökOpen". */
-export function stripYear(name: string): string {
-	return name.replace(YEAR, '').replace(/\s+/g, ' ').trim() || name.trim();
-}
-
-/** The year in a name ("GökOpen 2027" → 2027), else null. */
-export function yearIn(name: string): number | null {
-	const m = /\b((?:19|20)\d{2})\b/.exec(name);
-	return m ? Number(m[1]) : null;
-}
+export { stripYear, yearIn };
 
 /** A free slug that is neither a series nor a competition slug. */
 async function freeSlug(q: typeof db | Tx, base: string, suffix: string): Promise<string> {
 	const root = slugify(base) || 'serie';
 	for (let i = 1; i < 100; i++) {
 		const cand = i === 1 ? root : `${root}${suffix}${i > 2 ? `-${i}` : ''}`;
-		const [a] = await q.select({ id: schema.series.id }).from(schema.series).where(eq(schema.series.slug, cand)).limit(1);
-		const [b] = await q.select({ id: schema.competition.id }).from(schema.competition).where(eq(schema.competition.slug, cand)).limit(1);
-		if (!a && !b) return cand;
+		if (!(await isTaken(q, cand))) return cand;
 	}
 	return `${root}-${randomToken(3).toLowerCase()}`;
 }
@@ -123,13 +112,7 @@ export async function organisedSeries(userId: string): Promise<SeriesRow[]> {
  * True when `slug` cannot be used: a series or competition has it (both live under /t/<slug> and
  * the short address /<slug>), or it is reserved for a route (#lib/routing/slugs.ts).
  */
-export async function slugTaken(slug: string): Promise<boolean> {
-	if (isReservedSlug(slug)) return true;
-	const [a] = await db.select({ id: schema.series.id }).from(schema.series).where(eq(schema.series.slug, slug)).limit(1);
-	if (a) return true;
-	const [b] = await db.select({ id: schema.competition.id }).from(schema.competition).where(eq(schema.competition.slug, slug)).limit(1);
-	return !!b;
-}
+export const slugTaken = (slug: string) => isTaken(db, slug);
 
 /** Patrol counts per competition id. */
 export async function patrolCounts(ids: string[]): Promise<Map<string, number>> {
@@ -152,7 +135,7 @@ export async function ensureSeries(tx: Tx, comp: CompRow, userId: string): Promi
 		if (s) return s;
 	}
 	const name = stripYear(comp.name);
-	const tracks = await tx.select().from(schema.track).where(eq(schema.track.competitionId, comp.id));
+	const tracks = await tracksOf(comp.id, tx);
 	const [s] = await tx
 		.insert(schema.series)
 		.values({
@@ -271,9 +254,9 @@ export async function createNextEdition(source: CompRow, input: NextInput, userI
 		const series = await ensureSeries(tx, source, userId);
 		const year = editionYearOf(source) + 1;
 		const dates = [...input.dates];
-		const [comp] = await tx
-			.insert(schema.competition)
-			.values({
+		const comp = await insertCompetition(
+			tx,
+			{
 				slug: input.slug,
 				name: input.name,
 				ownerGroupNo: source.ownerGroupNo,
@@ -295,13 +278,12 @@ export async function createNextEdition(source: CompRow, input: NextInput, userI
 				followEnabled: source.followEnabled,
 				followShowScores: source.followShowScores,
 				status: 'draft',
-				patrolCodeKey: randomToken(24),
-				createdBy: userId,
 				seriesId: series.id,
 				editionYear: year,
 				archivePublic: true
-			})
-			.returning();
+			},
+			userId
+		);
 
 		// The organising team carries over (owners/organisers); day-of roles do not.
 		const team = await tx
@@ -309,9 +291,10 @@ export async function createNextEdition(source: CompRow, input: NextInput, userI
 			.from(schema.competitionMember)
 			.where(and(eq(schema.competitionMember.competitionId, source.id), inArray(schema.competitionMember.role, ['owner', 'organiser'])));
 		const rows = new Map(team.map((m) => [`${m.userId}:${m.role}`, { competitionId: comp.id, userId: m.userId, role: m.role }]));
-		rows.set(`${userId}:owner`, { competitionId: comp.id, userId, role: 'owner' });
-		if (team.some((m) => m.userId === userId && m.role === 'organiser')) rows.delete(`${userId}:organiser`);
-		await tx.insert(schema.competitionMember).values([...rows.values()]);
+		// The creator is already the owner (insertCompetition).
+		rows.delete(`${userId}:owner`);
+		rows.delete(`${userId}:organiser`);
+		if (rows.size) await tx.insert(schema.competitionMember).values([...rows.values()]);
 
 		const srcDays = await tx.select().from(schema.day).where(eq(schema.day.competitionId, source.id)).orderBy(asc(schema.day.sort));
 		const dayMap = new Map<string, string>();
@@ -323,7 +306,7 @@ export async function createNextEdition(source: CompRow, input: NextInput, userI
 			dayMap.set(d.id, nd.id);
 		}
 
-		const srcTracks = await tx.select().from(schema.track).where(eq(schema.track.competitionId, source.id)).orderBy(asc(schema.track.sort));
+		const srcTracks = await tracksOf(source.id, tx);
 		const trackMap = new Map<string, string>();
 		for (const t of srcTracks) {
 			const [nt] = await tx
@@ -333,7 +316,7 @@ export async function createNextEdition(source: CompRow, input: NextInput, userI
 			trackMap.set(t.id, nt.id);
 		}
 
-		const srcStations = await tx.select().from(schema.station).where(eq(schema.station.competitionId, source.id)).orderBy(asc(schema.station.sort));
+		const srcStations = await stationsOf(source.id, tx);
 		const stationMap = new Map<string, string>();
 		for (const s of srcStations) {
 			const [ns] = await tx

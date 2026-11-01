@@ -1,7 +1,9 @@
 import { and, asc, desc, eq, ne, sql } from 'drizzle-orm';
 import { evaluate, InvalidScoreError, isFinishReport, nextPatrolStatus, statusAfterUndo, type ScoreItemDef } from '@scouttavling/domain';
-import { db, schema, type Tx, type CompRow } from './db/index.ts';
+import type { ConflictExisting } from './db/schema.ts';
+import { db, schema, type CompRow, type Queryable, type Tx } from './db/index.ts';
 import { recordChange } from './changes.ts';
+import { setPatrolStatus } from './patrolStatus.ts';
 
 /**
  * THE score write path — used by field devices (sync commands), HQ edits and
@@ -119,13 +121,20 @@ async function applyStatusRules(tx: Tx, w: WriteScore, item: ItemRow) {
 		latestDay
 	});
 	if (!next) return;
-	const at = w.at ?? new Date();
-	const ev = (status: typeof next, when = at) => ({ patrolId: p.id, status, deviceId: w.deviceId ?? null, userId: w.userId ?? null, at: when });
-	await tx.update(schema.patrol).set({ status: next }).where(eq(schema.patrol.id, p.id));
-	// Straight from Anmäld to I läger / I mål: record the start too (follow page "Startade").
-	if (p.status === 'registered' && next !== 'active') await tx.insert(schema.statusEvent).values(ev('active', new Date(at.getTime() - 1)));
-	await tx.insert(schema.statusEvent).values(ev(next));
-	await recordChange(tx, w.competitionId, 'patrol', p.id);
+	await setPatrolStatus(tx, {
+		competitionId: w.competitionId,
+		patrolId: p.id,
+		from: p.status,
+		to: next,
+		deviceId: w.deviceId,
+		userId: w.userId,
+		at: w.at ?? new Date()
+	});
+}
+
+/** The stored "existing" side of a conflict: the score as it was when the other report arrived. */
+export function conflictSnapshot(s: { points: number; stylePoints: number; version: number; state: 'active' | 'void'; origin: string }): ConflictExisting {
+	return { points: s.points, stylePoints: s.stylePoints, version: s.version, state: s.state, origin: s.origin };
 }
 
 /** When the patrol was at the station: only a phone at the station knows (paper/HQ are typed in later). */
@@ -159,13 +168,11 @@ async function statusAfterVoid(tx: Tx, w: Pick<WriteScore, 'competitionId' | 'pa
 		.where(and(eq(schema.score.patrolId, p.id), eq(schema.score.state, 'active')));
 	const next = statusAfterUndo({ current: p.status, undone: voided, remaining });
 	if (!next) return;
-	await tx.update(schema.patrol).set({ status: next }).where(eq(schema.patrol.id, p.id));
-	await tx.insert(schema.statusEvent).values({ patrolId: p.id, status: next, deviceId: w.deviceId ?? null, userId: w.userId ?? null });
-	await recordChange(tx, w.competitionId, 'patrol', p.id);
+	await setPatrolStatus(tx, { competitionId: w.competitionId, patrolId: p.id, from: p.status, to: next, deviceId: w.deviceId, userId: w.userId });
 }
 
-/** Runs in its own transaction, or as a savepoint inside the caller's (`outer`, e.g. one sync command). */
-export async function writeScore(w: WriteScore, outer?: Tx): Promise<WriteResult> {
+/** Runs in its own transaction, or as a savepoint when `q` is the caller's transaction (e.g. one sync command). */
+export async function writeScore(w: WriteScore, q: Queryable = db): Promise<WriteResult> {
 	const run = async (tx: Tx): Promise<WriteResult> => {
 		await lockPatrol(tx, w.patrolId);
 		const [item] = await tx.select().from(schema.scoreItem).where(eq(schema.scoreItem.id, w.itemId)).limit(1);
@@ -251,7 +258,7 @@ export async function writeScore(w: WriteScore, outer?: Tx): Promise<WriteResult
 				patrolId: w.patrolId,
 				itemId: w.itemId,
 				commandId: w.commandId ?? null,
-				existing: { points: existing.points, stylePoints: existing.stylePoints, version: existing.version, state: existing.state, origin: existing.origin },
+				existing: conflictSnapshot(existing),
 				incoming: { ...value, raw: w.raw, origin: w.origin, deviceId: w.deviceId ?? null, userId: w.userId ?? null, baseVersion: w.baseVersion }
 			});
 			await recordChange(tx, w.competitionId, 'conflict', existing.id);
@@ -285,11 +292,11 @@ export async function writeScore(w: WriteScore, outer?: Tx): Promise<WriteResult
 		await applyStatusRules(tx, w, item);
 		return { result: 'accepted', version, ...value } as const;
 	};
-	return outer ? outer.transaction(run) : db.transaction(run);
+	return q.transaction(run);
 }
 
 /** Undo after sending = a compensating void (02 §4, contract C8). */
-export async function voidScore(w: Omit<WriteScore, 'raw'>, outer?: Tx): Promise<WriteResult> {
+export async function voidScore(w: Omit<WriteScore, 'raw'>, q: Queryable = db): Promise<WriteResult> {
 	const run = async (tx: Tx): Promise<WriteResult> => {
 		await lockPatrol(tx, w.patrolId);
 		const existing = (
@@ -308,7 +315,7 @@ export async function voidScore(w: Omit<WriteScore, 'raw'>, outer?: Tx): Promise
 				patrolId: w.patrolId,
 				itemId: w.itemId,
 				commandId: w.commandId ?? null,
-				existing: { points: existing.points, stylePoints: existing.stylePoints, version: existing.version, state: existing.state, origin: existing.origin },
+				existing: conflictSnapshot(existing),
 				incoming: { type: 'VoidScore', origin: w.origin, deviceId: w.deviceId ?? null, userId: w.userId ?? null, baseVersion: w.baseVersion }
 			});
 			await recordChange(tx, w.competitionId, 'conflict', existing.id);
@@ -338,5 +345,5 @@ export async function voidScore(w: Omit<WriteScore, 'raw'>, outer?: Tx): Promise
 		await statusAfterVoid(tx, w, existing.itemId);
 		return { result: 'accepted', version, points: 0, stylePoints: 0 } as const;
 	};
-	return outer ? outer.transaction(run) : db.transaction(run);
+	return q.transaction(run);
 }

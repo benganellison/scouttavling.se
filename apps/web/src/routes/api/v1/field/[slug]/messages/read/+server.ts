@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { authenticateDevice, markMessageRead } from '#lib/server/field.ts';
+import { authenticateDevice } from '#lib/server/field/device.ts';
+import { markMessageRead } from '#lib/server/field/commands.ts';
 
 /** Marks an HQ message as read by this device (inserts message_read). */
 export const POST: RequestHandler = async ({ request, params }) => {

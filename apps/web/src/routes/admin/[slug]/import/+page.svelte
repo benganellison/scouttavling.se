@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import { matchAll } from './validate.ts';
 	import '#lib/ui/patrols/prep.css';
 	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
@@ -101,11 +102,15 @@
 	});
 	const importable = $derived(rows.filter((r) => r.patrolName.trim()));
 
-	function matchStatus(r: { patrolName: string; contactMemberNo: string }) {
-		const name = r.patrolName.trim().toLowerCase();
-		const both = r.contactMemberNo && data.existing.find((e) => e.contactMemberNo === r.contactMemberNo && e.name.toLowerCase() === name);
-		return both || data.existing.find((e) => e.name.toLowerCase() === name) ? 'update' : 'new';
-	}
+	// The commit's own matching (validate.ts), on the rows as they will be sent.
+	const matches = $derived.by(() => {
+		const hits = matchAll(
+			importable.map((r) => ({ patrolName: r.patrolName.trim(), contactMemberNo: r.contactMemberNo.slice(0, 10), troop: r.troop.trim() })),
+			data.existing
+		);
+		return new Map(importable.map((r, i) => [r._i, hits[i]]));
+	});
+	const matchStatus = (r: { _i: number }) => (matches.get(r._i) ? 'update' : 'new');
 
 	type RowStatus = { label: string; cls: string };
 	function rowStatus(r: (typeof rows)[number]): RowStatus {

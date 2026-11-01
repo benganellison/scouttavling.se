@@ -32,6 +32,7 @@ playwright-report/
 # UAT (e2e/uat.e2e.ts): raw Playwright output and large videos; screenshots stay
 e2e/uat-results/
 e2e/uat/videos/
+e2e/uat/console.json
 .uat-server.pid
 .uat-server.log
 .db-backups/

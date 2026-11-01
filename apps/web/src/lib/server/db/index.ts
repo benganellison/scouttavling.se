@@ -38,4 +38,7 @@ export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 /** Either the pool or a transaction: for helpers that work inside or outside one. */
 export type Queryable = Tx | DB;
 export type CompRow = typeof schema.competition.$inferSelect;
+export type StationRow = typeof schema.station.$inferSelect;
+export type ItemRow = typeof schema.scoreItem.$inferSelect;
+export type TrackRow = typeof schema.track.$inferSelect;
 export { schema };

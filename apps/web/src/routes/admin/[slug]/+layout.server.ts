@@ -4,16 +4,17 @@ import { requireCompetition } from '#lib/server/auth.ts';
 import { classColorTemplate, loadBranding } from '#lib/server/assets.ts';
 import { trackColors } from '#lib/brand/colors.ts';
 import { accessNotices } from '#lib/server/siteAdmin.ts';
+import { tracksOf } from '#lib/server/queries.ts';
 
 /**
  * Admin shell data, shared by every page under /admin/[slug]:
  * `competition`, `days`, `tracks`, `trackColors` (effective class colour per track id), `branding`, `roles` and `user`.
  */
 export async function load(event) {
-	const { user, comp, roles, access } = await requireCompetition(event, event.params.slug);
+	const { user, comp, roles, access } = await requireCompetition(event, event.params.slug, undefined, { readOnly: true });
 	const [days, tracks, branding, classTemplate, notices, series] = await Promise.all([
 		db.select().from(schema.day).where(eq(schema.day.competitionId, comp.id)).orderBy(asc(schema.day.sort)),
-		db.select().from(schema.track).where(eq(schema.track.competitionId, comp.id)).orderBy(asc(schema.track.sort)),
+		tracksOf(comp.id),
 		loadBranding(comp),
 		classColorTemplate(comp.id),
 		// Owners are told about every site-admin "Tillfällig åtkomst" (active, or ended in the last 7 days).

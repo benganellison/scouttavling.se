@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isCheckpointOnly } from '@scouttavling/domain';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { useField, hhmm, type PackPatrol } from '#lib/field/app.svelte.ts';
@@ -30,7 +31,7 @@
 
 	const result = $derived(found ? app.stationResult(found.id) : null);
 	const styleOn = $derived(app.items.some((i) => i.styleEnabled));
-	const checkin = $derived(app.items.length > 0 && app.items.every((i) => i.mode === 'CHECKIN'));
+	const checkin = $derived(isCheckpointOnly(app.items));
 
 	async function onCode(text: string) {
 		if (found) return;

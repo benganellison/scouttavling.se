@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('$app/env/private', () => ({ DATABASE_URL: 'postgres://unused' }));
 vi.mock('./db/index.ts', () => ({ db: {}, schema: {} }));
 
-const { acquireStream, computeResults, publicTracks, showStationResults, STREAM_LIMITS, unseenAlarms } = await import('./live.ts');
-type Input = import('./live.ts').ResultsInput;
+const { computeResults, publicTracks, showStationResults } = await import('./results.ts');
+const { acquireStream, STREAM_LIMITS } = await import('./sse.ts');
+const { unseenAlarms } = await import('./dashboard.ts');
+type Input = import('./results.ts').ResultsInput;
 
 /** Mirrors scripts/seed.ts for GökOpen 2027 (Upptäckare class and the first five RANGE stations). */
 function seedLike(): Input {

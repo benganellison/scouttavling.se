@@ -7,7 +7,8 @@
 	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import EventLogo from '#lib/ui/brand/EventLogo.svelte';
 	import TrackChip from '#lib/ui/brand/TrackChip.svelte';
-	import { PATROL_STATUS_LABEL, STATUS_ORDER } from '#lib/ui/patrols/labels.ts';
+	import { PATROL_STATUS_GROUP, PATROL_STATUS_LABEL, PATROL_STATUS_PLURAL, STATUS_ORDER } from '#lib/ui/patrols/labels.ts';
+	import { deskScanNext } from '@scouttavling/domain';
 
 	const app = useField();
 	const LABEL = PATROL_STATUS_LABEL;
@@ -25,7 +26,7 @@
 
 	const statusOf = (p: PackPatrol) => app.patrolStatus(p);
 	const counts = $derived.by(() => {
-		const c = { registered: 0, active: 0, camp: 0, finished: 0, resigned: 0 };
+		const c = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])) as Record<PatrolStatus, number>;
 		for (const p of app.patrols) c[statusOf(p)]++;
 		return c;
 	});
@@ -33,24 +34,17 @@
 	const prog = (p: PackPatrol) => app.pack?.progress[p.id];
 	const codeOf = (id: string | null | undefined) => app.pack?.stations.find((s) => s.id === id)?.code ?? '';
 
-	function startedAt(p: PackPatrol): number | null {
+	/** When the patrol got this status: a change made on this phone first, else the server's progress. */
+	const PROGRESS_FIELD = { active: 'startedAt', camp: 'campAt', finished: 'finishedAt' } as const;
+	function statusAt(p: PackPatrol, status: keyof typeof PROGRESS_FIELD): number | null {
 		const o = app.statusOverride.get(p.id);
-		if (o?.status === 'active') return o.at;
-		const s = prog(p)?.startedAt;
+		if (o?.status === status) return o.at;
+		const s = prog(p)?.[PROGRESS_FIELD[status]];
 		return s ? Date.parse(s) : null;
 	}
-	function finishedAt(p: PackPatrol): number | null {
-		const o = app.statusOverride.get(p.id);
-		if (o?.status === 'finished') return o.at;
-		const s = prog(p)?.finishedAt;
-		return s ? Date.parse(s) : null;
-	}
-	function campAt(p: PackPatrol): number | null {
-		const o = app.statusOverride.get(p.id);
-		if (o?.status === 'camp') return o.at;
-		const s = prog(p)?.campAt;
-		return s ? Date.parse(s) : null;
-	}
+	const startedAt = (p: PackPatrol) => statusAt(p, 'active');
+	const finishedAt = (p: PackPatrol) => statusAt(p, 'finished');
+	const campAt = (p: PackPatrol) => statusAt(p, 'camp');
 	function lastSeen(p: PackPatrol): { text: string; late: boolean } {
 		const st = statusOf(p);
 		if (st === 'resigned') return { text: 'Återbud', late: false };
@@ -80,23 +74,12 @@
 			.filter((p) => !needle || String(p.number).startsWith(needle) || p.name.toLowerCase().includes(needle) || p.troop.toLowerCase().includes(needle));
 	});
 
-	/**
-	 * A scan advances Anmäld → På banan → I mål. On a competition day that is not the
-	 * last one, På banan → I läger instead, and next morning I läger → På banan. A second
-	 * scan the same evening leaves a patrol in camp.
-	 */
+	/** What a scan does: the rule is deskScanNext in packages/domain (patrolStatus.ts). */
 	function nextFor(p: PackPatrol): PatrolStatus | null {
-		const cur = statusOf(p);
 		const c = app.pack?.competition;
 		const today = svDate(app.serverNow());
-		const earlierDay = !!c && c.startDate < c.endDate && today >= c.startDate && today < c.endDate;
-		if (cur === 'registered') return 'active';
-		if (cur === 'active') return earlierDay ? 'camp' : 'finished';
-		if (cur === 'camp') {
-			const at = campAt(p);
-			return at && svDate(at) < today ? 'active' : null;
-		}
-		return null;
+		const camp = campAt(p);
+		return deskScanNext({ current: statusOf(p), today, startDate: c?.startDate ?? today, endDate: c?.endDate ?? today, campDate: camp ? svDate(camp) : null });
 	}
 
 	async function advance(p: PackPatrol) {
@@ -143,14 +126,7 @@
 	}
 
 	const lastPatrol = $derived(last ? (app.patrolById.get(last.patrolId) ?? null) : null);
-	const filters: { k: Filter; l: string }[] = [
-		{ k: 'all', l: 'Alla' },
-		{ k: 'registered', l: 'Ej startade' },
-		{ k: 'active', l: 'På banan' },
-		{ k: 'camp', l: 'I läger' },
-		{ k: 'finished', l: 'I mål' },
-		{ k: 'resigned', l: 'Återbud' }
-	];
+	const filters: { k: Filter; l: string }[] = [{ k: 'all', l: 'Alla' }, ...STATUS_ORDER.map((s) => ({ k: s, l: PATROL_STATUS_GROUP[s] }))];
 	const trackColor = (id: string | null) => (id ? app.pack?.tracks.find((t) => t.id === id)?.color : null);
 	const tel = (s: string | null | undefined) => (s ?? '').replace(/[^\d+]/g, '');
 </script>
@@ -199,20 +175,18 @@
 		{/if}
 
 		<div class="counts">
-			<div><span class="cn">{counts.registered}</span><span class="cl">Anmälda</span></div>
-			<div><span class="cn">{counts.active}</span><span class="cl">På banan</span></div>
-			<div><span class="cn">{counts.camp}</span><span class="cl">I läger</span></div>
-			<div><span class="cn">{counts.finished}</span><span class="cl">I mål</span></div>
-			<div><span class="cn">{counts.resigned}</span><span class="cl">Återbud</span></div>
+			{#each STATUS_ORDER as s (s)}
+				<div><span class="cn">{counts[s]}</span><span class="cl">{PATROL_STATUS_PLURAL[s]}</span></div>
+			{/each}
 		</div>
 	</aside>
 
 	<main>
 		<h1 class="sr-only">Start och mål</h1>
 		<div class="toolbar">
-			<div class="filters" role="tablist" aria-label="Filtrera">
+			<div class="filters" role="group" aria-label="Filtrera">
 				{#each filters as f (f.k)}
-					<button type="button" role="tab" aria-selected={filter === f.k} onclick={() => (filter = f.k)}>{f.l}</button>
+					<button type="button" aria-pressed={filter === f.k} onclick={() => (filter = f.k)}>{f.l}</button>
 				{/each}
 			</div>
 			<div class="search">
@@ -453,7 +427,7 @@
 		font-weight: 800;
 		font-size: 15px;
 	}
-	.filters button[aria-selected='true'] {
+	.filters button[aria-pressed='true'] {
 		background: var(--ink);
 		border-color: var(--ink);
 		color: #fff;

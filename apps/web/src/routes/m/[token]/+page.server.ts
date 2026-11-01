@@ -2,7 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { refuseIfSuspended } from '#lib/server/suspended.ts';
 import { archivedLinkTarget } from '#lib/server/anonymise.ts';
 import { asc, eq } from 'drizzle-orm';
-import { patrolCodeUrl, stationCodes } from '@scouttavling/domain';
+import { codeInput, patrolCodeUrl, stationCodes } from '@scouttavling/domain';
 import { db, schema } from '#lib/server/db/index.ts';
 import {
 	NO_STORE,
@@ -17,6 +17,7 @@ import {
 } from '#lib/server/registration.ts';
 import { loadBranding, trackColorFor } from '#lib/server/assets.ts';
 import { canEditRegistration, dayMonth, readForm, validateManage } from '#lib/registration/rules.ts';
+import { stationsOf } from '#lib/server/queries.ts';
 
 /** Manage link: the registered contact's view (equivalent to patrol_leader for their own patrol). */
 async function lookup(token: string, ip: string) {
@@ -49,17 +50,14 @@ export async function load({ params, url, setHeaders, getClientAddress }) {
 					.where(eq(schema.track.id, patrol.trackId))
 					.then((r) => r[0]?.name ?? '')
 			: Promise.resolve(''),
-		db.select().from(schema.station).where(eq(schema.station.competitionId, comp.id)),
+		stationsOf(comp.id),
 		db.select({ id: schema.day.id, prefix: schema.day.prefix }).from(schema.day).where(eq(schema.day.competitionId, comp.id)),
 		spotCount(comp.id)
 	]);
 	const w = windowFor(comp, count);
 	let start: string | null = null;
 	if (patrol.startStationId) {
-		const codes = stationCodes(
-			stations.map((s) => ({ id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode, role: s.role })),
-			days
-		);
+		const codes = stationCodes(stations.map(codeInput), days);
 		const st = stations.find((s) => s.id === patrol.startStationId);
 		if (st) start = `${codes.get(st.id) ?? ''} ${st.name}`.trim();
 	}

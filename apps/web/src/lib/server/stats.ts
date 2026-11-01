@@ -2,7 +2,8 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import { histogram, maxPoints, perDate, stationTimes, summarize, type Bucket, type Summary } from '@scouttavling/domain';
 import { db, schema, type CompRow } from './db/index.ts';
 import { itemDef } from './scores.ts';
-import { loadStations, showStationResults, stationAppliesTo } from './live.ts';
+import { loadStations, stationAppliesTo, tracksOf } from './queries.ts';
+import { showStationResults } from './results.ts';
 
 /*
  * "Statistik": what the organiser's page and the public statistics page show. Pure maths lives in
@@ -77,7 +78,7 @@ export async function loadStats(comp: CompRow, opts?: { internal?: false }): Pro
 export async function loadStats(comp: CompRow, opts: { internal?: boolean } = {}): Promise<Stats | InternalStats> {
 	const showStations = opts.internal || showStationResults(comp);
 	const [tracks, stations, days, patrols, started, scores] = await Promise.all([
-		db.select().from(schema.track).where(eq(schema.track.competitionId, comp.id)).orderBy(asc(schema.track.sort)),
+		tracksOf(comp.id),
 		loadStations(comp.id),
 		db.select().from(schema.day).where(eq(schema.day.competitionId, comp.id)).orderBy(asc(schema.day.sort), asc(schema.day.date)),
 		db

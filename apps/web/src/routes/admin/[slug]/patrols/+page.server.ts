@@ -3,7 +3,7 @@ import { requireCompetition } from '#lib/server/auth.ts';
 import { recordChange } from '#lib/server/changes.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { paidAtFor } from '#lib/server/payments.ts';
-import { loadPatrols, loadStations, loadTracks } from '../print/prep.server.ts';
+import { loadPatrols, loadStations, loadTracks } from '#lib/server/prep.ts';
 
 export async function load(event) {
 	const { comp } = await requireCompetition(event, event.params.slug);

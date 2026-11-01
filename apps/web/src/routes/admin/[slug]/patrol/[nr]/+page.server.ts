@@ -4,7 +4,27 @@ import { requireCompetition } from '#lib/server/auth.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { itemDef, writeScore } from '#lib/server/scores.ts';
 import { PATROL_STATUS_LABEL } from '#lib/ui/patrols/labels.ts';
-import { firstName, formatTime, getResults, loadStations, stationAppliesTo } from '#lib/server/live.ts';
+import { firstName } from '#lib/names.ts';
+import { formatTime } from '#lib/time.ts';
+import { getResults } from '#lib/server/results.ts';
+import { loadStations, stationAppliesTo, tracksOf } from '#lib/server/queries.ts';
+import * as v from 'valibot';
+import { formInput, optionalInt, parseForm, text } from '#lib/server/forms.ts';
+import { isScorable } from '@scouttavling/domain';
+import { liveKey } from '#lib/live.ts';
+
+/** HQ's score correction. Values may be negative (penalty items). */
+const ScoreEditSchema = v.object({
+	value: v.pipe(
+		v.optional(v.string()),
+		v.transform((s) => (s === undefined ? null : s.trim())),
+		v.check((s) => s === null || /^-?\d{1,4}$/.test(s), 'Välj poäng'),
+		v.transform((s) => (s === null ? null : Number(s)))
+	),
+	style: optionalInt(/^\d{1,3}$/, 'Ogiltiga stilpoäng'),
+	baseVersion: optionalInt(/^\d{1,9}$/, 'Ladda om sidan och försök igen'),
+	reason: text(200)
+});
 
 const pts = (p: number, s: number) => (s ? `${p} + ${s}` : `${p}`);
 
@@ -22,11 +42,11 @@ async function loadPatrol(competitionId: string, nrParam: string) {
 
 export async function load(event) {
 	const { comp } = await requireCompetition(event, event.params.slug);
-	event.depends(`live:${comp.slug}`);
+	event.depends(liveKey(comp.slug));
 	const p = await loadPatrol(comp.id, event.params.nr);
 	const [members, tracks, stations, scores, results, statusEvents] = await Promise.all([
 		db.select().from(schema.member).where(eq(schema.member.patrolId, p.id)),
-		db.select().from(schema.track).where(eq(schema.track.competitionId, comp.id)),
+		tracksOf(comp.id),
 		loadStations(comp.id),
 		db.select().from(schema.score).where(eq(schema.score.patrolId, p.id)),
 		getResults(comp),
@@ -142,26 +162,26 @@ export const actions = {
 	save: async (event) => {
 		const { comp, user } = await requireCompetition(event, event.params.slug);
 		const p = await loadPatrol(comp.id, event.params.nr);
-		const f = await event.request.formData();
-		const itemId = String(f.get('itemId') ?? '');
+		const input = formInput(await event.request.formData());
+		const itemId = String(input.itemId ?? '');
 		const stations = await loadStations(comp.id);
 		const item = stations.flatMap((s) => s.items).find((i) => i.id === itemId);
 		if (!item) return fail(400, { itemId, message: 'Okänd kontroll' });
-		const value = Number(f.get('value') ?? 0);
-		const styleRaw = f.get('style');
-		const style = styleRaw === null || styleRaw === '' ? null : Number(styleRaw);
-		const baseRaw = String(f.get('baseVersion') ?? '');
-		const reason = String(f.get('reason') ?? '').trim() || null;
-		if (f.get('value') === null && item.mode !== 'CHECKIN' && item.mode !== 'AUTO_ON_SCAN') return fail(400, { itemId, message: 'Välj poäng' });
+		const r = parseForm(ScoreEditSchema, input);
+		if (!r.ok) return fail(400, { itemId, message: Object.values(r.errors)[0] });
+		// Check-ins have no value field; scorable items need one (the range itself is checked by writeScore).
+		if (r.data.value === null && isScorable(item.mode)) return fail(400, { itemId, message: 'Välj poäng' });
+		const { style, baseVersion, reason } = r.data;
+		const value = r.data.value ?? 0;
 		const res = await writeScore({
 			competitionId: comp.id,
 			patrolId: p.id,
 			itemId,
 			raw: { value, style },
-			baseVersion: baseRaw === '' ? null : Number(baseRaw),
+			baseVersion,
 			origin: 'admin',
 			userId: user.id,
-			reason
+			reason: reason || null
 		});
 		if (res.result === 'rejected') return fail(400, { itemId, message: res.reason });
 		if (res.result === 'conflict') return fail(409, { itemId, message: 'Poängen ändrades av någon annan samtidigt. Ändringen ligger nu under Konflikter.' });

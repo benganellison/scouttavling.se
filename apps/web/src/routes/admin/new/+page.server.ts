@@ -1,18 +1,38 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { and, eq, gt, sql } from 'drizzle-orm';
-import { daysBetween } from '@scouttavling/domain';
+import { CHECKPOINT_ITEM, daysBetween, DEFAULT_ITEM } from '@scouttavling/domain';
 import { db, schema } from '#lib/server/db/index.ts';
-import { randomToken, requireUser } from '#lib/server/auth.ts';
+import { requireUser } from '#lib/server/auth.ts';
+import { insertCompetition } from '#lib/server/competitions.ts';
 import { recordChange } from '#lib/server/changes.ts';
-import { slugify } from '#lib/ui/admin/format.ts';
+import * as v from 'valibot';
+import { slugify } from '#lib/routing/slugs.ts';
+import { checkbox, checkField, formInput, isoDate, optionalInt, parseForm, text } from '#lib/server/forms.ts';
 import { loadSeriesBranding } from '#lib/server/assets.ts';
 import { editionYearOf, editionsOf, organisedSeries, organisesEdition, slugTaken } from '#lib/server/series.ts';
 import { isReservedSlug } from '#lib/routing/slugs.ts';
+import { editionSlug } from '#lib/series/names.ts';
 import { publicHost } from '#lib/server/origin.ts';
 
 const PRESET_TRACKS = ['Spårare', 'Upptäckare', 'Äventyrare', 'Utmanare', 'Rover'];
 const MAX_PER_DAY = 5;
-const ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+const NewCompetitionSchema = v.object({
+	name: v.pipe(text(80, 'Namnet får vara högst 80 tecken.'), v.minLength(2, 'Skriv ett namn på minst två tecken.')),
+	location: text(200),
+	hqPhone: text(30, 'Telefonnumret är för långt.'),
+	stations: v.pipe(
+		optionalInt(/^\d{1,2}$/, 'Antal kontroller: 0–60.'),
+		v.transform((n) => n ?? 0),
+		v.maxValue(60, 'Antal kontroller: 0–60.')
+	),
+	customTrack: v.array(text(40, 'Ett klassnamn får vara högst 40 tecken.')),
+	styleEnabled: checkbox,
+	publicResults: checkbox,
+	registrationOpen: checkbox
+});
+const seriesNameField = v.pipe(text(80, 'Seriens namn får vara högst 80 tecken.'), v.minLength(2, 'Skriv seriens namn, minst två tecken.'));
+const dayPrefix = v.pipe(v.string(), v.regex(/^[A-ZÅÄÖ]{1,3}$/, 'Prefix: 1–3 bokstäver.'));
 
 /** A series the user may add a year to (owner/organiser of any edition), with what the new year inherits. */
 export interface SeriesOption {
@@ -66,8 +86,16 @@ export const actions = {
 	default: async (event) => {
 		const user = requireUser(event);
 		const f = await event.request.formData();
-		const str = (k: string) => String(f.get(k) ?? '').trim();
-		const errors: Errors = {};
+		const input = formInput(f, ['track', 'customTrack']);
+		const str = (k: string) => String(input[k] ?? '').trim();
+		// Fields that are always there: shape and length (Valibot). Conditional fields and rules that
+		// need the user or the database are checked below with the same field schemas.
+		const parsed = parseForm(NewCompetitionSchema, input);
+		const errors: Errors = parsed.ok ? {} : parsed.errors;
+		if (errors.customTrack) {
+			errors.tracks = errors.customTrack;
+			delete errors.customTrack;
+		}
 
 		const name = str('name');
 		const slugInput = slugify(str('slug'));
@@ -77,18 +105,12 @@ export const actions = {
 		const location = str('location');
 		const hqPhone = str('hqPhone');
 		const ownerNo = str('owner');
-		const styleEnabled = f.get('styleEnabled') === 'on';
-		const publicResults = f.get('publicResults') === 'on';
-		const registrationOpen = f.get('registrationOpen') === 'on';
-		const stationCount = Number(str('stations') || '0');
-		const presetTracks = f
-			.getAll('track')
-			.map(String)
-			.filter((t) => PRESET_TRACKS.includes(t));
-		const customTracks = f
-			.getAll('customTrack')
-			.map((t) => String(t).trim())
-			.filter(Boolean);
+		const styleEnabled = parsed.ok && parsed.data.styleEnabled;
+		const publicResults = parsed.ok && parsed.data.publicResults;
+		const registrationOpen = parsed.ok && parsed.data.registrationOpen;
+		const stationCount = parsed.ok ? parsed.data.stations : 0;
+		const presetTracks = (input.track as string[]).filter((t) => PRESET_TRACKS.includes(t));
+		const customTracks = (input.customTrack as string[]).map((t) => t.trim()).filter(Boolean);
 		const tracks = [...new Set([...presetTracks, ...customTracks])];
 
 		// Part of a series? 'single' (one-off), 'new' (create a series with this as its first year) or
@@ -114,7 +136,7 @@ export const actions = {
 			styleEnabled,
 			publicResults,
 			registrationOpen,
-			stations: stationCount,
+			stations: parsed.ok ? stationCount : Number(str('stations')) || 0,
 			tracks: presetTracks,
 			customTracks
 		};
@@ -128,42 +150,35 @@ export const actions = {
 			redirect(303, `/admin/${pick.latest.slug}/next-edition`);
 		}
 
-		if (name.length < 2) errors.name = 'Skriv ett namn på minst två tecken.';
-		else if (name.length > 80) errors.name = 'Namnet får vara högst 80 tecken.';
 		const slug = slugInput || slugify(name);
 		if (name && !slug) errors.slug = 'Adressen måste innehålla bokstäver eller siffror.';
 		else if (slugInput && isReservedSlug(slug)) errors.slug = 'Den adressen är reserverad. Välj en annan.';
 
 		if (seriesMode === 'new') {
-			if (seriesName.length < 2) errors.seriesName = 'Skriv seriens namn, minst två tecken.';
-			else if (seriesName.length > 80) errors.seriesName = 'Seriens namn får vara högst 80 tecken.';
+			const badName = checkField(seriesNameField, seriesName);
+			if (badName) errors.seriesName = badName;
 			else if (!seriesSlug) errors.seriesSlug = 'Adressen måste innehålla bokstäver eller siffror.';
 			else if (isReservedSlug(seriesSlug)) errors.seriesSlug = 'Den adressen är reserverad. Välj en annan.';
 			else if (await slugTaken(seriesSlug)) errors.seriesSlug = `Adressen ${publicHost(event.url)}/${seriesSlug} är upptagen av en annan serie eller tävling.`;
 			else if (slugInput && slugInput === seriesSlug) errors.slug = 'Tävlingen och serien kan inte ha samma adress.';
 		}
 
-		if (!ISO.test(startDate)) errors[multiDay ? 'startDate' : 'date'] = 'Välj ett datum.';
+		const startOk = !checkField(isoDate(), startDate);
+		if (!startOk) errors[multiDay ? 'startDate' : 'date'] = 'Välj ett datum.';
 		if (multiDay) {
-			if (!ISO.test(endDate)) errors.endDate = 'Välj sista dagen.';
-			else if (ISO.test(startDate) && endDate <= startDate) errors.endDate = 'Sista dagen måste vara efter första dagen.';
-			else if (ISO.test(startDate) && daysBetween(startDate, endDate).at(-1)?.date !== endDate) errors.endDate = 'En tävling kan vara högst 14 dagar.';
+			const badEnd = checkField(isoDate('Välj sista dagen.'), endDate);
+			if (badEnd) errors.endDate = badEnd;
+			else if (startOk && endDate <= startDate) errors.endDate = 'Sista dagen måste vara efter första dagen.';
+			else if (startOk && daysBetween(startDate, endDate).at(-1)?.date !== endDate) errors.endDate = 'En tävling kan vara högst 14 dagar.';
 		}
 
 		const group = user.groups.find((g) => g.groupNo === ownerNo);
 		if (!group) errors.owner = 'Välj vilken kår eller vilket distrikt som äger tävlingen.';
-		if (tracks.length === 0) errors.tracks = 'Välj minst en klass.';
-		if (customTracks.some((t) => t.length > 40)) errors.tracks = 'Ett klassnamn får vara högst 40 tecken.';
-		if (!Number.isInteger(stationCount) || stationCount < 0 || stationCount > 60) errors.stations = 'Antal kontroller: 0–60.';
-		if (hqPhone.length > 30) errors.hqPhone = 'Telefonnumret är för långt.';
+		if (tracks.length === 0) errors.tracks ??= 'Välj minst en klass.';
 
 		// Days + prefixes (multi-day only).
 		const days =
-			multiDay && !errors.startDate && !errors.endDate
-				? daysBetween(startDate, endDate)
-				: ISO.test(startDate)
-					? [{ date: startDate, name: '', prefix: 'K' }]
-					: [];
+			multiDay && !errors.startDate && !errors.endDate ? daysBetween(startDate, endDate) : startOk ? [{ date: startDate, name: '', prefix: 'K' }] : [];
 		if (multiDay) {
 			const seen = new Set<string>();
 			for (const d of days) {
@@ -171,7 +186,8 @@ export const actions = {
 					String(f.get(`prefix_${d.date}`) ?? d.prefix)
 						.trim()
 						.toUpperCase() || d.prefix;
-				if (!/^[A-ZÅÄÖ]{1,3}$/.test(p)) errors[`prefix_${d.date}`] = 'Prefix: 1–3 bokstäver.';
+				const badPrefix = checkField(dayPrefix, p);
+				if (badPrefix) errors[`prefix_${d.date}`] = badPrefix;
 				else if (seen.has(p)) errors[`prefix_${d.date}`] = 'Prefixet används redan av en annan dag.';
 				seen.add(p);
 				d.prefix = p;
@@ -192,7 +208,7 @@ export const actions = {
 		// Unique slug: a typed one must be free; a generated one gets -2, -3 …
 		// A generated slug equal to the new series' slug becomes "<serie>-<år>" (GökOpen → gokopen-2027).
 		const editionYear = Number(startDate.slice(0, 4));
-		const base = !slugInput && seriesMode === 'new' && slug === seriesSlug ? `${seriesSlug}-${editionYear}` : slug;
+		const base = !slugInput && seriesMode === 'new' ? editionSlug(slug, seriesSlug, editionYear) : slug;
 		let finalSlug = base;
 		for (let i = 2; ; i++) {
 			// Series pages share /t/<slug>, so a series slug is taken too.
@@ -210,9 +226,9 @@ export const actions = {
 							.values({ slug: seriesSlug, name: seriesName, ownerGroupNo: group!.groupNo, ownerGroupName: group!.name, createdBy: user.id })
 							.returning({ id: schema.series.id })
 					: [];
-			const [comp] = await tx
-				.insert(schema.competition)
-				.values({
+			const comp = await insertCompetition(
+				tx,
+				{
 					slug: finalSlug,
 					name,
 					ownerGroupNo: group!.groupNo,
@@ -226,13 +242,11 @@ export const actions = {
 					publicResults,
 					registrationOpen,
 					status: 'draft',
-					patrolCodeKey: randomToken(24),
-					createdBy: user.id,
 					editionYear,
 					seriesId: series?.id ?? null
-				})
-				.returning();
-			await tx.insert(schema.competitionMember).values({ competitionId: comp.id, userId: user.id, role: 'owner' });
+				},
+				user.id
+			);
 			const dayRows = multiDay
 				? await tx
 						.insert(schema.day)
@@ -265,9 +279,7 @@ export const actions = {
 					.insert(schema.scoreItem)
 					.values(
 						stations.map((s, i) =>
-							defs[i].checkpoint
-								? { stationId: s.id, sort: 1, name: s.name, mode: 'CHECKIN' as const, min: 0, max: 0, styleEnabled: false, countsForTiebreak: false }
-								: { stationId: s.id, sort: 1, name: s.name, mode: 'RANGE' as const, min: 0, max: 20, styleEnabled: true, countsForTiebreak: true }
+							defs[i].checkpoint ? { stationId: s.id, sort: 1, name: s.name, ...CHECKPOINT_ITEM } : { stationId: s.id, sort: 1, name: s.name, ...DEFAULT_ITEM }
 						)
 					);
 			}

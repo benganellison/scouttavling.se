@@ -1,14 +1,14 @@
 <script lang="ts">
+	import { itemRule } from '#lib/ui/admin/format.ts';
 	import { onMount as onMountSw } from 'svelte';
 	import { registerFieldServiceWorker } from '#lib/field/registerSw.ts';
 	onMountSw(registerFieldServiceWorker);
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { distinctList } from '@scouttavling/domain';
+	import { scorableItems } from '@scouttavling/domain';
 	import ScouternaSymbol from '#lib/ui/brand/ScouternaSymbol.svelte';
 	import Icon from '#lib/field/ui/Icon.svelte';
-	import { generateDeviceKey } from '#lib/field/protocol.ts';
-	import { storeJoin } from '#lib/field/app.svelte.ts';
+	import { joinDevice } from '#lib/field/join.ts';
 
 	let { data } = $props();
 	const inv = $derived(data.invite);
@@ -17,15 +17,12 @@
 	let busy = $state(false);
 	let err = $state<string | null>(null);
 
-	const scored = $derived((inv?.items ?? []).filter((i) => i.mode === 'RANGE' || i.mode === 'DISTINCT' || i.mode === 'COUNT'));
+	const scored = $derived(scorableItems(inv?.items ?? []));
 	const pointsText = $derived.by(() => {
 		if (!inv?.items.length) return '–';
 		if (!scored.length) return 'Incheckning';
 		if (scored.length > 1) return `${scored.length} moment`;
-		const it = scored[0];
-		if (it.mode === 'DISTINCT') return distinctList(it).join('/');
-		if (it.mode === 'COUNT') return `${it.min}–${it.max} × ${it.countMultiplier ?? 1}`;
-		return `${it.min}–${it.max}`;
+		return itemRule(scored[0]);
 	});
 	const styleText = $derived.by(() => {
 		const st = scored.filter((i) => i.styleEnabled);
@@ -38,26 +35,7 @@
 		busy = true;
 		err = null;
 		try {
-			if (!crypto?.subtle) throw new Error('Webbläsaren saknar stöd för säker inloggning. Använd en nyare webbläsare.');
-			const key = await generateDeviceKey();
-			const res = await fetch('/api/v1/join', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ secret: page.params.secret, displayName: name.trim(), publicJwk: key.publicJwk })
-			});
-			const out = await res.json().catch(() => ({}));
-			if (!res.ok) throw new Error(out.message ?? 'Det gick inte att gå med');
-			await storeJoin({
-				slug: out.slug,
-				grant: out.grant,
-				deviceId: out.deviceId,
-				privateKey: key.privateKey,
-				publicJwk: key.publicJwk,
-				displayName: out.displayName,
-				role: out.role,
-				stations: out.stations,
-				exp: out.exp
-			});
+			const out = await joinDevice(page.params.secret!, name.trim());
 			await goto(out.role === 'startfinish' ? `/f/${out.slug}/desk` : `/f/${out.slug}`, { replace: true });
 		} catch (e2) {
 			err = e2 instanceof TypeError ? 'Ingen täckning. Du behöver internet en gång för att gå med.' : e2 instanceof Error ? e2.message : String(e2);

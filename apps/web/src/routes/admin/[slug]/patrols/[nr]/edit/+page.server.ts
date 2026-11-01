@@ -3,7 +3,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { recordChange } from '#lib/server/changes.ts';
 import { db, schema } from '#lib/server/db/index.ts';
-import { loadTracks } from '../../../print/prep.server.ts';
+import { loadTracks } from '#lib/server/prep.ts';
 import { savePatrol } from '../../patrolForm.server.ts';
 
 async function findPatrol(competitionId: string, nr: string) {

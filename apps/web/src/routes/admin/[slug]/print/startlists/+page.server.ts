@@ -1,5 +1,5 @@
 import { requireCompetition } from '#lib/server/auth.ts';
-import { loadPatrols, loadStations, loadTracks } from '../prep.server.ts';
+import { loadPatrols, loadStations, loadTracks } from '#lib/server/prep.ts';
 
 export async function load(event) {
 	const { comp } = await requireCompetition(event, event.params.slug);

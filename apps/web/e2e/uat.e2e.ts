@@ -11,7 +11,8 @@
  * All data is invented.
  */
 import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { watchConsole } from './support.ts';
 import { SLUG, clearScores, createInvite, scoresFor, setStatus, sql, statusOf } from './field-db.ts';
 
 const BASE = 'http://localhost:5210';
@@ -41,6 +42,13 @@ async function actor(browser: Browser, name: string, viewport: { width: number; 
 	open.push(ctx);
 	return { ctx, page: await ctx.newPage() };
 }
+
+// Browser console warnings/errors from every page in the UAT: written to e2e/uat/console.json.
+let consoleLog: ReturnType<typeof watchConsole> | null = null;
+test.beforeEach(async ({ browser }, info) => {
+	consoleLog ??= watchConsole(browser);
+	consoleLog.setTest(info.titlePath.slice(1).join(' › '));
+});
 
 test.afterEach(async ({}, info) => {
 	if (info.status !== info.expectedStatus) {
@@ -98,6 +106,16 @@ async function backHome(p: Page) {
 
 test.afterAll(async () => {
 	await sql.end();
+	// Expected: the offline scenario makes the browser log its failed sync requests.
+	const expected = (e: { text: string }) => /net::ERR_INTERNET_DISCONNECTED/.test(e.text);
+	const entries = (consoleLog?.entries ?? []).map((e) => ({ ...e, expected: expected(e) }));
+	mkdirSync('e2e/uat', { recursive: true });
+	writeFileSync('e2e/uat/console.json', JSON.stringify(entries, null, 2));
+	const unexpected = entries.filter((e) => !e.expected);
+	console.log(
+		`[uat] browser console: ${unexpected.length} unexpected warning(s)/error(s), ${entries.length - unexpected.length} expected (e2e/uat/console.json)`
+	);
+	for (const e of unexpected) console.log(`  [${e.type}] ${e.test}: ${e.text.slice(0, 200)} (${e.url})`);
 });
 
 // ---------------------------------------------------------------- 1

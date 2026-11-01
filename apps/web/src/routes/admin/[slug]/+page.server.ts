@@ -1,11 +1,12 @@
 import { fail } from '@sveltejs/kit';
 import { and, asc, eq, isNotNull, sql } from 'drizzle-orm';
-import { stationCodes } from '@scouttavling/domain';
+import { codeInput, isCheckpointOnly, stationCodes } from '@scouttavling/domain';
 import { db, schema } from '#lib/server/db/index.ts';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { recordChange } from '#lib/server/changes.ts';
 import { personalDataLeft } from '#lib/server/anonymise.ts';
 import { editionYearOf, stripYear } from '#lib/server/series.ts';
+import { stationsOf } from '#lib/server/queries.ts';
 
 export async function load(event) {
 	const { comp, user, roles } = await requireCompetition(event, event.params.slug);
@@ -20,7 +21,7 @@ export async function load(event) {
 			.from(schema.member)
 			.innerJoin(schema.patrol, eq(schema.patrol.id, schema.member.patrolId))
 			.where(eq(schema.patrol.competitionId, cid)),
-		db.select().from(schema.station).where(eq(schema.station.competitionId, cid)).orderBy(asc(schema.station.sort)),
+		stationsOf(cid),
 		db
 			.select({ stationId: schema.scoreItem.stationId, mode: schema.scoreItem.mode })
 			.from(schema.scoreItem)
@@ -35,13 +36,13 @@ export async function load(event) {
 	]);
 
 	const codes = stationCodes(
-		stations.map((s) => ({ id: s.id, dayId: s.dayId, order: s.sort, name: s.name, customCode: s.customCode, role: s.role })),
+		stations.map(codeInput),
 		days.map((d) => ({ id: d.id, prefix: d.prefix }))
 	);
 	const invitedSet = new Set(invited.map((i) => i.stationId));
 	const withoutInvite = stations.filter((s) => !invitedSet.has(s.id));
 	const itemStations = new Set(items.map((i) => i.stationId));
-	const checkpoints = new Set(items.filter((i) => i.mode === 'CHECKIN').map((i) => i.stationId)).size;
+	const checkpoints = stations.filter((s) => isCheckpointOnly(items.filter((i) => i.stationId === s.id))).length;
 
 	// After the competition: the personal-data reminder and "Skapa <serie> <år+1>".
 	// Only owners may remove personal data; organisers see who to ask instead.

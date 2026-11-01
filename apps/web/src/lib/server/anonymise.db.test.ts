@@ -16,7 +16,7 @@ vi.mock('$app/env', () => ({ dev: true }));
 describe.skipIf(!ok)('anonymiseCompetition (database)', async () => {
 	const { db, schema } = await import('./db/index.ts');
 	const { anonymiseCompetition, personalDataLeft, archivedLinkTarget } = await import('./anonymise.ts');
-	const { computeResults, loadResultsInput } = await import('./live.ts');
+	const { computeResults, loadResultsInput } = await import('./results.ts');
 	const { eq, inArray } = await import('drizzle-orm');
 	const { createHash, randomBytes } = await import('node:crypto');
 	const sha = (t: string) => createHash('sha256').update(t).digest('base64url');

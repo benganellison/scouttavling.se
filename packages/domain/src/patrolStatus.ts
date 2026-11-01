@@ -56,6 +56,34 @@ export function statusAfterUndo(f: {
 	return f.remaining.length ? 'active' : 'registered';
 }
 
+/**
+ * The start & finish desk: what scanning a patrol pass does. Anmäld → På banan → I mål. On a
+ * competition day that is not the last one, På banan → I läger instead, and the next morning
+ * I läger → På banan; a second scan the same evening leaves the patrol in camp. Dates are
+ * YYYY-MM-DD in competition time (Europe/Stockholm). null = nothing to change.
+ */
+export function deskScanNext(f: {
+	current: PatrolStatusValue;
+	today: string;
+	startDate: string;
+	endDate: string;
+	/** The date the patrol went to camp, if it is in camp. */
+	campDate: string | null;
+}): PatrolStatusValue | null {
+	const earlierDay = f.startDate < f.endDate && f.today >= f.startDate && f.today < f.endDate;
+	switch (f.current) {
+		case 'registered':
+			return 'active';
+		case 'active':
+			return earlierDay ? 'camp' : 'finished';
+		case 'camp':
+			return f.campDate && f.campDate < f.today ? 'active' : null;
+		case 'finished':
+		case 'resigned':
+			return null;
+	}
+}
+
 /** The status the patrol should move to, or null to leave it as it is. */
 export function nextPatrolStatus(f: StatusFacts): PatrolStatusValue | null {
 	if (f.current === 'resigned' || f.current === 'finished') return null;

@@ -2,7 +2,7 @@ import { loadBranding } from '#lib/server/assets.ts';
 import { selectableValues, styleValues } from '@scouttavling/domain';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { itemDef } from '#lib/server/scores.ts';
-import { arrivalOrder, loadPatrols, loadStations, loadTracks, scoredItems, stationDoesTrack } from '../prep.server.ts';
+import { arrivalOrder, loadPatrols, loadStations, loadTracks, scoredItems, stationDoesTrack } from '#lib/server/prep.ts';
 
 const ROWS_PER_PAGE = 16;
 

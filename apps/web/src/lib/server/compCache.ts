@@ -1,4 +1,4 @@
-import { latestSeq } from './live.ts';
+import { latestSeq } from './changes.ts';
 
 /**
  * Per-competition cache for data many visitors read (follow pages, public statistics): reused while

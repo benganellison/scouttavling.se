@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { refuseIfDraft, refuseIfSuspended } from '#lib/server/suspended.ts';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
-import { getResults, publicTracks, showStationResults } from '#lib/server/live.ts';
+import { getResults, publicTracks, showStationResults } from '#lib/server/results.ts';
 import { loadBranding, loadTrackColors } from '#lib/server/assets.ts';
 
 /** Public, phone-first results. Only when publicResults; no personal data (patrol name + kår). */

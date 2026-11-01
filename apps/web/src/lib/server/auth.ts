@@ -156,7 +156,16 @@ export async function activeAccess(userId: string, competitionId: string): Promi
  * competition_member rows, and, for a site admin, an active temporary access (role with expiry,
  * see #lib/server/siteAdmin.ts). A site admin without one is treated like anyone else (403).
  */
-export async function requireCompetition(event: RequestEvent, slug: string, roles: CompetitionRole[] = ['owner', 'organiser', 'hq']) {
+/**
+ * `readOnly`: the caller only reads (a layout load, which also re-runs after a POST to any page
+ * below it, e.g. the next-edition form of an archived edition), so write-only refusals don't apply.
+ */
+export async function requireCompetition(
+	event: RequestEvent,
+	slug: string,
+	roles: CompetitionRole[] = ['owner', 'organiser', 'hq'],
+	opts: { readOnly?: boolean } = {}
+) {
 	const user = requireUser(event);
 	const [comp] = await db.select().from(schema.competition).where(eq(schema.competition.slug, slug)).limit(1);
 	if (!comp) error(404, 'Tävlingen finns inte');
@@ -171,14 +180,12 @@ export async function requireCompetition(event: RequestEvent, slug: string, role
 		if (access) mine = [...new Set([...mine, access.role])];
 	}
 	if (!mine.some((r) => roles.includes(r))) error(403, 'Du har inte behörighet till den här tävlingen');
-	const write = event.request.method !== 'GET' && event.request.method !== 'HEAD';
+	const write = !opts.readOnly && event.request.method !== 'GET' && event.request.method !== 'HEAD';
 	// A competition suspended by a site admin can be looked at, never changed.
 	if (comp.suspendedAt && write) error(423, 'Tävlingen är tillfälligt avstängd av plattformsadministratören och kan inte ändras.');
-	// An archived (anonymised) edition is read-only: no write of any kind goes through.
-	// Exception: the next-edition form only *reads* this edition to create a new one, and its
-	// POST re-runs the [slug] layout load (e.g. after a validation error).
-	const createsNextEdition = event.route.id === '/admin/[slug]/next-edition';
-	if (comp.anonymisedAt && !createsNextEdition && write) {
+	// An archived (anonymised) edition is read-only: no write of any kind goes through. (The
+	// next-edition form only reads it: requireNextEditionSource, and the layout passes readOnly.)
+	if (comp.anonymisedAt && write) {
 		error(409, 'Tävlingen är arkiverad och kan inte ändras');
 	}
 	return { user, comp, roles: mine, access };

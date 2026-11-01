@@ -1,5 +1,6 @@
 import { requireCompetition } from '#lib/server/auth.ts';
-import { formatTime, getResults, type TrackResults } from '#lib/server/live.ts';
+import { formatTime } from '#lib/time.ts';
+import { getResults, type TrackResults } from '#lib/server/results.ts';
 import { loadBranding, loadTrackColors } from '#lib/server/assets.ts';
 
 /** Frozen ceremony snapshots per competition + class; `?fresh=1` takes a new one. */

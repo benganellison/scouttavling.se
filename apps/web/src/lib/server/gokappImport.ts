@@ -8,7 +8,6 @@
  * (FIELDS below is the complete list, for every gokapp version; a unit test checks it). The edition is created already
  * archived (`anonymised_at` set), so it is read-only and public in the series archive.
  */
-import { randomBytes } from 'node:crypto';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { and, eq } from 'drizzle-orm';
 import type postgres from 'postgres';
@@ -29,7 +28,8 @@ import {
 	type ScoreItemDef
 } from '@scouttavling/domain';
 import * as schema from './db/schema.ts';
-import { isReservedSlug } from '../routing/slugs.ts';
+import { isReservedSlug, slugify } from '../routing/slugs.ts';
+import { insertCompetition, slugTaken } from './competitions.ts';
 
 /**
  * What the importer may read, per table: field → the column names it has had across gokapp
@@ -235,15 +235,6 @@ export interface ImportPlan {
 	skipped: string[];
 }
 
-const slugify = (s: string) =>
-	s
-		.toLowerCase()
-		.replace(/[åä]/g, 'a')
-		.replace(/ö/g, 'o')
-		.replace(/[éè]/g, 'e')
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-|-$/g, '');
-
 interface Built {
 	items: Map<number, ScoreItemDef>;
 	trackOf: Map<number, number[]>;
@@ -409,9 +400,7 @@ export async function writeImport(sqlClient: postgres.Sql, data: GokappData, opt
 		}
 		const { plan: p, built } = plan(data, { ...opts, seriesName: series.name });
 		if (!p.date || !/^\d{4}-\d{2}-\d{2}$/.test(p.date)) throw new Error('Inget datum: ange --date ÅÅÅÅ-MM-DD.');
-		const [slugTaken] = await tx.select({ id: schema.competition.id }).from(schema.competition).where(eq(schema.competition.slug, p.slug)).limit(1);
-		const [seriesSlug] = await tx.select({ id: schema.series.id }).from(schema.series).where(eq(schema.series.slug, p.slug)).limit(1);
-		if (slugTaken || seriesSlug || isReservedSlug(p.slug)) throw new Error(`Adressen ${p.slug} är upptagen eller reserverad. Välj en annan med --slug.`);
+		if (await slugTaken(tx, p.slug)) throw new Error(`Adressen ${p.slug} är upptagen eller reserverad. Välj en annan med --slug.`);
 		const [sameYear] = await tx
 			.select({ slug: schema.competition.slug })
 			.from(schema.competition)
@@ -420,9 +409,9 @@ export async function writeImport(sqlClient: postgres.Sql, data: GokappData, opt
 		if (sameYear) throw new Error(`Serien har redan ett år ${opts.year} (${sameYear.slug}).`);
 
 		const styleEnabled = data.stations.some((s) => s.maxstylescore > 0 && !s.waypoint);
-		const [comp] = await tx
-			.insert(schema.competition)
-			.values({
+		const comp = await insertCompetition(
+			tx,
+			{
 				slug: p.slug,
 				name: p.name,
 				ownerGroupNo: series.ownerGroupNo,
@@ -434,15 +423,13 @@ export async function writeImport(sqlClient: postgres.Sql, data: GokappData, opt
 				publicResults: true,
 				status: 'closed',
 				registrationOpen: false,
-				patrolCodeKey: randomBytes(24).toString('base64url'),
-				createdBy: owner.id,
 				seriesId: series.id,
 				editionYear: opts.year,
 				archivePublic: true,
 				anonymisedAt: new Date()
-			})
-			.returning();
-		await tx.insert(schema.competitionMember).values({ competitionId: comp.id, userId: owner.id, role: 'owner' });
+			},
+			owner.id
+		);
 
 		const trackIds = new Map<number, string>();
 		for (const [i, t] of data.tracks.entries()) {

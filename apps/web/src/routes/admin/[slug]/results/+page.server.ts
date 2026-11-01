@@ -2,11 +2,12 @@ import { eq } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { recordChange } from '#lib/server/changes.ts';
-import { getResults } from '#lib/server/live.ts';
+import { getResults } from '#lib/server/results.ts';
+import { liveKey } from '#lib/live.ts';
 
 export async function load(event) {
 	const { comp } = await requireCompetition(event, event.params.slug);
-	event.depends(`live:${comp.slug}`);
+	event.depends(liveKey(comp.slug));
 	const res = await getResults(comp);
 	const wanted = event.url.searchParams.get('class');
 	const current = res.tracks.find((t) => t.trackId === wanted) ?? res.tracks[0] ?? null;

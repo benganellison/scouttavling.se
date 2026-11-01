@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import { requireCompetition } from '#lib/server/auth.ts';
-import { loadTracks } from '../../print/prep.server.ts';
+import { loadTracks } from '#lib/server/prep.ts';
 import { nextPatrolNumber, savePatrol } from '../patrolForm.server.ts';
 
 export async function load(event) {

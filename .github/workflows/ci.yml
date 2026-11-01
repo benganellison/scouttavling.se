@@ -112,6 +112,7 @@ jobs:
           path: |
             apps/web/e2e/uat/*.png
             apps/web/e2e/uat/*.pdf
+            apps/web/e2e/uat/console.json
             apps/web/e2e/uat-results/
             apps/web/.uat-server.log
           retention-days: 14

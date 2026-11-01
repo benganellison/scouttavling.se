@@ -13,7 +13,7 @@ SUITES=("$@")
 [ $# -eq 0 ] && SUITES=("${ALL[@]}")
 
 started=0
-if ! PORT=$PORT scripts/dev-server.sh status | grep -q running; then PORT=$PORT scripts/dev-server.sh start || exit 1; started=1; fi
+if ! PORT=$PORT scripts/dev-server.sh status | grep -q "^running"; then PORT=$PORT scripts/dev-server.sh start || exit 1; started=1; fi
 trap '[ $started = 1 ] && PORT=$PORT scripts/dev-server.sh stop >/dev/null' EXIT
 
 failed=()

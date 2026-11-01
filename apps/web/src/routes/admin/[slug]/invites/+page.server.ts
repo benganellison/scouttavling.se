@@ -3,7 +3,7 @@ import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { recordChange } from '#lib/server/changes.ts';
 import { db, schema } from '#lib/server/db/index.ts';
-import { loadStations } from '../print/prep.server.ts';
+import { loadStations } from '#lib/server/prep.ts';
 import { activeInvites, decryptSecret, inviteUrl, publicOrigin, qrSvg, rotateInvite } from '#lib/server/invites.ts';
 
 const SF = 'startfinish';

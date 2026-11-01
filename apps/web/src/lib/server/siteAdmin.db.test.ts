@@ -28,7 +28,7 @@ describe.skipIf(!ok)('owners, site admin and audit (database)', async () => {
 	const own = await import('./ownership.ts');
 	const sa = await import('./siteAdmin.ts');
 	const auth = await import('./auth.ts');
-	const field = await import('./field.ts');
+	const field = { ...(await import('./field/join.ts')), ...(await import('./field/device.ts')) };
 	const sql = postgres(URL_!, { max: 2, onnotice: () => {} });
 
 	let compId = '';

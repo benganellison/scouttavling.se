@@ -4,8 +4,9 @@ import { requireCompetition } from '#lib/server/auth.ts';
 import { recordChange } from '#lib/server/changes.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { paidAtFor, paidAtNew } from '#lib/server/payments.ts';
-import { loadPatrols, loadTracks } from '../print/prep.server.ts';
-import { matchExisting, parseImportPayload } from './validate.ts';
+import { loadPatrols, loadTracks } from '#lib/server/prep.ts';
+import { matchAll, parseImportPayload } from './validate.ts';
+import { tracksOf } from '#lib/server/queries.ts';
 
 export async function load(event) {
 	const { comp } = await requireCompetition(event, event.params.slug);
@@ -14,7 +15,7 @@ export async function load(event) {
 		competition: { slug: comp.slug, name: comp.name },
 		tracks: tracks.map((t) => ({ id: t.id, name: t.name })),
 		// Only what the browser needs to label rows as "Ny" / "Uppdateras".
-		existing: patrols.map((p) => ({ id: p.id, name: p.name, contactMemberNo: p.contactMemberNo }))
+		existing: patrols.map((p) => ({ id: p.id, name: p.name, troop: p.troop, contactMemberNo: p.contactMemberNo }))
 	};
 }
 
@@ -29,7 +30,7 @@ export const actions = {
 		const { rows, createTracks } = parsed.payload;
 
 		const result = await db.transaction(async (tx) => {
-			const tracks = await tx.select().from(schema.track).where(eq(schema.track.competitionId, comp.id));
+			const tracks = await tracksOf(comp.id, tx);
 			const byName = new Map(tracks.map((t) => [t.name.toLowerCase(), t.id]));
 			let sort = Math.max(0, ...tracks.map((t) => t.sort));
 			const wanted = new Set(rows.map((r) => r.trackText.toLowerCase()));
@@ -51,7 +52,8 @@ export const actions = {
 			let created = 0;
 			let updated = 0;
 			const touched: string[] = [];
-			for (const r of rows) {
+			const hits = matchAll(rows, existing);
+			for (const [i, r] of rows.entries()) {
 				const trackId = r.trackText ? (byName.get(r.trackText.toLowerCase()) ?? null) : null;
 				const fields = {
 					name: r.patrolName,
@@ -61,13 +63,12 @@ export const actions = {
 					contactEmail: r.contactEmail ? r.contactEmail.toLowerCase() : null,
 					contactMemberNo: r.contactMemberNo || null
 				};
-				// Only patrols that existed before this import, each matched at most once: a file with
-				// two "Vargarna" must not turn into one patrol overwritten by the second row.
-				const hit = matchExisting(r, existing);
+				// Only patrols that existed before this import, each matched at most once (matchAll): a file
+				// with two "Vargarna" must not turn into one patrol overwritten by the second row.
+				const hit = hits[i];
 				let id: string;
 				if (hit) {
 					id = hit.id;
-					existing.splice(existing.indexOf(hit), 1);
 					// An update never erases what the file does not say: no payment column keeps "Betald",
 					// an empty or unknown class keeps the patrol's class.
 					await tx

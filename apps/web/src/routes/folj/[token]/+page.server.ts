@@ -5,7 +5,9 @@ import { archivedLinkTarget } from '#lib/server/anonymise.ts';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
 import { NO_STORE, missLimiter, patrolByFollowToken } from '#lib/server/registration.ts';
-import { formatTime, getResults, loadStations, stationAppliesTo } from '#lib/server/live.ts';
+import { formatTime } from '#lib/time.ts';
+import { getResults } from '#lib/server/results.ts';
+import { loadStations, stationAppliesTo } from '#lib/server/queries.ts';
 import { cachedForCompetition } from '#lib/server/compCache.ts';
 
 /**

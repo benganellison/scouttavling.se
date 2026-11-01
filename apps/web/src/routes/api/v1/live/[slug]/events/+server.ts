@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { requireCompetition } from '#lib/server/auth.ts';
-import { cursorFrom, frame, sseResponse } from '#lib/server/live.ts';
+import { cursorFrom, frame, sseResponse } from '#lib/server/sse.ts';
 
 /**
  * Organiser change feed (SSE). Streams change_log rows after the cursor

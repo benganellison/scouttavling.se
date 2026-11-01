@@ -20,6 +20,23 @@ export interface CodeStation {
 
 export type StationRole = 'start' | 'finish';
 
+/** A stored station as stationCodes input (the one mapping from a station row). */
+export const codeInput = (s: {
+	id: string;
+	dayId: string | null;
+	sort: number;
+	name: string;
+	customCode?: string | null;
+	role?: StationRole | null;
+}): CodeStation => ({
+	id: s.id,
+	dayId: s.dayId,
+	order: s.sort,
+	name: s.name,
+	customCode: s.customCode,
+	role: s.role
+});
+
 /** Fallback when no explicit role is set: "… start" → start, "… mål" → finish (case-insensitive). */
 export function roleFromName(name: string): StationRole | null {
 	const n = name.trim().toLowerCase();

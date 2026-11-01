@@ -8,7 +8,7 @@
 	import StationBreakdown from '#lib/ui/live/StationBreakdown.svelte';
 	import { LiveStream } from '#lib/ui/live/liveStore.svelte.ts';
 	import { RULE_TEXT } from '#lib/ui/live/format.ts';
-	import type { PublicTrack } from '#lib/server/live.ts';
+	import type { PublicTrack } from '#lib/server/results.ts';
 
 	let { data } = $props();
 

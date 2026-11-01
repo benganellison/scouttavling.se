@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nextPatrolStatus, statusAfterUndo, type StatusFacts } from './index.ts';
+import { deskScanNext, nextPatrolStatus, statusAfterUndo, type StatusFacts } from './index.ts';
 
 // Two-day hajk: day 0 = Fredag (FS F1 F2 FM), day 1 = Lördag (LS L1 L2 LM).
 const f = (o: Partial<StatusFacts>): StatusFacts => ({ current: 'active', finishTrigger: false, stationDay: 0, dayCount: 2, campDay: null, ...o });
@@ -80,5 +80,25 @@ describe('statusAfterUndo', () => {
 		expect(statusAfterUndo({ current: 'finished', undone: plain, remaining: [] })).toBeNull();
 		expect(statusAfterUndo({ current: 'resigned', undone: fin, remaining: [] })).toBeNull();
 		expect(statusAfterUndo({ current: 'active', undone: fin, remaining: [] })).toBeNull();
+	});
+});
+
+describe('deskScanNext', () => {
+	const hajk = { startDate: '2027-05-14', endDate: '2027-05-16' };
+	it('starts a registered patrol', () => {
+		expect(deskScanNext({ current: 'registered', today: '2027-05-15', campDate: null, ...hajk })).toBe('active');
+	});
+	it('sends an active patrol to camp on an earlier day and to I mål on the last day', () => {
+		expect(deskScanNext({ current: 'active', today: '2027-05-14', campDate: null, ...hajk })).toBe('camp');
+		expect(deskScanNext({ current: 'active', today: '2027-05-16', campDate: null, ...hajk })).toBe('finished');
+		expect(deskScanNext({ current: 'active', today: '2027-05-15', campDate: null, startDate: '2027-05-15', endDate: '2027-05-15' })).toBe('finished');
+	});
+	it('takes a camping patrol back out the next morning, not the same evening', () => {
+		expect(deskScanNext({ current: 'camp', today: '2027-05-15', campDate: '2027-05-14', ...hajk })).toBe('active');
+		expect(deskScanNext({ current: 'camp', today: '2027-05-14', campDate: '2027-05-14', ...hajk })).toBeNull();
+	});
+	it('never changes I mål or Återbud', () => {
+		expect(deskScanNext({ current: 'finished', today: '2027-05-16', campDate: null, ...hajk })).toBeNull();
+		expect(deskScanNext({ current: 'resigned', today: '2027-05-15', campDate: null, ...hajk })).toBeNull();
 	});
 });

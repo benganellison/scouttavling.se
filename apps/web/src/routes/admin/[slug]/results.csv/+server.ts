@@ -1,5 +1,5 @@
 import { requireCompetition } from '#lib/server/auth.ts';
-import { getResults } from '#lib/server/live.ts';
+import { getResults } from '#lib/server/results.ts';
 
 const cell = (v: string | number) => {
 	const s = String(v);

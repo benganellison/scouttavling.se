@@ -1,5 +1,5 @@
 import { requireCompetition } from '#lib/server/auth.ts';
-import { loadPatrols, loadStations } from './prep.server.ts';
+import { loadPatrols, loadStations } from '#lib/server/prep.ts';
 import { activeInvites } from '#lib/server/invites.ts';
 
 export async function load(event) {

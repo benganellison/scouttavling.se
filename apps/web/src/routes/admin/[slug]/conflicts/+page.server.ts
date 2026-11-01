@@ -1,18 +1,19 @@
-import { fail } from '@sveltejs/kit';
+import { fail, type RequestEvent } from '@sveltejs/kit';
+import { resolveConflict } from '#lib/server/conflicts.ts';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { requireCompetition } from '#lib/server/auth.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import type { ConflictExisting, ConflictIncoming } from '#lib/server/db/schema.ts';
-import { recordChange } from '#lib/server/changes.ts';
-import { voidScore, writeScore } from '#lib/server/scores.ts';
-import { formatTime, loadStations } from '#lib/server/live.ts';
+import { formatTime } from '#lib/time.ts';
+import { loadStations } from '#lib/server/queries.ts';
+import { liveKey } from '#lib/live.ts';
 
 /** One side as shown: the stored conflict side plus its author. */
 type Side = ConflictIncoming & Omit<ConflictExisting, 'state'> & { state?: string };
 
 export async function load(event) {
 	const { comp } = await requireCompetition(event, event.params.slug);
-	event.depends(`live:${comp.slug}`);
+	event.depends(liveKey(comp.slug));
 	const [rows, stations, devices] = await Promise.all([
 		db
 			.select({ c: schema.scoreConflict, patrolNumber: schema.patrol.number, patrolName: schema.patrol.name })
@@ -98,57 +99,14 @@ export async function load(event) {
 	};
 }
 
-async function openConflict(competitionId: string, id: string) {
-	const [c] = await db
-		.select()
-		.from(schema.scoreConflict)
-		.where(and(eq(schema.scoreConflict.id, id), eq(schema.scoreConflict.competitionId, competitionId), eq(schema.scoreConflict.status, 'open')))
-		.limit(1);
-	return c ?? null;
-}
-
-async function markResolved(competitionId: string, id: string) {
-	await db.transaction(async (tx) => {
-		await tx.update(schema.scoreConflict).set({ status: 'resolved' }).where(eq(schema.scoreConflict.id, id));
-		await recordChange(tx, competitionId, 'conflict', id);
-	});
-}
-
 export const actions = {
-	keep: async (event) => {
-		const { comp } = await requireCompetition(event, event.params.slug);
-		const id = String((await event.request.formData()).get('id') ?? '');
-		const c = await openConflict(comp.id, id);
-		if (!c) return fail(404, { message: 'Konflikten är redan löst' });
-		await markResolved(comp.id, id);
-		return { message: 'Befintlig poäng behölls.' };
-	},
-	useNew: async (event) => {
-		const { comp, user } = await requireCompetition(event, event.params.slug);
-		const id = String((await event.request.formData()).get('id') ?? '');
-		const c = await openConflict(comp.id, id);
-		if (!c) return fail(404, { message: 'Konflikten är redan löst' });
-		const inc = c.incoming;
-		const base = {
-			competitionId: comp.id,
-			patrolId: c.patrolId,
-			itemId: c.itemId,
-			baseVersion: null,
-			origin: 'admin' as const,
-			userId: user.id,
-			deviceId: null,
-			force: true
-		};
-		// A quarantined undo ("Ångra" on the phone) carries no points: using it means removing the score.
-		if (inc.type === 'VoidScore') {
-			await voidScore({ ...base, reason: 'Konflikt löst: ångringen från kontrollen används' });
-			await markResolved(comp.id, id);
-			return { message: 'Poängen är borttagen, som funktionären ångrade.' };
-		}
-		const raw = inc.raw ?? { value: inc.points ?? 0, style: inc.stylePoints ?? null };
-		const res = await writeScore({ ...base, raw, reason: 'Konflikt löst: ny rapport används' });
-		if (res.result === 'rejected') return fail(400, { message: `Kunde inte spara: ${res.reason}` });
-		await markResolved(comp.id, id);
-		return { message: 'Den nya poängen används.' };
-	}
+	keep: (event) => resolve(event, 'keep'),
+	useNew: (event) => resolve(event, 'useNew')
 };
+
+async function resolve(event: RequestEvent<{ slug: string }>, choice: 'keep' | 'useNew') {
+	const { comp, user } = await requireCompetition(event, event.params.slug);
+	const id = String((await event.request.formData()).get('id') ?? '');
+	const r = await resolveConflict(comp.id, id, choice, user.id);
+	return r.ok ? { message: r.message } : fail(r.status, { message: r.message });
+}

@@ -1,4 +1,4 @@
-import { loadPem } from './field.ts';
+import { loadPem } from './field/keys.ts';
 
 /**
  * AES-256-GCM key for values the app must be able to show again (invite QR secrets, follow links).

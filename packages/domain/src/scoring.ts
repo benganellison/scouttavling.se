@@ -2,7 +2,42 @@
  * How a single score item is reported. A station has one or more items; a
  * "kontrollgrupp" such as Mål is simply a station with several items.
  */
-export type ItemMode = 'RANGE' | 'DISTINCT' | 'COUNT' | 'CHECKIN' | 'AUTO_ON_SCAN';
+export const ITEM_MODES = ['RANGE', 'DISTINCT', 'COUNT', 'CHECKIN', 'AUTO_ON_SCAN'] as const;
+export type ItemMode = (typeof ITEM_MODES)[number];
+
+export interface ModeTraits {
+	/** The volunteer enters a value (points or a count). */
+	takesValue: boolean;
+	/** min–max bound the value (RANGE: points, COUNT: the counted quantity). */
+	usesRange: boolean;
+	/** Only the listed point values are allowed. */
+	usesDistinct: boolean;
+	/** points = count × multiplier. */
+	usesMultiplier: boolean;
+	/** A check-in: no points, marks that the patrol was there (start, lunch, finish). */
+	checkpoint: boolean;
+}
+
+/**
+ * What each mode means, in one place. A new mode is added here, in the switches below (the compiler
+ * lists them), in itemRule/MODE_LABEL (#lib/ui/admin/format.ts) and in the field app's input control.
+ */
+export const MODE_TRAITS: Record<ItemMode, ModeTraits> = {
+	RANGE: { takesValue: true, usesRange: true, usesDistinct: false, usesMultiplier: false, checkpoint: false },
+	DISTINCT: { takesValue: true, usesRange: false, usesDistinct: true, usesMultiplier: false, checkpoint: false },
+	COUNT: { takesValue: true, usesRange: true, usesDistinct: false, usesMultiplier: true, checkpoint: false },
+	CHECKIN: { takesValue: false, usesRange: false, usesDistinct: false, usesMultiplier: false, checkpoint: true },
+	AUTO_ON_SCAN: { takesValue: false, usesRange: false, usesDistinct: false, usesMultiplier: false, checkpoint: true }
+};
+
+/** The volunteer enters a value for this item (RANGE, DISTINCT, COUNT). */
+export const isScorable = (mode: ItemMode) => MODE_TRAITS[mode].takesValue;
+
+/** Items the volunteer fills in, in their order (check-ins happen by themselves on save). */
+export const scorableItems = <T extends { mode: ItemMode }>(items: readonly T[]): T[] => items.filter((i) => isScorable(i.mode));
+
+/** A station with only check-ins (start, lunch, rest stop, finish): no points are given there. */
+export const isCheckpointOnly = (items: readonly { mode: ItemMode }[]) => items.length > 0 && items.every((i) => MODE_TRAITS[i.mode].checkpoint);
 
 export interface DistinctValue {
 	value: number;
@@ -53,7 +88,8 @@ export function selectableValues(item: ScoreItemDef): number[] {
 			return range(item.min, item.max);
 		case 'DISTINCT':
 			return distinctList(item);
-		default:
+		case 'CHECKIN':
+		case 'AUTO_ON_SCAN':
 			return [];
 	}
 }
@@ -112,7 +148,8 @@ export function rankOfValue(item: ScoreItemDef, points: number): number {
 			const mult = item.countMultiplier ?? 1;
 			return item.max - Math.round(points / mult);
 		}
-		default:
+		case 'CHECKIN':
+		case 'AUTO_ON_SCAN':
 			return -1;
 	}
 }
@@ -125,7 +162,8 @@ export function maxPoints(item: ScoreItemDef): number {
 			return Math.max(0, ...distinctList(item));
 		case 'COUNT':
 			return item.max * (item.countMultiplier ?? 1);
-		default:
+		case 'CHECKIN':
+		case 'AUTO_ON_SCAN':
 			return 0;
 	}
 }

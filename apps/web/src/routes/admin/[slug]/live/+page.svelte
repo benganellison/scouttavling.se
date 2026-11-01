@@ -2,16 +2,16 @@
 	import { enhance } from '$app/forms';
 	import Kpi from '#lib/ui/admin/Kpi.svelte';
 	import LiveBadge from '#lib/ui/live/LiveBadge.svelte';
-	import { LiveStream } from '#lib/ui/live/liveStore.svelte.ts';
+	import { competitionLive, LiveStream } from '#lib/ui/live/liveStore.svelte.ts';
 
 	let { data } = $props();
 
-	const live = new LiveStream(() => ({
-		url: `/api/v1/live/${data.comp.slug}/events`,
-		depends: `live:${data.comp.slug}`,
-		refreshMs: 60_000,
-		minIntervalMs: 2000
-	}));
+	const live = new LiveStream(() =>
+		competitionLive(data.comp.slug, {
+			refreshMs: 60_000,
+			minIntervalMs: 2000
+		})
+	);
 
 	const base = $derived(`/admin/${data.comp.slug}`);
 	const pct = (done: number, expected: number) => (expected ? Math.min(100, Math.round((done / expected) * 100)) : 0);

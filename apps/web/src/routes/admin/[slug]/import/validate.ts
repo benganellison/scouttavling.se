@@ -87,3 +87,19 @@ export function matchExisting<E extends { id: string; name: string; troop: strin
 	if (same.length === 1 && (!troop || !norm(same[0].troop))) return same[0];
 	return null;
 }
+
+/**
+ * The whole import's matches, in file order, each existing patrol used at most once: exactly what
+ * the commit does, so the preview's "Ny" / "Uppdateras" can never disagree with the result.
+ */
+export function matchAll<E extends { id: string; name: string; troop: string; contactMemberNo: string | null }>(
+	rows: Pick<ImportPayloadRow, 'patrolName' | 'contactMemberNo' | 'troop'>[],
+	existing: readonly E[]
+): (E | null)[] {
+	const left = [...existing];
+	return rows.map((r) => {
+		const hit = matchExisting(r, left);
+		if (hit) left.splice(left.indexOf(hit), 1);
+		return hit;
+	});
+}
