@@ -106,16 +106,11 @@ async function backHome(p: Page) {
 
 test.afterAll(async () => {
 	await sql.end();
-	// Expected: the offline scenario makes the browser log its failed sync requests.
-	const expected = (e: { text: string }) => /net::ERR_INTERNET_DISCONNECTED/.test(e.text);
-	const entries = (consoleLog?.entries ?? []).map((e) => ({ ...e, expected: expected(e) }));
+	const entries = consoleLog?.entries ?? [];
 	mkdirSync('e2e/uat', { recursive: true });
 	writeFileSync('e2e/uat/console.json', JSON.stringify(entries, null, 2));
-	const unexpected = entries.filter((e) => !e.expected);
-	console.log(
-		`[uat] browser console: ${unexpected.length} unexpected warning(s)/error(s), ${entries.length - unexpected.length} expected (e2e/uat/console.json)`
-	);
-	for (const e of unexpected) console.log(`  [${e.type}] ${e.test}: ${e.text.slice(0, 200)} (${e.url})`);
+	console.log(`[uat] browser console: ${entries.length} warning(s)/error(s) (e2e/uat/console.json)`);
+	for (const e of entries) console.log(`  [${e.type}] ${e.test}: ${e.text.slice(0, 200)} (${e.url})`);
 });
 
 // ---------------------------------------------------------------- 1

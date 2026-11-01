@@ -454,6 +454,14 @@ export class FieldApp {
 
 	async syncNow() {
 		if (!this.grant) return;
+		// The browser knows it has no network: don't try (it would only wake the radio, and the failed
+		// request is logged as an error). The 'online' event syncs at once; the regular check continues
+		// meanwhile. ("Online" is no promise of a connection, so then we try and back off as usual.)
+		if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+			this.online = false;
+			this.schedule(TICK_MS);
+			return;
+		}
 		const run = async () => {
 			this.syncing = true;
 			try {

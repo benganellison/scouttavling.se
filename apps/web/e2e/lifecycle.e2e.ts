@@ -148,8 +148,11 @@ async function join(p: Page, link: string, name: string) {
 
 async function toScan(p: Page, nr: number) {
 	const scanLink = p.getByRole('link', { name: /Skanna patrull/ });
-	if (await scanLink.isVisible().catch(() => false)) await scanLink.click();
-	await p.getByRole('tab', { name: 'Nummer' }).click();
+	const numberTab = p.getByRole('tab', { name: 'Nummer' });
+	// Home or already on the scan page: wait for one of them (checking once raced the navigation).
+	await expect(scanLink.or(numberTab).first()).toBeVisible();
+	if (await scanLink.isVisible()) await scanLink.click();
+	await numberTab.click();
 	for (const d of String(nr)) await p.getByRole('button', { name: d, exact: true }).click();
 	await p.getByRole('button', { name: new RegExp(`^${nr}`) }).click();
 	await p.getByRole('button', { name: /Ja, sätt poäng|Ändra poäng/ }).click();
