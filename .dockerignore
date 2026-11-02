@@ -10,6 +10,7 @@
 **/*.csv
 **/*.ods
 .local-data
+.deploy-state
 **/.db-backups
 .git
 docs

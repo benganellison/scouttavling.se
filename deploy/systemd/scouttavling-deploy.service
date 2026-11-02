@@ -1,0 +1,17 @@
+# Deploys a newer scouttavling release if there is one (scripts/auto-deploy.sh). Started by the timer.
+# Install: docs/dev/DEPLOY.md. Run by hand: sudo systemctl start scouttavling-deploy
+[Unit]
+Description=scouttavling: deploy a newer release (Mon–Thu)
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+WorkingDirectory=/home/deploy/app
+ExecStart=/home/deploy/app/scripts/auto-deploy.sh
+# Optional: get each deploy result as a push message (e.g. an ntfy.sh topic only you know).
+#Environment=DEPLOY_NOTIFY_URL=https://ntfy.sh/<secret-topic>
+# Backup, migrations and the app's health check can take a while; never let a deploy hang for ever.
+TimeoutStartSec=30min

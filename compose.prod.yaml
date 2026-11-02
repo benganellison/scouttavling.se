@@ -50,12 +50,15 @@ services:
       - socket
 
   app:
-    # Production runs the released image; never build on the server.
+    # Production runs the released image; never build on the server. Without `build: !reset`, the base
+    # file's build section makes `pull --ignore-buildable` skip this image and Compose builds it here.
     image: ${APP_IMAGE:?Set APP_IMAGE to a released image, e.g. ghcr.io/benganellison/scouttavling:0.1.0}
+    build: !reset null
     ports: !reset []
     environment:
       DEV_LOGIN: ""
-      # Links, QR codes and shown addresses follow the domain (must match the ORIGIN baked into the image).
+      # Links, QR codes and shown addresses follow the domain. The release image has no origin baked in:
+      # behind Traefik's TLS, SvelteKit's CSRF check uses https://<Host>, so one image serves any domain.
       ORIGIN: https://${DOMAIN:?Set DOMAIN}
       # Client address for rate limits: Traefik replaces any X-Forwarded-For a client sends with the
       # real address (verified), so the last entry is the client. Without this every request
@@ -90,6 +93,7 @@ services:
 
   migrate:
     image: ${APP_IMAGE:?Set APP_IMAGE}
+    build: !reset null
 
   # Local dumps every BACKUP_INTERVAL seconds (default 15 min), keeping BACKUP_KEEP files.
   # Copy /backups offsite (restic etc., see docs/architecture/04 §7) — a dump on the same disk is not a backup.

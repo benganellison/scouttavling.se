@@ -13,6 +13,8 @@
 .env
 .env.*
 !.env.example
+# Server: auto-deploy lock and failed-release list (scripts/auto-deploy.sh)
+.deploy-state/
 
 # Dependencies and build output
 node_modules/
