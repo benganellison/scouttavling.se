@@ -8,8 +8,8 @@
 
 	const STRATS: { k: Strategy; t: string; d: string; rec?: boolean }[] = [
 		{ k: 'BALANCED', t: 'Jämnt & smart', d: 'Jämna grupper, blandade klasser, och ingen klass startar på en kontroll den inte gör.', rec: true },
-		{ k: 'ALL', t: 'Alla tillsammans', d: 'Som Gokapp idag: alla patruller i en lång rad över kontrollerna.' },
-		{ k: 'PER_TRACK', t: 'Klass för klass', d: 'Som Gokapp idag: varje klass börjar om från första kontrollen.' }
+		{ k: 'ALL', t: 'Alla tillsammans', d: 'Som i gokapp: alla patruller i en lång rad över kontrollerna.' },
+		{ k: 'PER_TRACK', t: 'Klass för klass', d: 'Som i gokapp: varje klass börjar om från första kontrollen.' }
 	];
 
 	let strategy = $state<Strategy>('BALANCED');

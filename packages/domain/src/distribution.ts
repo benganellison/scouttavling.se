@@ -48,7 +48,7 @@ const eligible = (s: DistStation, trackId: string) => s.startable && (s.trackIds
 
 /**
  * Assigns start stations.
- * - ALL: gokapp's "distribute all": one long round-robin over the stations.
+ * - ALL: gokapp's "distribute all" (Erik Rydberg's gokapp): one long round-robin over the stations.
  * - PER_TRACK: gokapp's per-track variant: every track restarts at the first station.
  * - BALANCED (default): most constrained tracks first, each patrol to the eligible
  *   station with the fewest patrols (ties: fewest of the same track), so no track

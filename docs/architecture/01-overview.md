@@ -3,6 +3,18 @@
 Status: v0.1 as built, see §0 (proposal of 2026-10-15 below) · Sections: [02 Backend & domain](02-backend-and-domain.md) · [03 Client](03-client.md) · [04 Security & operations](04-security-and-operations.md)
 UI design (all screens and user journeys): https://claude.ai/artifact/53qBCbWvJdNHSihkWFGqd6
 
+**Origin.** scouttavling.se is a rebuild of [gokapp](https://github.com/erydberg/gokapp) by **Erik Rydberg**. Its domain model is gokapp's, extended to multiple days, several organisations and offline phones:
+- classes with their own stations;
+- stations with points and style points;
+- checkpoints;
+- volunteers tied to a station;
+- start and finish;
+- start-station distribution;
+- registration;
+- the tie-break order.
+
+The ranking (02) and both distribution strategies follow gokapp's behaviour exactly, and the importer (02 §9) brings old gokapp years into the archive.
+
 **Status: v0.1 as built (2026-10-28).** The sections below §0 are the original proposal (2026-10-15) and are kept for the reasoning behind each decision. **Where they differ from the code, §0 and the code win.** Sections 05 and 06 were written after the build and describe it as it is.
 
 ## 0. As built in v0.1

@@ -11,6 +11,10 @@
 	<div class="row">
 		<a class="btn btn-primary" href="/admin">Tävlingsledning</a>
 	</div>
+	<p class="credit">
+		Scouttävling bygger vidare på <a href="https://github.com/erydberg/gokapp">gokapp</a> av Erik Rydberg. Klasser, kontroller med stilpoäng, startfördelning, start
+		och mål och hur resultaten avgörs kommer därifrån. Tack, Erik!
+	</p>
 	<footer><ScouternaLogo tagline /></footer>
 </main>
 
@@ -30,6 +34,14 @@
 	}
 	footer {
 		margin: 24px 0 0 -19px;
+	}
+	.credit {
+		max-width: 60ch;
+		margin: 24px 0 0;
+		color: var(--ink-2);
+	}
+	.credit a {
+		color: inherit;
 	}
 	h1 {
 		font-size: clamp(36px, 6vw, 64px);
