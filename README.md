@@ -45,7 +45,13 @@ scouttavling.se stands on **Erik Rydberg**'s work. His [gokapp](https://github.c
 - public registration;
 - the tie-break order of the results.
 
-Old years from gokapp can be imported into the archive, ranked exactly as gokapp ranked them. Thank you, Erik.
+Old years from gokapp can be imported into the archive, ranked exactly as gokapp ranked them. Thank you, Erik. The home page says so too:
+
+<p align="center">
+  <img src="docs/media/startsida-dator.png" width="560" alt="Startsidan på en dator: Scouttävling, rubriken Från anmälan till prisutdelning — utan en enda manual, knappen Tävlingsledning och tacket: Scouttävling bygger vidare på gokapp av Erik Rydberg.">
+  &nbsp;
+  <img src="docs/media/startsida-mobil.png" width="200" alt="Samma startsida i en mobil, med tacket till Erik Rydberg och gokapp under knappen Tävlingsledning.">
+</p>
 
 - Architecture: [`docs/architecture/`](docs/architecture/README.md). Start with 01-overview.md §0 (as built).
 - **Contributing:** [`CONTRIBUTING.md`](CONTRIBUTING.md): getting started, tests, conventions
