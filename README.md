@@ -37,6 +37,22 @@ re-cut the clips and upload them as described in docs/media/README.md, then swap
 
 ## About
 
+scouttavling.se stands on **Erik Rydberg**'s work. His [gokapp](https://github.com/erydberg/gokapp), "a new version of the classic gokopen", is what this is a rebuild of. It worked out how a scout patrol competition is run in practice, and that shaped the design here:
+- classes (tracks) with their own stations;
+- stations scored in points and style points, with checkpoints that only record a visit;
+- volunteers who only see their own station, and a start and finish desk;
+- distributing patrols over start stations (both of gokapp's strategies are kept);
+- public registration;
+- the tie-break order of the results.
+
+Old years from gokapp can be imported into the archive, ranked exactly as gokapp ranked them. Thank you, Erik. The home page says so too:
+
+<p align="center">
+  <img src="docs/media/startsida-dator.png" width="560" alt="Startsidan på en dator: Scouttävling, rubriken Från anmälan till prisutdelning — utan en enda manual, knappen Tävlingsledning och tacket: Scouttävling bygger vidare på gokapp av Erik Rydberg.">
+  &nbsp;
+  <img src="docs/media/startsida-mobil.png" width="200" alt="Samma startsida i en mobil, med tacket till Erik Rydberg och gokapp under knappen Tävlingsledning.">
+</p>
+
 - Architecture: [`docs/architecture/`](docs/architecture/README.md). Start with 01-overview.md §0 (as built).
 - **Contributing:** [`CONTRIBUTING.md`](CONTRIBUTING.md): getting started, tests, conventions
 - Stack: SvelteKit 3 + Svelte 5 (TypeScript 6), PostgreSQL 18, Drizzle, Node 24 LTS.

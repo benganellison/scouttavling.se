@@ -1,6 +1,7 @@
 /**
  * gokapp → scouttavling.se: the pure parts of importing an old year into the archive
  * (docs/architecture/02 §9). No I/O; the reader and writer live in apps/web.
+ * gokapp is Erik Rydberg's (github.com/erydberg/gokapp); this reads its schema and reproduces its ranking.
  */
 import type { ScoreItemDef } from './scoring.ts';
 

@@ -30,7 +30,7 @@ export interface RankedPatrol {
 const TIEBREAK_DEPTH = 50;
 
 /**
- * Ranks patrols exactly like gokapp's Patrol.compareTo:
+ * Ranks patrols exactly like gokapp's Patrol.compareTo (gokapp by Erik Rydberg, github.com/erydberg/gokapp):
  *   1. highest total (points + style points)
  *   2. highest points without style
  *   3. most best-possible values, then most next-best, … (checkpoints and
