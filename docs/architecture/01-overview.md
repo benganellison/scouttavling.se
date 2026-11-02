@@ -168,7 +168,7 @@ Every version below was verified against the npm registry, nodejs.org, postgresq
 - **Birth year is not needed.** No birth data is stored; the import strips birth years in the browser, including inside free-text member lists.
 - **Operator / GDPR processor:** normally the **scout district**; Scouterna or an association are also acceptable. The owning kår (or district) remains controller.
 - **Who may create competitions:** **any logged-in ScoutID user.** No role-key check; the owning kår/district is picked from their memberships (04 §2.4).
-- **ScoutID production:** will be live before scouttavling.se goes live, so nothing waits on it. Build against `dev.id.scouterna.se`; request the prod client when it opens (draft email in 04 §2.7).
+- **ScoutID production:** live since autumn 2026 at `https://id.scouterna.se/realms/scoutid` (wiki checked 2026-11-02). Build against dev (`https://dev1.id.scouterna.se/realms/scoutid`); request the dev and prod clients together (draft email in 04 §2.7).
 - **Backend language (product owner, 2026-10-15):** TypeScript end-to-end, one codebase.
 
 **For the team:**

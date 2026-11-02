@@ -26,11 +26,15 @@ This section defines **contracts** that the backend/domain (02) and client (03) 
 
 ## 2. ScoutID integration
 
-### 2.1 Facts from the ScoutID documentation (checked 2026-10-15)
+### 2.1 Facts from the ScoutID documentation (wiki checked 2026-11-02)
 
-- Keycloak realm `scoutnet`. Dev discovery: `https://dev.id.scouterna.se/realms/scoutnet/.well-known/openid-configuration`. Prod base URL is `https://id.scouterna.se`. The wiki lists prod as not yet live. Organisers confirmed (2026-10-15) that prod will be live **before scouttavling.se goes live**, so development proceeds against dev and nothing waits on the prod date.
+- Keycloak realm `scoutid`. Issuers (the `SCOUTID_ISSUER` value; discovery is `<issuer>/.well-known/openid-configuration`):
+  - dev: `https://dev1.id.scouterna.se/realms/scoutid`
+  - prod: `https://id.scouterna.se/realms/scoutid`, **live**.
+
+  The old dev realm `https://dev.id.scouterna.se/realms/scoutnet` still answers but is not the one the wiki points to; do not use it.
 - Authorization code flow. Public clients must use PKCE S256. Confidential clients get an id and secret. Access-token lifetime is set per client at registration. ScoutID SSO sessions last 30 days.
-- Scopes: `openid` (sub, preferred_username `<member_no>@scoutnet`), `profile` (name, given/family name, picture, birthdate, locale, `scoutnet_member_no`), `email` (`email`, `email_verified` which is always true, plus optional `alt_email`/`scouterna_email`), `phone` (`phone_number`, E.164), `scoutnet-memberships` (must be requested explicitly: `primary_group_name`, `primary_group_no`, `group_emails_json`, `memberships`).
+- Scopes: `openid` (sub, preferred_username `<member_no>@scoutnet`), `profile` (name, given/family name, picture, birthdate, locale, `scoutnet_member_no`), `email` (`email`, `email_verified` which is always true, plus optional `alt_email`/`scouterna_email`), `phone` (`phone_number`, E.164; **we do not request it**), `scoutnet-memberships` (must be requested explicitly: `primary_group_name`, `primary_group_no`, `group_emails_json`, `memberships`).
 - `memberships` is keyed by `groups`, `troops`, `patrols`, `organisations`, `regions`, `districts`, `corps`, `networks`, `projects`. Each entry has `roles[]` of `{id, key, name?}`. **No complete list of role keys is published.** The examples are `it_manager` at kår level, `leader`/`vice_leader` at troop level and `board_member` at organisation level.
 - Membership data reflects Scoutnet *at login time*.
 - `sub` is a Keycloak UUID that is opaque and not guaranteed to survive future migrations. The wiki names the member number as "the stable identifier". The `preferred_username` format changed before provider v0.14.0 (current release: v0.14.0, 2026-09-28), so prefer the dedicated `scoutnet_member_no` claim over parsing it.
@@ -56,7 +60,7 @@ The SPA gets the current user from `GET /api/v1/me` and starts login with a top-
 
 ### 2.3 Scopes and claim mapping
 
-Request: `openid profile email phone scoutnet-memberships`.
+Request: `openid profile email scoutnet-memberships` (`SCOPES` in `apps/web/src/lib/server/scoutid.ts`). No `phone`: nothing uses it.
 
 | Claim | App field | Notes |
 |---|---|---|
@@ -64,7 +68,7 @@ Request: `openid profile email phone scoutnet-memberships`.
 | `sub` | `app_user.scoutid_sub` (informational) | Update it if it changes. Never use it as a join key. |
 | `name`, `given_name`, `family_name` | display name | Refreshed at each login. |
 | `email` | `app_user.email` | May be a group address. Use it only for notifications the user turned on. |
-| `phone_number` | `app_user.phone` | Only stored if the user consents in the UI ("use my phone number for SMS during the event"). |
+| `phone_number` | not requested | `app_user.phone` exists for a possible later opt-in ("use my phone number for SMS during the event") and stays empty in v1. |
 | `birthdate`, `picture`, `locale` | **not stored** | Data minimisation. `locale` may set UI language for the session only. |
 | `memberships.groups` | `user_group_role(member_no, group_no, role_key, seen_at)` snapshot | Used for authorisation (§2.4) and for the "which kår" picker. |
 | `troops`, `patrols`, other types | not stored in v1 | |
@@ -82,17 +86,17 @@ Request: `openid profile email phone scoutnet-memberships`.
 
 ### 2.5 Logout
 
-`POST /auth/logout` invalidates our session and then redirects to the ScoutID `end_session_endpoint` with `id_token_hint` (the ID token is kept in the session for this purpose only) and `post_logout_redirect_uri=https://scouttavling.se/`. Shared start/finish tablets never hold a ScoutID session (§3.6), so a logout there cannot sign a parent out of ScoutID. Back-channel logout is not required for v1.
+**As built:** `POST /auth/logout` ends only our session (the row is deleted and the cookie cleared) and redirects to `/`. The ScoutID SSO session stays, so the next login may go straight through without a password. We keep no ID token, and need no post-logout redirect URI. Single logout (redirect to the `end_session_endpoint` with `id_token_hint`) can be added later if organisers on shared computers need it. Shared start/finish tablets never hold a ScoutID session (§3.6), so a logout there cannot sign a parent out of ScoutID. Back-channel logout is not required for v1.
 
 ### 2.6 Environments
 
 | Env | ScoutID | Redirect URI |
 |---|---|---|
-| local | `dev.id.scouterna.se`, or local Keycloak **26.8.1** + `scoutid-keycloak-provider` **v0.14.0** via the provider repo's Docker Compose | `http://localhost:5173/auth/callback` |
-| staging | `dev.id.scouterna.se` | `https://staging.scouttavling.se/auth/callback` |
+| local | dev (`dev1.id.scouterna.se`), or local Keycloak **26.8.1** + `scoutid-keycloak-provider` **v0.14.0** via the provider repo's Docker Compose | `http://localhost:5173/auth/callback` |
+| test server | dev (`dev1.id.scouterna.se`) | `https://scouttavling.thengt.se/auth/callback` |
 | prod | `id.scouterna.se` | `https://scouttavling.se/auth/callback` |
 
-Each environment has its own client id and secret, stored only in that environment's secret store (§7.7). The issuer URL is configuration, not code.
+Each environment has its own client id and secret, stored only in that environment's secret store (§7.7). The issuer URL is configuration, not code. The test server (`docs/dev/DEPLOY.md`) uses the dev client until it moves to scouttavling.se and the prod client.
 
 ### 2.7 Client registration email (draft, Swedish)
 
@@ -107,16 +111,16 @@ Each environment has its own client id and secret, stored only in that environme
 > - **Kontaktperson:** <namn>, <e-post>, <telefon>
 > - **Protokoll:** OpenID Connect, authorization code flow med PKCE (S256), **konfidentiell klient** (backend-for-frontend; tokens lämnar aldrig servern)
 > - **Redirect URI:er:**
->   - dev: `http://localhost:5173/auth/callback`, `https://staging.scouttavling.se/auth/callback`
+>   - dev (`realms/scoutid` på dev1): `http://localhost:5173/auth/callback`, `https://scouttavling.thengt.se/auth/callback`
 >   - prod: `https://scouttavling.se/auth/callback`
-> - **Post-logout redirect URI:er:** `http://localhost:5173/`, `https://staging.scouttavling.se/`, `https://scouttavling.se/`
-> - **Scopes:** `openid profile email phone scoutnet-memberships`
+> - **Post-logout redirect URI:er:** behövs inte (utloggning sker bara hos oss)
+> - **Scopes:** `openid profile email scoutnet-memberships`
 > - **Access token-livslängd:** standard räcker (vi använder bara ID-token vid inloggning och skapar en egen session)
 > - **Sub-mapper:** behövs inte, vi använder `scoutnet_member_no` som nyckel.
 >
-> Vi skulle gärna få en klient i **dev-miljön nu** och en i **prod** så snart den öppnar — vi planerar att gå live först efter det.
+> Vi skulle gärna få en klient i **dev** och en i **prod**. Testservern på scouttavling.thengt.se använder dev-klienten tills vi flyttar till scouttavling.se.
 >
-> Vi lagrar endast medlemsnummer, namn, e-post, och telefon om användaren godkänner det, samt kårroller. Födelsedatum och profilbild sparas inte. Personuppgiftsbiträdesavtal tecknas med arrangerande kår.
+> Vi lagrar endast medlemsnummer, namn, e-post och kårtillhörighet. Födelsedatum och profilbild sparas inte. Personuppgiftsbiträdesavtal tecknas med arrangerande kår.
 >
 > Tack!
 > <namn>, för scouttavling.se
