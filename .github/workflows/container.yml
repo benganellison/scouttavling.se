@@ -1,8 +1,8 @@
 # Builds and publishes the container image for a release tag (vX.Y.Z) to GHCR,
 # with build provenance. Triggered by pushed tags and called by release-please.
 #
-# ORIGIN is baked into the image: set the repository variable PUBLIC_ORIGIN
-# (Settings → Variables → Actions), default https://scouttavling.se.
+# No origin is baked in: the image serves any https domain (Dockerfile header). The domain is DOMAIN in
+# the server's .env.prod.
 name: Container image
 
 on:
@@ -52,7 +52,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: ORIGIN=${{ vars.PUBLIC_ORIGIN || 'https://scouttavling.se' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           sbom: true

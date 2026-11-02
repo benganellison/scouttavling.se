@@ -62,14 +62,14 @@ npm run gen:grant-key -w apps/web
 docker compose up -d --build                                 # http://localhost:3000
 ```
 
-Production on a VPS (Traefik + Let's Encrypt, nightly DB dumps, restic offsite backups):
+Production on a VPS (Traefik + Let's Encrypt, 15-minute DB dumps, restic offsite backups). New releases deploy themselves, Monday to Thursday only, through a timer on the server:
 
 ```sh
-cp .env.example .env.prod                                    # DOMAIN, ACME_EMAIL, passwords, keys, APP_IMAGE
-scripts/deploy.sh          # backup → migrate → replace app; a failing migration never stops the running app
+cp .env.example .env.prod                                    # DOMAIN, ACME_EMAIL, passwords, keys
+scripts/auto-deploy.sh --now   # newest release: backup → migrate → replace app; on failure the previous one stays
 ```
 
-Schema changes, backups, deploys and rollback: **[docs/dev/MIGRATIONS.md](docs/dev/MIGRATIONS.md)**.
+Installing a server step by step: **[docs/dev/DEPLOY.md](docs/dev/DEPLOY.md)**. Schema changes, backups and rollback: **[docs/dev/MIGRATIONS.md](docs/dev/MIGRATIONS.md)**.
 
 ### Site admin (platform operator)
 
@@ -100,14 +100,11 @@ npm run gokapp:import -- --series hajk-dm --series-name "Hajk-DM" --year 2023 --
 
 Details and what is read: [docs/architecture/02 §9](docs/architecture/02-backend-and-domain.md).
 
-`ORIGIN` is baked into the image at build time, so each public domain needs its own build. Released images are built by CI with the repository variable `PUBLIC_ORIGIN`.
-
-**Domain and addresses.** Everything lives on one domain (`DOMAIN`), as paths: a competition or series is at `/t/<slug>`, with the short address `/<slug>` (for posters) redirecting there; results at `/r/<slug>`. Point DNS for both `DOMAIN` and `www.DOMAIN` at the server: `www` gets its own certificate and redirects permanently to `DOMAIN`. Other subdomains are not served. Addresses shown in the app come from `ORIGIN`. Top-level routes are reserved and can never be used as a slug (`apps/web/src/lib/routing/slugs.ts`).
+**Domain and addresses.** Everything lives on one domain (`DOMAIN`), as paths: a competition or series is at `/t/<slug>`, with the short address `/<slug>` (for posters) redirecting there; results at `/r/<slug>`. Point DNS for both `DOMAIN` and `www.DOMAIN` at the server: `www` gets its own certificate and redirects permanently to `DOMAIN`. Other subdomains are not served. Addresses shown in the app follow `DOMAIN`. The released image has no domain built in, so the same image serves a test domain and production. Top-level routes are reserved and can never be used as a slug (`apps/web/src/lib/routing/slugs.ts`).
 
 ## Versions and releases
 
 - **SemVer**: 0.x during development and pilot. `1.0.0` is the first real competition. After that, patch = fixes, minor = features, major = breaking changes (e.g. the offline sync format).
 - **Conventional Commits** (`feat:`, `fix:`, `feat!:` …) drive the version. Work on short-lived branches and merge to `main` through pull requests. CI must pass.
 - **release-please** keeps a release PR with the changelog up to date. Merging it tags `vX.Y.Z`, creates the GitHub Release and publishes `ghcr.io/benganellison/scouttavling:X.Y.Z` (also `X.Y` and `sha-…`, never `latest`) with build provenance.
-- **Deploy** by setting `APP_IMAGE` to a version or `@sha256:` digest. Roll back by pointing at the previous one. Migrations run in the one-shot `migrate` container before the app starts. Deploy freeze on competition weekends.
-- The first release PR proposes **0.1.0** (`release-as` in `release-please-config.json`). Remove that line after v0.1.0 is released.
+- **Deploy**: the server pulls new releases itself, Monday to Thursday 08–20 (`scripts/auto-deploy.sh`, systemd timer), pinned to the image digest. Never automatically Friday to Sunday. Roll back with `scripts/auto-deploy.sh --version X.Y.Z`. Migrations run in the one-shot `migrate` container before the app starts ([docs/dev/DEPLOY.md](docs/dev/DEPLOY.md)).

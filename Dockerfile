@@ -1,9 +1,11 @@
 # syntax=docker/dockerfile:1
 # scouttavling.se — production image (SvelteKit adapter-node, Node 24 LTS).
 #
-# ORIGIN is baked in at build time (SvelteKit 3's CSRF origin check reads it
-# from the build), so build one image per public domain:
-#   docker build --build-arg ORIGIN=https://scouttavling.se -t scouttavling .
+# Release images are built WITHOUT an origin: behind TLS (Traefik), SvelteKit 3's CSRF check then uses
+# https://<Host>, so the same image serves any domain (test and production). The public address for links
+# and QR codes is the runtime ORIGIN (compose.prod.yaml: https://${DOMAIN}).
+# Only a plain-http deployment (local, no TLS) needs the origin baked in, or every form post is refused:
+#   docker build --build-arg ORIGIN=http://localhost:3000 -t scouttavling .
 
 ARG NODE_IMAGE=node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea
 

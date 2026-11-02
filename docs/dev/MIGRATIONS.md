@@ -144,7 +144,7 @@ CI's drift check fails if the journal and `schema.ts` disagree, so a botched mer
 
 ## 10. Production deploy
 
-**Always deploy with `scripts/deploy.sh`.** Never run a bare `docker compose up -d`. Compose stops the old app container *before* it waits for `migrate`, so a failing migration takes the site down. This was tested: the site stopped responding. The script orders the steps so that never happens:
+Normally the server's timer does this (`scripts/auto-deploy.sh`, Monday to Thursday; [DEPLOY.md](DEPLOY.md)). By hand: **always deploy with `scripts/deploy.sh`** (or `scripts/auto-deploy.sh --version X.Y.Z`). Never run a bare `docker compose up -d`. Compose stops the old app container *before* it waits for `migrate`, so a failing migration takes the site down. This was tested: the site stopped responding. The script orders the steps so that never happens:
 
 ```sh
 # APP_IMAGE in .env.prod set to the new release (version or @sha256 digest)

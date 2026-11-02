@@ -1,0 +1,11 @@
+# Looks for a new release every hour, 08:00–20:00 Swedish time, Monday to Thursday. Nothing runs
+# Friday to Sunday; auto-deploy.sh checks the weekday again itself, so a changed timer can't override it.
+[Unit]
+Description=scouttavling: look for a new release (Mon–Thu, daytime)
+
+[Timer]
+OnCalendar=Mon..Thu *-*-* 08..20:00:00 Europe/Stockholm
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target
