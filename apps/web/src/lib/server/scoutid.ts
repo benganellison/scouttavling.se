@@ -40,7 +40,7 @@ export function userFromClaims(claims: Record<string, unknown>) {
 		memberNo,
 		name: String(claims.name ?? memberNo),
 		email: (claims.email as string) ?? null,
-		phone: null, // stored only after explicit consent (04 §2)
+		phone: null, // never set in v1: the phone scope is not requested (04 §2.3)
 		groups
 	};
 }

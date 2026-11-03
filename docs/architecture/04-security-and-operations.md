@@ -32,12 +32,13 @@ This section defines **contracts** that the backend/domain (02) and client (03) 
   - dev: `https://dev1.id.scouterna.se/realms/scoutid`
   - prod: `https://id.scouterna.se/realms/scoutid`, **live**.
 
-  The old dev realm `https://dev.id.scouterna.se/realms/scoutnet` still answers but is not the one the wiki points to; do not use it.
+  The old dev realm `https://dev.id.scouterna.se/realms/scoutnet` (still shown on a few wiki pages, e.g. Joomla and Photoprism) returned HTTP 403 on 2026-11-03; do not use it.
+- Registration: the wiki asks for service name, contact person, protocol, redirect URIs, scopes and a short description. Prod clients are set up once the client type is verified, so expect the dev client first and prod after.
 - Authorization code flow. Public clients must use PKCE S256. Confidential clients get an id and secret. Access-token lifetime is set per client at registration. ScoutID SSO sessions last 30 days.
 - Scopes: `openid` (sub, preferred_username `<member_no>@scoutnet`), `profile` (name, given/family name, picture, birthdate, locale, `scoutnet_member_no`), `email` (`email`, `email_verified` which is always true, plus optional `alt_email`/`scouterna_email`), `phone` (`phone_number`, E.164; **we do not request it**), `scoutnet-memberships` (must be requested explicitly: `primary_group_name`, `primary_group_no`, `group_emails_json`, `memberships`).
 - `memberships` is keyed by `groups`, `troops`, `patrols`, `organisations`, `regions`, `districts`, `corps`, `networks`, `projects`. Each entry has `roles[]` of `{id, key, name?}`. **No complete list of role keys is published.** The examples are `it_manager` at kår level, `leader`/`vice_leader` at troop level and `board_member` at organisation level.
 - Membership data reflects Scoutnet *at login time*.
-- `sub` is a Keycloak UUID that is opaque and not guaranteed to survive future migrations. The wiki names the member number as "the stable identifier". The `preferred_username` format changed before provider v0.14.0 (current release: v0.14.0, 2026-09-28), so prefer the dedicated `scoutnet_member_no` claim over parsing it.
+- `sub` is a Keycloak UUID that is opaque and not guaranteed to survive future migrations. The wiki names the member number as "the stable identifier". The `preferred_username` format changed before provider v0.14.0 (current: provider v1.0.1, 2026-10-23, with no claim changes since v0.14.0; the ScoutID image `scoutid-keycloak` 1.1.0 is Keycloak 26.8.1 + provider 1.0.1), so prefer the dedicated `scoutnet_member_no` claim over parsing it.
 
 ### 2.2 Flow choice: BFF confidential client (recommended) vs SPA public client
 
@@ -56,6 +57,8 @@ This section defines **contracts** that the backend/domain (02) and client (03) 
 3. Issues our own session. The id is 256 random bits, and only its SHA-256 is stored in a Postgres `session` table, so it works across instances and survives scale-to-zero. Sessions have a 12 h idle and 7 day absolute timeout, and the id is rotated at login. The cookie is `__Host-sid; Path=/; Secure; HttpOnly; SameSite=Lax`.
 4. **CSRF:** SvelteKit's built-in Origin check covers form actions. For JSON, `hooks.server.ts` requires a double-submit `XSRF-TOKEN` cookie echoed in `X-XSRF-TOKEN` on every unsafe `/api` method that is authenticated by the session cookie. Device endpoints (`/join`, `/sync/*`) use no cookies and are authenticated by signatures (§3).
 
+> **As built (v0.1):** simpler than the above. `GET /auth/login?next=` keeps the PKCE verifier, `state` and `next` in three short-lived (10 min) httpOnly, SameSite=Lax cookies on `Path=/auth` (`oidc_v`, `oidc_s`, `oidc_n`), not encrypted, and sends no `nonce` (PKCE and `state` protect the code flow). The client secret goes as `client_secret_post` (openid-client's default; ScoutID supports both). Sessions last 7 days absolute, with no idle timeout. The rest (tokens discarded, hashed session id in Postgres, `__Host-sid`, CSRF) is as described.
+
 The SPA gets the current user from `GET /api/v1/me` and starts login with a top-level navigation to `/auth/login?returnTo=<relative path>`. `returnTo` must be a same-origin relative path, validated against open redirects.
 
 ### 2.3 Scopes and claim mapping
@@ -65,12 +68,12 @@ Request: `openid profile email scoutnet-memberships` (`SCOPES` in `apps/web/src/
 | Claim | App field | Notes |
 |---|---|---|
 | `scoutnet_member_no` | `app_user.member_no` (unique, **primary natural key**) | Reject a login that has no member number. Microsoft-only accounts are not supported in v1. |
-| `sub` | `app_user.scoutid_sub` (informational) | Update it if it changes. Never use it as a join key. |
+| `sub` | **not stored** | Never used as a key: the wiki does not guarantee it over time. |
 | `name`, `given_name`, `family_name` | display name | Refreshed at each login. |
 | `email` | `app_user.email` | May be a group address. Use it only for notifications the user turned on. |
-| `phone_number` | not requested | `app_user.phone` exists for a possible later opt-in ("use my phone number for SMS during the event") and stays empty in v1. |
+| `phone_number` | not requested | `app_user.phone` exists for a possible later opt-in ("use my phone number for SMS during the event") and stays empty in v1 (or is dropped, 02 tech debt). |
 | `birthdate`, `picture`, `locale` | **not stored** | Data minimisation. `locale` may set UI language for the session only. |
-| `memberships.groups` | `user_group_role(member_no, group_no, role_key, seen_at)` snapshot | Used for authorisation (§2.4) and for the "which kår" picker. |
+| `memberships.groups` | `app_user.groups` (`[{groupNo, name}]`, primary group first), replaced at each login | The "which kår" picker (§2.4). Role keys are not stored: nothing checks them. |
 | `troops`, `patrols`, other types | not stored in v1 | |
 
 **Linking imported people.** When a patrol leader or contact person is imported with a member number (§6.4), the backend stores it on `person.member_no`. If a ScoutID user with that number logs in later, the backend links them automatically and they see "your patrols". It never gives them more than the patrol-leader role for those patrols.
@@ -92,7 +95,7 @@ Request: `openid profile email scoutnet-memberships` (`SCOPES` in `apps/web/src/
 
 | Env | ScoutID | Redirect URI |
 |---|---|---|
-| local | dev (`dev1.id.scouterna.se`), or local Keycloak **26.8.1** + `scoutid-keycloak-provider` **v0.14.0** via the provider repo's Docker Compose | `http://localhost:5173/auth/callback` |
+| local | dev (`dev1.id.scouterna.se`), or local Keycloak **26.8.0** + `scoutid-keycloak-provider` **v1.0.1** via the provider repo's Docker Compose (ScoutID itself runs image `scoutid-keycloak` 1.1.0 = Keycloak 26.8.1) | `http://localhost:5173/auth/callback` |
 | test server | dev (`dev1.id.scouterna.se`) | `https://scouttavling.thengt.se/auth/callback` |
 | prod | `id.scouterna.se` | `https://scouttavling.se/auth/callback` |
 
@@ -111,14 +114,14 @@ Each environment has its own client id and secret, stored only in that environme
 > - **Kontaktperson:** <namn>, <e-post>, <telefon>
 > - **Protokoll:** OpenID Connect, authorization code flow med PKCE (S256), **konfidentiell klient** (backend-for-frontend; tokens lämnar aldrig servern)
 > - **Redirect URI:er:**
->   - dev (`realms/scoutid` på dev1): `http://localhost:5173/auth/callback`, `https://scouttavling.thengt.se/auth/callback`
+>   - dev (realmen `scoutid` på dev1.id.scouterna.se): `http://localhost:5173/auth/callback`, `https://scouttavling.thengt.se/auth/callback`
 >   - prod: `https://scouttavling.se/auth/callback`
 > - **Post-logout redirect URI:er:** behövs inte (utloggning sker bara hos oss)
 > - **Scopes:** `openid profile email scoutnet-memberships`
 > - **Access token-livslängd:** standard räcker (vi använder bara ID-token vid inloggning och skapar en egen session)
 > - **Sub-mapper:** behövs inte, vi använder `scoutnet_member_no` som nyckel.
 >
-> Vi skulle gärna få en klient i **dev** och en i **prod**. Testservern på scouttavling.thengt.se använder dev-klienten tills vi flyttar till scouttavling.se.
+> Vi skulle gärna få en klient i **dev** nu och en i **prod** när ni har verifierat klienttypen. Testservern på scouttavling.thengt.se använder dev-klienten tills vi flyttar till scouttavling.se.
 >
 > Vi lagrar endast medlemsnummer, namn, e-post och kårtillhörighet. Födelsedatum och profilbild sparas inte. Personuppgiftsbiträdesavtal tecknas med arrangerande kår.
 >
@@ -393,7 +396,7 @@ Peak for a single competition: about 60 patrols, about 30 volunteer devices, 2�
 | Uptime monitoring | **Uptime Kuma 2.5.6** or any EU hosted monitor |
 | Error tracking | **GlitchTip 6.1.8** (self-hosted on C, or GlitchTip's hosted service) or Sentry SaaS EU region, via `@sentry/sveltekit` 11.8.0 |
 | Metrics (optional, C only, phase 2) | **Prometheus 3.15.0** + **Grafana 13.2.4**. On A/B, platform metrics suffice. |
-| Local ScoutID | **Keycloak 26.8.1** + **scoutid-keycloak-provider v0.14.0** |
+| Local ScoutID | **Keycloak 26.8.0** + **scoutid-keycloak-provider v1.0.1** (provider repo's Docker Compose) |
 
 Changes from gokapp: no `ddl-auto=update` (drizzle-kit migrations); no `:latest` tag (deploy by digest); no defaulted DB password; on option C the Traefik dashboard is off and the Docker socket goes through a read-only socket proxy.
 
@@ -496,7 +499,7 @@ gokapp data is per-event and short-lived, and its users are local accounts with 
 
 | Phase | When (indicative) | Content | Exit criteria |
 |---|---|---|---|
-| 0. Foundations | Nov 2026 | Repo hygiene (§6.5), CI, phase-0 spike (01 §7) on a serverless container and a VPS, **hosting decision**, staging, ScoutID dev client requested (email §2.7), DPA draft reviewed with Scouterna | Login with dev ScoutID on staging; hosting chosen |
+| 0. Foundations | Nov 2026 | Repo hygiene (§6.5), CI, phase-0 spike (01 §7) on a serverless container and a VPS, **hosting decision**, staging, ScoutID dev client requested (email §2.7), DPA draft reviewed with Scouterna | Login with dev ScoutID on the test server (scouttavling.thengt.se); hosting chosen |
 | 1. MVP | Dec 2026 – Feb 2027 | Organiser flows, import wizard, device grants, offline scoring, start/finish, public results | Simulated event with 30 devices on staging, including a server kill and restore drill |
 | 2. Pilot | Spring 2027, **one friendly competition** (a single kår, ~20 patrols) | Run **parallel to gokapp**: gokapp stays the system of record, scouttavling.se is used by the same volunteers, and paper protocols are mandatory | Results match. No lost commands. Volunteer survey. |
 | 3. Early adopters | Spring/summer 2027 | 3–5 competitions incl. a multi-day hajk. gokapp is still available on request. | Two weekends with no Sev-1 incident |
