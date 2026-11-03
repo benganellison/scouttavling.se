@@ -95,7 +95,7 @@ Guards: the deployer refuses if the checkout has local edits (`git status`), if 
 ## 7. Moving from the test domain to scouttavling.se
 
 1. DNS for `scouttavling.se` and `www.scouttavling.se` to the server. Register `https://scouttavling.se/auth/callback` with ScoutID.
-2. In `.env.prod`, set `DOMAIN=scouttavling.se` (and the ScoutID client values, if it is a new client).
+2. In `.env.prod`, set `DOMAIN=scouttavling.se` and switch to the prod ScoutID client: `SCOUTID_ISSUER=https://id.scouterna.se/realms/scoutid` plus its `SCOUTID_CLIENT_ID` and `SCOUTID_CLIENT_SECRET` (04 §2.6). The test domain uses the dev client, so this is always a new client.
 3. `scripts/deploy.sh`. This is the same image with a new address; Traefik gets the new certificates.
 
 Invites, QR codes and links printed while testing point at the test domain, and stop working once DNS for it is removed.
