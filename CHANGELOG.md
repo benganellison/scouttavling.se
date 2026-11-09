@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/benganellison/scouttavling.se/compare/v0.2.0...v0.2.1) (2026-11-09)
+
+
+### Dokumentation
+
+* **scoutid:** realm scoutid on dev1 and prod; drop phone and post-logout from the request ([#8](https://github.com/benganellison/scouttavling.se/issues/8)) ([8650950](https://github.com/benganellison/scouttavling.se/commit/8650950004aeb07a17a1c9b402df0c778ce3dd15))
+
 ## [0.2.0](https://github.com/benganellison/scouttavling.se/compare/v0.1.0...v0.2.0) (2026-11-02)
 
 
