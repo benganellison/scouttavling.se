@@ -3,9 +3,9 @@ import { SCOUTID_ISSUER, SCOUTID_CLIENT_ID, SCOUTID_CLIENT_SECRET } from '$app/e
 
 /**
  * ScoutID (Scouterna's Keycloak) as a confidential OIDC client with PKCE.
- * Scopes per 04 §2: openid profile email phone scoutnet-memberships.
+ * Scopes per 04 §2.3: only what is used, i.e. name and member number (profile), e-mail and kår
+ * memberships. No phone (never used).
  */
-// Only what is used: name and member number (profile), e-mail, kår memberships. No phone (never used).
 export const SCOPES = 'openid profile email scoutnet-memberships';
 
 let configPromise: Promise<oidc.Configuration> | null = null;
@@ -40,7 +40,7 @@ export function userFromClaims(claims: Record<string, unknown>) {
 		memberNo,
 		name: String(claims.name ?? memberNo),
 		email: (claims.email as string) ?? null,
-		phone: null, // stored only after explicit consent (04 §2)
+		phone: null, // never set in v1: the phone scope is not requested (04 §2.3)
 		groups
 	};
 }
